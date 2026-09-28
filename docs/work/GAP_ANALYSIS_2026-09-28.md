@@ -6,6 +6,27 @@
 **Method:** Full recursive file inventory; line-level read of every document in `docs/core/`; measurement of the legacy corpus (models, raw-SQL sites, test count); verification of every cross-reference asserted in `AGENTS.md` against the filesystem.
 **Status:** Pre-scaffold. **Zero application code exists.** This document is the gate between "excellent planning" and "no product".
 
+> ## 📸 This is a point-in-time snapshot
+>
+> It describes the repository as it stood **before** the Git bootstrap. Several statements are now historical. They are **left unrewritten on purpose** — a dated analysis is evidence of what was true when it was made, and editing it retroactively destroys that.
+>
+> **Changed since (all 2026-09-28):**
+>
+> | Was | Now |
+> |---|---|
+> | "Not a git repository" (§2.3) | ✅ `main` → private remote `siraj-77/EduFlow`, 3 commits, working tree clean |
+> | `GAP-01` live token = **S1, blocks all work** (§4) | ⚠️ **Accepted risk (D24)** — never committed, `.claude/` gitignored before `git init`; rotation deferred by owner |
+> | `GAP-02` not a git repo = **S1** (§4) | ✅ **Closed** |
+> | `GAP-03` no toolchain = **S1** (§4) | 🔴 Still open — and now the **#1 blocker** |
+> | 18 documents written, 6 of them empty | ✅ All 6 filled; 23 markdown files total |
+> | `docs/adr/`, `docs/analysis/`, `docs/design/` absent | ✅ Created; `docs/adr/` has ADR-001…006 |
+> | `docs/idea-bank/` absent | 🟡 Directory + README + 5 stubs exist; **extraction still not done** (`GAP-04` open) |
+> | `PLATFORM_CORE_PLAN.md` absent | ✅ Created, then resequenced to the Prompt Pack's P0–P14 (D17) |
+> | — | 🆕 The **Agentic Prompt Pack** was added to `docs/core/` and is more granular than the sprint map in §6 |
+>
+> **For current state, read `docs/core/SSOT.md`.** For the remaining plan, read `docs/work/TODO.md`.
+
+
 > **Read this first:** `AGENTS.md` §1 already declares the repo pre-scaffold. This analysis confirms it and quantifies the delta. It also found **one live credential committed to disk** and **~30 broken document cross-references in `AGENTS.md`**. Both are tracked in §4.
 
 ---
