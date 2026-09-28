@@ -8,28 +8,37 @@
 
 ## P0 — Do These First
 
-### 1. Rotate the exposed credential 🔴 **BLOCKING**
+### 1. Rotate the exposed credential — ⚠️ **ACCEPTED RISK, NOT BLOCKING** *(decided 2026-09-28)*
 
-`.claude/settings.json` contains a **live** `thk_live_` bearer token and a third-party `ANTHROPIC_BASE_URL` (`https://tokenharbor.ai`).
+`.claude/settings.json` holds a **live** `thk_live_` bearer token and a third-party `ANTHROPIC_BASE_URL` (`https://tokenharbor.ai`).
 
-- [ ] Rotate/revoke the `thk_live_` token **at the issuer** — deleting the string from the file is *not* remediation
-- [ ] Confirm the old token is dead
-- [ ] Decide whether the third-party base URL is intentional (if yes → record an ADR; if no → revert)
-- [ ] Move the credential out of the repo (env var or gitignored location)
-- [ ] Add `.claude/` to `.gitignore` as defence in depth
-- [ ] Enable secret scanning in CI (`OPS-04`) so this class of leak is caught automatically next time
+**Status: deferred by owner decision (D24).** Not a blocker. Reasoning:
 
-> **Must happen before `git init`.** The first commit makes it permanent history.
+- The token was **never committed**. `.claude/` was added to `.gitignore` *before* `git init`, and the first-commit staging audit confirmed the real token value is absent from staged content.
+- The remote `siraj-77/EduFlow` is **private**, with the owner as sole holder.
+- Residual exposure is therefore **local-disk only**, which the owner judges acceptable.
 
-### 2. Initialise the repository 🔴 **BLOCKING**
+- [x] Add `.claude/` to `.gitignore` — done 2026-09-28 (`.gitignore:99`)
+- [x] Verify the token is absent from the first commit — done, staging gate 2b/2c
+- [ ] *Deferred:* rotate/revoke at the issuer
+- [ ] *Deferred:* decide whether the third-party base URL is intentional (if yes → record an ADR)
+- [ ] Enable secret scanning in CI (`OPS-04` / Prompt Pack P3.6) — **recommended**, and the one item here that has forward value
 
-- [ ] `git init`
-- [ ] Harden `.gitignore`: add `.claude/`, `graphify-out/`, `*.log`
-- [ ] Configure `git remote` (or a local bare remote for per-school-deployment parity)
-- [ ] Verify a clean first commit: `git status --porcelain` empty, `git ls-files` shows no secret
-- [ ] Document branch protection
+**Revisit immediately if any of these become true:** the repo is made public · a second person is granted access · the folder is shared or archived as a zip · the machine is shared or backed up to a service you do not control. At that point rotation is urgent, because the token is still live.
 
-> Without git, TDD checkpoint commits (`AGENTS.md` §4.1), conventional-commit traceability and worklog discipline are all impossible.
+> **This entry is deliberately downgraded from P0.** It previously read "must happen before `git init`". That gate passed on 2026-09-28 with the token excluded from history, and a stale BLOCKING marker would incorrectly halt a future session.
+
+### 2. Initialise the repository ✅ **DONE 2026-09-28** (GAP-02 closed)
+
+- [x] Harden `.gitignore` — added `.claude/`, `graphify-out/`, `.graphify_*.json`
+- [x] `git init -b main`; `origin` → `siraj-77/EduFlow` (private)
+- [x] Pushed on top of the remote's `0bedbe30` via `git reset --mixed FETCH_HEAD` → **fast-forward, no force**
+- [x] First commit `f7257cf` — 27 files, 8,694 insertions, **docs only, no code**
+- [x] Staging audit: no secret-shaped paths, no real token values, no scaffold dirs, working tree clean
+- [x] Remote `.gitignore` replaced with the repository's own
+- [ ] Branch protection — **not yet enabled**; push protection is unavailable on a private repo without GitHub Advanced Security (HTTP 422). Protect `main` via branch rules once available.
+
+> Two of TDD's three prerequisites are now met (git, and a working tree). **The test runner is still missing** — see item 5.
 
 ### 3. Write the ERD 🔴 **Longest pole**
 

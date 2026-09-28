@@ -6,6 +6,92 @@
 
 ---
 
+## 2026-09-28 — Git Bootstrap + Prompt Pack Reconciliation Planned
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-09-28 |
+| **Phase** | SRS Part E **Phase 0** — week ~2. Repository now under version control. |
+| **Task** | (a) Reconcile the analysis docs against the newly-added Agentic Prompt Pack; (b) `git init` and push to the private remote; (c) present the `AGENTS.md` corrections for approval |
+| **Agent** | opencode, skills: `using-superpowers`, `writing-plans`, `test-driven-development`, `tdd-workflow` |
+| **Status** | ✅ Phase 1 complete. ⏸ Phases 2–4 planned, awaiting go-ahead. |
+
+### Activity
+
+1. **Read the Agentic Prompt Pack** (52 KB, 868 lines) — P0–P14 prompt sequence, pre-flight decisions D-A…D-J, 8 known gaps, per-story reference for all 33 stories. Assessed it as **more granular and more authoritative** than the sprint map written before it existed.
+2. **Identified 5 conflicts** between the Prompt Pack and the analysis docs (audit durability, ADR numbering, "M2" meaning, docker-compose services, lint rules).
+3. **Inspected the remote** `siraj-77/EduFlow` — private, branch `main`, one commit `0bedbe30` containing only a **Next.js-default `.gitignore`** that did not exclude `.claude/`.
+4. **Hardened `.gitignore`** — added `.claude/` and `graphify-out/`.
+5. **`git init -b main`**, added `origin`, fetched, and used **`git reset --mixed FETCH_HEAD`** so local `main` points at the remote commit while the working tree survives. This makes the push a **fast-forward** and preserves the remote's history rather than rewriting it.
+6. **Ran a five-gate staging audit before committing** (see Quality below).
+7. **Committed 27 files / 8,694 insertions** as `f7257cf` and pushed. No `--force`.
+8. **Wrote and saved the execution plan** to `docs/superpowers/plans/2026-09-28-doc-reconcile-and-git-bootstrap.md`.
+9. **Downgraded GAP-01** from P0-blocking to an accepted risk, per owner decision, and corrected every document that described it as a blocker.
+
+### Findings
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 | **C1 — audit durability contradiction.** Prompt Pack D-G: audit row written **in the same DB transaction**. Jira `PLT-402`: written **"asynchronously, via queue"**. | D-G is correct. To be recorded as ADR-013 + a documented deviation. **Not yet applied.** |
+| 2 | **C2 — ADR numbering collision.** Prompt Pack §10.3 uses `ADR-005` as its licence-signature example; my ADR-005 is *mobile is milestone 2*. | New ADRs continue from **007**; the §10.3 example needs the cosmetic fix (approved, pending). |
+| 3 | **C3 — "M2" means two different things in three documents.** | Legend to be added: **Milestone 1/2** (product) vs **Gate M1–M6** (`SRS` §24). |
+| 4 | **C4 — docker-compose services.** Prompt Pack requires **MinIO** and a **mail catcher**; my `OPS-01` listed only Postgres + Redis. | To correct. |
+| 5 | **C5 — incomplete lint rules.** Prompt Pack also forbids `Math.random()` and adds `@Public('<reason>')`, `check-i18n`, `check-worklog`, gitleaks, lint-staged, commit-msg check. | To add to `ARCHITECTURE.md` §17 and to the `AGENTS.md` corrections. |
+| 6 | **`PLT-107` first-admin bootstrap has no story.** School Setup Workflow §6.5 requires a first administrator; no `PLT` story covers it. | To add as a **proposed** story. IDs are never renumbered. |
+| 7 | **Push protection unavailable** — HTTP 422; `security_and_analysis` requires Advanced Security (paid for private repos). | **Reported, not worked around.** Compensating control is the `gitleaks` job (P3.6). |
+| 8 | **The `thk_live_` token is not in the repo.** `.claude/` was gitignored *before* `git init`; the staging gate confirmed the token value is absent. | Owner decision: **accepted risk (D24)**, rotation deferred. |
+
+### Decisions Made
+
+| # | Decision | Rationale |
+|---|---|---|
+| **D24** | **GAP-01 downgraded from P0-blocking to an accepted risk.** Rotation deferred. | The token was never committed; the remote is private with the owner as sole holder. Residual exposure is **local-disk only**. Recorded with explicit revisit conditions rather than deleted, so it is not forgotten. |
+| **D25** | **`.claude/` gitignored in full** rather than committed as a sanitised template. | It is machine-specific model routing plus a credential — local machine configuration, not project configuration. |
+| **D26** | **Remote `.gitignore` replaced** with the repository's own. | GitHub's default is Next.js-oriented and omitted `.claude/`. |
+| **D27** | **Pushed on top of `0bedbe30` via `git reset --mixed FETCH_HEAD`**, rather than force-pushing a fresh root. | Non-destructive and needs no `--force`, which the Prompt Pack §1.3 lists as approval-required. The remote's history is preserved. |
+| **D28** | **Corrected the stale "BLOCKING" framing** in `TODO.md`, `SSOT.md` §5.1 and §8 immediately after the decision. | `git init` had already happened, so a "must happen before `git init``" marker would be factually wrong **and** would halt a future session for no reason. Stale status markers are worse than absent ones. |
+| **D29** | **Did not apply the 7 `AGENTS.md` corrections without explicit confirmation**, having been asked to show them first. | `AGENTS.md` is the governing contract. Approval to *edit* is not approval of a specific diff. |
+
+### Files Changed
+
+| File | Action |
+|---|---|
+| `.gitignore` | **modified** — added `.claude/`, `graphify-out/`, `.graphify_*.json` |
+| `docs/superpowers/plans/2026-09-28-doc-reconcile-and-git-bootstrap.md` | **created** — 4-phase execution plan |
+| `docs/work/TODO.md` | **modified** — §1 downgraded to accepted risk, with revisit conditions |
+| `docs/core/SSOT.md` | **modified** — §5.1 statuses updated, D12–D21 added, §8 rewritten (the token is no longer fact #1) |
+| `docs/work/WORKLOG.md` | **modified** — this entry |
+
+**Committed:** `f7257cf` (27 files, 8,694 insertions) — pushed to `siraj-77/EduFlow` as a fast-forward. The `TODO.md` / `SSOT.md` / `WORKLOG.md` edits above are **uncommitted**, pending the next commit.
+
+### Next Steps
+
+1. Owner confirms the **7 `AGENTS.md` corrections** → apply, then Phase 2.
+2. **Phase 2** — `idea-bank` stubs · ADRs 007–018 · resequence to P0–P14 · record `PLT-107` and the social-login/MFA deferrals · `CLAUDE.md`. One branch, one PR.
+3. **Phase 3** — the 6 `AGENTS.md` corrections. **Phase 4** — branch protection (may need a paid plan).
+4. Start **P0** (orientation) and **P1** (ADRs) from the Prompt Pack once Phases 2–4 land.
+
+### Quality
+
+**The staging audit is the test for a documentation-and-VCS task, so it is reported in full:**
+
+| Gate | Check | Result |
+|---|---|---|
+| 1 | No secret-shaped paths staged | ✅ clean |
+| 2b | Real token values (`thk_live_`/`sk-`/`ghp-` + 20+ chars) | ✅ clean |
+| 2c | The **specific** real token string | ✅ **not present** |
+| 2 | High-entropy patterns — *matched, but all prose* | ✅ 15 hits, all the literal string `thk_live_` in `.md`/`.gitignore` describing the finding. No credential. |
+| 3 | Staged manifest | ✅ 27 files — all `docs/`, plus `AGENTS.md` and `.gitignore` |
+| 4 | No scaffold dirs, no `.env` | ✅ clean — `apps/ packages/ infra/ directives/` confirmed absent on disk |
+| 5 | `.claude/settings.json` ignored | ✅ `.gitignore:99` |
+| 6 | `.env.local` ignored / `.env.example` trackable | ✅ both correct |
+| — | Push | ✅ fast-forward `0bedbe3..f7257cf`, no force, working tree clean |
+| — | Remote `.gitignore` | ✅ replaced, 104 lines, `.claude/` at line 99 |
+| — | Push protection | ❌ **HTTP 422 — reported, not worked around** |
+| — | `pnpm test` / `lint` / `typecheck` / `build` | ❌ **still not runnable** — GAP-03, unchanged. Zero application code was written, so this is correct, not an omission. |
+
+---
+
 ## 2026-09-28 — Comprehensive Repository & Documentation Analysis + Documentation Bootstrap
 
 | Field | Entry |

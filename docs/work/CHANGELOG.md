@@ -44,7 +44,14 @@ None. `AGENTS.md` and the four core planning documents were **not modified** —
 
 ### Security
 
-- **Reported, not remediated:** a live `thk_live_` credential in `.claude/settings.json` plus a third-party `ANTHROPIC_BASE_URL`. Rotation requires a human action at the issuer. Tracked as `GAP-01` / `REPO-01`, and it must happen **before `git init`** or the credential becomes permanent history.
+- **Accepted risk, not remediated (D24).** A live `thk_live_` credential in `.claude/settings.json` plus a third-party `ANTHROPIC_BASE_URL`. **It was never committed** — `.claude/` was added to `.gitignore` *before* `git init`, and the first-commit staging gate verified the token value was absent. The remote is **private** with the owner as sole holder, so residual exposure is local-disk only. Rotation deferred by owner decision on 2026-09-28, with explicit revisit conditions in `SSOT.md` §5.1. The CI secret scan (`OPS-04` / Prompt Pack P3.6) is the compensating control with forward value.
+- **Push protection could not be enabled** — `security_and_analysis` returns HTTP 422 because push protection requires GitHub Advanced Security, which is paid-only for private repositories. **Reported, not worked around** (D21).
+
+### Repository
+
+- Initialised git on `main`; remote `origin` = `siraj-77/EduFlow` (private). First commit `f7257cf` — 27 files, 8,694 insertions, **documentation only, no application code**. Pushed as a **fast-forward** on top of the remote's `0bedbe30`, which is preserved. No `--force` at any point.
+- `.gitignore` hardened: added `.claude/`, `graphify-out/`, `.graphify_*.json`. The GitHub-default Next.js `.gitignore` was replaced by the repository's own.
+
 
 ### Known issues
 
