@@ -15,9 +15,9 @@ EduFlow is a **school management system / school ERP** being built as a **new ap
 
 This repository contains the requirements, architecture and delivery plan. The codebase is not yet scaffolded.
 
-**A separate legacy implementation exists at `H:\AI-Dev\MyProjects\EduFlowV3\`.** It is a Next.js 16 monolith with a multi-tenant SaaS data model. It is **read-only reference material**. You are not extending it, not deploying it, and not porting it wholesale. See §5 for exactly what may be reused.
+**A separate legacy implementation exists at `H:\AI-Dev\MyProjects\EduFlowV3\EduFlowV3\eduflow\`.** It is a Next.js 16 monolith with a multi-tenant SaaS data model. It is **read-only reference material**. You are not extending it, not deploying it, and not porting it wholesale. See §5 for exactly what may be reused.
 
-**Planning documents (current):** `EduFlow_Project_Master_Plan_v5.2.md` (architecture, module tree, editions, roadmap), `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (FR-xxx requirements, test strategy, MVP, phases), `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (epic/story/AC template). Keep them under `docs/core/`.
+**Planning documents (current):** `EduFlow_Project_Master_Plan_v5.2.md` (architecture, module tree, editions, roadmap), `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (FR-xxx requirements, test strategy, MVP, phases), `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (epic/story/AC template), `EduFlow_School_Setup_Workflow_v1.md` (delivery process, gates G0–G9), `EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` (how to drive an agent; **its P0–P14 sequence supersedes any sprint map**), `SSOT.md` (current state of record) and `ARCHITECTURE.md` (the technical form of this contract). Keep them under `docs/core/`.
 
 ---
 
@@ -76,8 +76,9 @@ Every route is protected by guards. All three compose; none is optional.
 | Permission | `@RequirePermission('<PERMISSION_KEY>')` | The user's role grants this action |
 | Entitlement | `@RequireEntitlement('<feature_key>')` | The school's licence includes this feature |
 | Audit | `@Audited('<ACTION_KEY>')` | The action is recorded append-only |
+| Public | `@Public('<reason>')` | The **only** exemption from `@RequirePermission`. The reason is mandatory |
 
-- **A route with no `@RequirePermission` is a defect.** A CI static check must fail on any controller route lacking it. Fail-closed, never fail-open.
+- **A route with no `@RequirePermission` and no `@Public('<reason>')` is a defect.** A CI static check must fail on any controller route carrying neither. It accepts either one; every `@Public` use is listed in a checked-in allowlist file with its justification, so exemptions are reviewable rather than invisible. Fail-closed, never fail-open.
 - `@RequireEntitlement` is required on any feature-gated capability so a Basic-edition school cannot reach Deluxe functionality by calling the API directly.
 - `@Audited` is required on every sensitive action: finance, grades, permissions, attendance overrides, leave approvals, document issuance, GL postings, hall-booking overrides, wallet movements.
 - **Ownership policies are enforced, not just roles** (`IOwnershipPolicy`): teacher → own classes, parent → own children, vendor → own outlet. Role-denial and ownership-denial are distinguishable in logs.
@@ -86,7 +87,7 @@ Every route is protected by guards. All three compose; none is optional.
 
 ### 2.4 Time-dependent logic uses `IClock`
 
-Domain and use-case code **must never** call `Date.now()` or `new Date()` directly. Inject `IClock`. Required for deterministic tests of accrual, licence expiry, deadlines and hold expiry.
+Domain and use-case code **must never** call `Date.now()`, `new Date()` or `Math.random()` directly. Inject `IClock` (and an injected id generator for randomness). Required for deterministic tests of accrual, licence expiry, deadlines and hold expiry.
 
 ### 2.5 Money is never a float
 
@@ -112,7 +113,7 @@ Domain and use-case code **must never** call `Date.now()` or `new Date()` direct
 
 All UI text goes through i18n resource files. English (default), Tamil, Sinhala, Arabic. A literal English string in JSX/TSX is a review-blocking issue.
 
-**Start from the existing assets, not from scratch.** `docs/template/EduFlow — Frontend Template.html` already contains a complete `en`/`ta`/`si`/`ar` dictionary and a working RTL implementation (`html[dir="rtl"]` rules plus a runtime `dir` attribute), plus a light/dark token set. Harvest them into `packages/i18n-resources/` and `packages/ui-kit`. Assessment: `docs/design/FRONTEND_TEMPLATE.md`.
+**Start from the existing assets, not from scratch.** `docs/template/EduFlow — Frontend Template.html` contains a **light/dark token set** (harvest in full), and the **pattern** for RTL (`dir` set on `<html>`, rules scoped under `html[dir="rtl"]`) — harvest the pattern. It does **not** contain a usable dictionary: it has **21 keys, all landing-page marketing copy, and zero application keys**, so real i18n content is authored per module. Its RTL implementation is **4 CSS rules that mirror a landing page** — no sidebar, form, table, logical properties or icon mirroring — so app-shell RTL is built from scratch. It also has **no `prefers-reduced-motion`** rule. Harvest the tokens into `packages/ui-kit`; build the dictionary in `packages/i18n-resources`. Assessment: `docs/design/FRONTEND_TEMPLATE.md`.
 
 **Take the i18n, RTL and tokens. Do not take the marketing claims** — "Trusted by 200+ schools" and "1.2M Students Managed" are false, and "Start Free Trial" contradicts a per-school deployment sold on editions.
 
@@ -169,7 +170,7 @@ Every `ERROR`/`CRITICAL` is written to **both** the rotating structured-JSON fil
 Scaffold **both** trees in full before writing logic in a new module.
 
 ```
-eduflow/
+EduFlow/
 ├── apps/
 │   ├── api/src/modules/<module-name>/
 │   │   ├── controllers/            # routes + @RequirePermission/@RequireEntitlement/@Audited
@@ -315,7 +316,7 @@ Inventory and per-file judgements: `docs/analysis/LEGACY_REUSE_INVENTORY.md`.
 | **All UI, components, styling** | The interface is being redesigned. Nothing carries over. |
 | **Tenant-scoping layer** | `prisma-tenant-extension.ts`, `tenant-context.ts`, 35-model scoping. Solves a problem that does not exist under §2.1. Importing it adds a bypass surface with no threat behind it. |
 | **Global cross-school `@unique` constraints** | 14 legacy constraints assume a shared database. Irrelevant and wrong here. |
-| **Raw-SQL repositories** | 9 unfiltered `$queryRaw`/`$executeRaw` sites. Not ported. |
+| **Raw-SQL repositories** | **149** `$queryRaw`/`$executeRaw` call sites. Not ported. Method: recursive `*.ts`/`*.tsx` scan of the legacy app excluding `node_modules`/`.next`, measured 2026-09-28. See `docs/analysis/LEGACY_REUSE_INVENTORY.md` §2. |
 | **Next.js server actions / App Router API** | New build uses a separate API service. |
 | **Workspace artefacts** | Root scratch scripts, 4 stale generated Prisma clients, self-nested clone, 431KB log dumps. |
 
