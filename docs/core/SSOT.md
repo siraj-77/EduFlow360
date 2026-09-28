@@ -86,12 +86,27 @@ Nothing has been built. The following are **specified but absent**, and are the 
 
 | Question | Authoritative source |
 |---|---|
+| **Execution order, first milestone** | **`EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5 — the P0–P14 sequence. Supersedes any sprint map** (D17) |
 | **Dates, durations, team composition** | SRS v1.2 Part E (§21–23) |
-| **Build sequence and rationale** | Master Plan v5.2 §28 |
-| **First-milestone sprint plan** | `docs/work/PLATFORM_CORE_PLAN.md` |
+| **Build sequence rationale** | Master Plan v5.2 §28 |
 | **Story-level detail and acceptance criteria** | `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` |
+| **Deviations from the Jira order** | `docs/adr/ADR-017-deviations-from-jira-sprint-order.md` |
 | **Delivery process and gates G0–G9** | `EduFlow_School_Setup_Workflow_v1.md` |
+| **Engineering contract and per-ADR detail** | `docs/core/ARCHITECTURE.md` · `docs/adr/` |
 | **Repository name** | `EduFlow` (not `sms-platform`; SRS §15 is wrong) |
+
+### Naming legend — "M2" is ambiguous, so qualify it
+
+**Three documents use "M2" for two different things.** This is the fix; apply it everywhere.
+
+| Write this | Means | Source |
+|---|---|---|
+| **Milestone 1** / **Milestone 2** | The *product* milestones. Milestone 2 is the **mobile** milestone | `AGENTS.md` §7 (D5), `ADR-005` |
+| **Gate M1** … **Gate M6** | The *sign-off gates*. "Gate M2 — Foundation Complete" is one of them | `SRS` §24 |
+
+In the Prompt Pack §7 story table, the `M1`/`M2` column means **milestone** — so `PLT-104` marked `M2` is *milestone* 2 (mobile), **not** Gate M2. **Never write a bare "M2".**
+
+*Resolves conflict C3, found when the Agentic Prompt Pack was reconciled with the sprint map on 2026-09-28.*
 
 ---
 

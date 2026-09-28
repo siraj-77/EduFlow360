@@ -49,7 +49,8 @@ eduflow/
 │   ├── analysis/   LEGACY_REUSE_INVENTORY.md
 │   ├── design/     FRONTEND_TEMPLATE.md
 │   ├── template/   EduFlow — Frontend Template.html
-│   ├── work/       PLATFORM_CORE_PLAN.md, TODO.md, WORKLOG.md, BACKLOG.md
+│   ├── work/       PLATFORM_CORE_PLAN.md, TODO.md, WORKLOG.md, BACKLOG.md, CHANGELOG.md
+│   ├── superpowers/plans/   dated implementation plans
 │   └── archive/corpus/   (historical only)
 └── directives/                    # SOPs the agent may update (AGENTS.md §10)
 ```
@@ -827,7 +828,8 @@ test(auth): PLT-101 failing tests for lockout after 5 attempts
 feat(auth): implement PLT-101 credential login with lockout (FR-PLT-01)
 feat(rbac): implement PLT-202 fail-closed permission guard with cached resolution (FR-PLT-03)
 refactor(audit): PLT-402 extract snapshot differ
-docs(adr): ADR-005 licence signature over canonical JSON
+docs(adr): ADR-009 licence signature over canonical JSON
+docs(adr): ADR-013 audit durability - same-transaction write
 ```
 
 ### 10.4 WORKLOG entry template

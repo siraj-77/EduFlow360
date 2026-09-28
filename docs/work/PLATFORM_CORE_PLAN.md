@@ -1,15 +1,33 @@
 # PLATFORM CORE PLAN — Milestone 1
 
 **Project key:** `PLT` · **Source of truth for stories:** `docs/core/EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md`
-**This file** is the *execution* view: entry conditions, sprint schedule, TDD obligations, exit gates.
+**Execution authority:** `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5 — **its P0–P14 sequence supersedes the sprint map below** (`SSOT.md` D17)
+**This file** is the *engineering* view: entry conditions, the prompt-by-prompt order, TDD obligations, exit gates.
 **Last updated:** 2026-09-28
 **Full analysis:** `docs/work/GAP_ANALYSIS_2026-09-28.md`
 
 ---
 
+## 0. Naming legend — read before any milestone reference
+
+**"M2" is used for two different things across the corpus.** This table is the fix (`SSOT.md` §4).
+
+| Write this | Means | Source |
+|---|---|---|
+| **Milestone 1** / **Milestone 2** | The *product* milestones. Milestone 2 is the **mobile** milestone | `AGENTS.md` §7 (D5), ADR-005 |
+| **Gate M1** … **Gate M6** | The *sign-off gates*. "Gate M2 — Foundation Complete" is one of them | `SRS` §24 |
+
+In the Prompt Pack §7 story table the column `M1`/`M2` means **milestone**, so `PLT-104` is `M2` = milestone 2 = mobile. It does **not** mean Gate M2.
+
+**Never write a bare "M2".** Always qualify it.
+
+---
+
 ## 1. Scope — What This Milestone Is
 
-**In:** Platform Core & RBAC — `PLT-EPIC-01` … `PLT-EPIC-09`. 9 epics, **33 stories, 199 points**.
+**In:** Platform Core & RBAC — `PLT-EPIC-01` … `PLT-EPIC-09`. 9 epics, **33 stories, 199 points** (verified by enumeration, 2026-09-28).
+
+**Story count reconciliation** (Prompt Pack §2.2 asks for this): 33 stories, 199 points. `AGENTS.md` §7's figures are correct; the Prompt Pack's note that "your `AGENTS.md` cites a corpus figure" resolves to agreement, not conflict.
 
 **Out (per `AGENTS.md` §7, D5 — `apps/mobile` is milestone 2):**
 - `PLT-104` (OTP login) → milestone 2
@@ -51,60 +69,74 @@
 
 ---
 
-## 3. Sprint Schedule
+## 3. Execution Order
 
-The original Jira document says "~4 sprints". That estimate **assumed a working repository**. It did not exist. Realistic sequence:
+The original Jira document's "~4 sprints" estimate **assumed a working repository**. It did not exist. The Prompt Pack's P0–P14 sequence is the corrected order (`SSOT.md` D17).
 
-### Sprint 0 — Foundation Harness *(blocking; nothing else can start)*
+### 3.1 Work that precedes P0
 
-| Track | Stories |
-|---|---|
-| Security / VCS | `REPO-01` rotate token · `REPO-02` git init + harden · |
-| Toolchain | `REPO-03` workspace · `REPO-04` shared config · `REPO-05` test harness · `REPO-08` `.env.example` |
-| Skeletons | `REPO-06` api · `REPO-07` web |
-| Contracts | `ARC-01` ERD · `ARC-02` ARCHITECTURE · `ARC-03` IClock · `ARC-04` guard shapes · `ARC-05` matrix fixture · `ARC-06` Money · `ARC-07` ADRs · `ARC-09` contradiction register |
-| Environment | `OPS-01` docker-compose · `OPS-02` CI skeleton |
+| Track | Work | State |
+|---|---|---|
+| Security / VCS | Rotate token (accepted risk, D24) · `git init` + hardened `.gitignore` | ✅ Done 2026-09-28 |
+| Toolchain | Workspace · shared config · **test harness** · `.env.example` | ❌ **P2/P3 — the blocking work** |
+| Skeletons | `apps/api` · `apps/web` | ❌ P2 |
+| Contracts | ERD · `ARCHITECTURE.md` · `IClock` · guard shapes · matrix fixture · `Money` · **ADRs** | 🟡 `ARCHITECTURE.md` ✅, ADRs 🟡 drafted, **ERD ❌ longest pole** |
+| Environment | compose (Postgres, Redis, MinIO, Mailpit) · CI | ❌ P2/P3 |
+| Requirements | idea-bank extraction `REQ-01…05` | ❌ **stubs exist, extraction does not** |
 
-**Exit gate — "Foundation Harness":**
+**Foundation Harness exit gate** (reached at P4):
 > `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm test:coverage && pnpm build` all green **in CI on a fresh clone**, with a deliberately-under-covered file proven to fail the coverage gate.
 
-**Critical path:** `REPO-01 → REPO-02 → REPO-03 → REPO-05 → REPO-06 → ARC-01 → exit → PLT-101`.
-**Longest pole:** `ARC-01` (ERD, 13 pts) — documentation-only, zero code dependencies, start it on day one in parallel.
-**Highest-leverage parallel:** the `REQ-01…05` idea-bank extraction (doc-only, unblocks every later domain).
+**Critical path:** toolchain → test harness → `apps/api` → ERD → `PLT-101`.
+**Longest pole:** the **ERD** — documentation-only, zero code dependencies, start day one in parallel.
+**Highest-leverage parallel:** the **idea-bank extraction** — doc-only, unblocks every later domain, and `PLT-205`'s matrix cannot be written without it.
 
-### Sprint 1 — Guards, i18n, and the first real behaviour
+**TDD status:** two of the three prerequisites are now met (git exists; a working tree exists). **The test runner is missing**, so no production code can be written. `test-driven-development` and `tdd-workflow` both require a working `<test>` command, a coverage command, and git for RED/GREEN checkpoints.
 
-| Track | Stories |
-|---|---|
-| Requirements | `REQ-01` module inventory · `REQ-02` domain entities · `REQ-03` business rules · `REQ-04` fr-index · `REQ-05` edge cases |
-| Design | `DSN-04` fonts · `DSN-05` a11y baseline · `DSN-06` UI lint rules |
-| Ops | `OPS-03` coverage gate · `OPS-04` security scanning · `OPS-05` `docs:verify` · `OPS-07` backup/restore drill |
-| Process | `ARC-08` directives |
-| **Platform Core** | **`PLT-101`** JWT login · **`PLT-102`** token refresh & rotation |
+### 3.2 The prompt sequence — P0 … P14
 
-**Exit gate:** login works end to end; the four guards' shapes are proven on real routes; i18n exists in four locales; the RBAC matrix has its first real rows.
+**`EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5 is the execution authority for order** (`SSOT.md` D17). It is more granular than the sprint table, and it encodes four **documented deviations** from the Jira document's sprint order, recorded in **`ADR-017`**.
 
-### Sprint 2 — RBAC end-to-end + Audit core
+| Step | Prompt | Stories | Gate |
+|---|---|---|---|
+| 0 | **P0** Orientation & readiness report | — (read-only) | Owner reads the report, answers questions, confirms the deviation list |
+| 1 | **P1** Decisions → ADRs | — | Owner approves/edits each ADR. **ADR-001…018 already drafted 2026-09-28 — this is the approval step** |
+| 2 | **P2** Scaffold the monorepo | — (no business code) | Owner runs every command on a clean clone |
+| 3 | **P3** Quality gates & CI | — | **The most valuable safety net.** A dummy PR with an unguarded route, a `new Date()` in a use-case, a raw `<button>` and a missing i18n key must make CI fail, then pass |
+| 4 | **P4** API kernel + walking skeleton · **P4W** web foundation | *pulled forward:* `PLT-501`, `PLT-502` (minimal), `PLT-901` (liveness only) | Boot everything; try the deliberately unguarded route; toggle theme/language; read the redaction tests |
+| 5 | **P5** Epic 01 Authentication | `PLT-101`, `102`, `103`, `105` + email adapter from `702` | Try login, trigger lockout with 5 bad passwords, reset via the mail catcher, inspect logs for leaks |
+| 6 | **P6** Epic 02 RBAC | `PLT-201`, `202`, `203`, `204`, `205` | **Owner reviews the matrix file line by line — it *is* the authorisation policy** |
+| 7 | **P7** Epic 04 Audit + **auth retrofit** | `PLT-401`, `402`, `403`, `404` | **Owner connects as the application role and tries to `UPDATE` an audit row** |
+| 8 | **P8** Epic 03 Licensing | `PLT-301`, `302`, `303`, `304`, `305` | Tamper with a certificate in staging; confirm locked mode, not a crash |
+| 9 | **P9** Epic 05 remainder | `PLT-503`, `504` (P2, time permitting) | — |
+| 10 | **P10** Epic 06 Registry & Settings | `PLT-601`, `602` | — |
+| 11 | **P11** Epic 08 Storage | `PLT-801`, `802` | — |
+| 12 | **P12** Epic 07 Notification router | `PLT-701`, `702` (**email only** — push is milestone 2) | Refactor P5's interim email path through the router; **tests must stay green** |
+| 13 | **P13** Epic 09 Health & metrics | `PLT-901` (complete), `902`, `903` | — |
+| 14 | **P14** Milestone close-out | `PLT-205` final, E2E, security review | **Gate M2 "Foundation Complete"** |
 
-`PLT-103` sessions & forced logout · `PLT-104`→*milestone 2* · `PLT-105` password reset · `PLT-201` role & permission model · `PLT-202` permission guard · `PLT-203` ownership policy engine · `PLT-204` frontend permission-aware rendering
+### The four documented deviations (ADR-017)
 
-**Exit gate — `M2 Foundation Complete`** (`SRS` §24): **license enforcement demonstrably working** is `M2`'s stated criterion, so licensing (§4 Sprint 3) either slips into this gate or `M2` is redefined. **Decide in Sprint 1.** This is a real inconsistency in `SRS` §24 — flag for the owner.
+The Jira document's sprint order cannot satisfy four of its own stories' acceptance criteria. `ADR-017` records each deviation, its reason, its mitigation and its cost.
 
-### Sprint 3 — Licensing, Audit, Diagnostics, Settings
+| # | Pulled forward | Why | Mitigation |
+|---|---|---|---|
+| ① | `PLT-501` + `PLT-502` → **P4** | `PLT-101`'s acceptance criteria require redaction. A redaction guarantee met two epics late is met by assertion, not test, on the most sensitive surface in the system | Minimal logger only; rotation stays in P9 |
+| ② | `PLT-901` liveness → **P4** | A boot that cannot be health-checked cannot be verified in CI or by an orchestrator | Liveness only; readiness stays in P13 |
+| ③ | Email adapter (half of `PLT-702`) → **P5** | `PLT-105` (password reset, P0) must send a reset mail, and the router is P12. Without this it either blocks or calls a vendor SDK directly — a layering violation | Built behind `INotificationChannelAdapter`, production-quality, **reused unchanged** by P12 (ADR-014) |
+| ④ | `IAuditRecorder` interim adapter → defined in **P5**, real audit retrofitted in **P7** | Epic 01 must record login success/failure, lockout, logout, session revoke, refresh-reuse detection, password reset and role change — but the durable store lands a later epic | P7's auth retrofit is **mandatory**, tests written first, with its own human gate (ADR-013) |
 
-`PLT-301`…`PLT-305` licensing · `PLT-401` audit schema & append-only storage · `PLT-402` audit interceptor · `PLT-501`…`PLT-503` diagnostics · `PLT-601` module registry · `PLT-602` school settings
+**No acceptance criterion is weakened. No story ID changes. Point estimates are unchanged** — only sequencing.
 
-**Exit gate:** a Basic-edition school is blocked from a Deluxe route **by direct API call**; `UPDATE`/`DELETE` on `audit_records` fails at the database connection level; errors land in file **and** DB.
+### Local environment — all four services
 
-### Sprint 4 — Sign-off and the long tail
+`OPS-01` compose file must include **PostgreSQL, Redis, MinIO and a local mail catcher (Mailpit)**, per Prompt Pack §1.1. MinIO is not optional: it means development and CI exercise the real S3 API rather than a mock that behaves nothing like it. Mailpit is what makes `PLT-105`'s reset mail testable without a network.
 
-`PLT-205` RBAC matrix sign-off · `PLT-403` audit log viewer · `PLT-404` retention · `PLT-701`/`PLT-702` notification router (email half) · `PLT-801`/`PLT-802` storage · `PLT-901`…`PLT-903` health & monitoring
+### Sprint 0 → P0–P2 mapping
 
-**Exit gate — `M3 Platform Core complete`:** every `AGENTS.md` §2.9 shared engine that Platform Core owns exists; Academic (SRS Phase 2) may begin.
+The pre-Prompt-Pack sprint map is superseded. For reference, the old grouping maps as: **Sprint 0** ≈ P0–P4 · **Sprint 1** ≈ P4W–P5 · **Sprint 2** ≈ P6 · **Sprint 3** ≈ P7–P8 · **Sprint 4** ≈ P9–P14.
 
-### Deferred to Sprint 5+ (acceptable per the Jira doc)
-
-`PLT-504` admin diagnostics viewer (P2) · `PLT-404` retention (P2) · `PLT-901`…`PLT-903` (P2)
+**Milestone gate naming:** the P14 human gate is **Gate M2 "Foundation Complete"** (`SRS` §24). Note the open inconsistency recorded in `ADR-006`: `SRS` §24 defines Gate M2 as *"license enforcement demonstrably working"*, but licensing lands at **P8**, after the gate the old sprint map placed at the end of Sprint 2. Under the P0–P14 sequence this resolves cleanly — **P14 sits after P8**, so the gate is satisfied when it is checked. `ADR-006` records the options; with the Prompt Pack ordering, option A is effectively in force.
 
 ---
 

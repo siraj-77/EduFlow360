@@ -28,6 +28,20 @@
 | BLG-004 | Decision log for *setup* activities, using `School_Setup_Workflow_v1.md` Appendix G's template | Belongs to the delivery process (gates G0–G9), not to the build | School onboarding begins | 2026-09-28 |
 | BLG-005 | Reclaim `EduFlowV3/directives/` SOP content for the new `directives/` folder | Legacy content must be reviewed, not copied. Tracked as `ARC-08` | `ARC-08` starts | 2026-09-28 |
 
+## Surfaced by the Agentic Prompt Pack (2026-09-28)
+
+These were not previously recorded. The Prompt Pack §2.2 identified them; they belong to the backlog because they are **out of milestone 1 scope**, not because they are unimportant.
+
+| ID | Idea | Why deferred | Trigger | Raised |
+|---|---|---|---|---|
+| BLG-060 | **Social login — Google / Microsoft / Apple / Facebook** | **Not in the Platform Core epics.** Prompt Pack §2.2 places it out of scope this milestone. Separately, `AGENTS.md` §13 forbids implementing these without confirmed client credentials and redirect URIs, which differ per environment. The frontend template's four `social()` buttons are **demo only and must not be ported** | Owner approval, plus confirmed OAuth credentials per environment | 2026-09-28 |
+| BLG-061 | **MFA (multi-factor authentication)** | Not in the Platform Core epics. Note this is **not** the same as `PLT-104` OTP login — OTP is a parent/student convenience channel (milestone 2); MFA is a security control for privileged roles | Post-milestone, or when a school requires it for Finance/HR roles | 2026-09-28 |
+| BLG-062 | **Clock-rollback detection for licence validation** | Proposed inside `PLT-301` (Prompt Pack §P8: persist last-seen time so rewinding the clock cannot extend a licence). Recorded but not decided — it needs an ADR | `PLT-301` planning | 2026-09-28 |
+| BLG-063 | **`IFileAccessPolicy` real implementations** | `PLT-801` ships the policy **against fakes**, because ownership facts belong to the Academic module. The real rules arrive with Academic | Academic module starts | 2026-09-28 |
+| BLG-064 | **Malware scanning adapter** | `PLT-801` provides the **port with a no-op adapter**. A real scanner is a separate decision (provider, latency budget, failure behaviour) | A school requires it, or regulation demands it | 2026-09-28 |
+| BLG-065 | **Notification digesting and per-recipient rate limiting** | `PLT-701` provides the hooks. Real digest windows and limits are policy, and belong in settings (`AGENTS.md` §2.14), not in code | `PLT-701` lands | 2026-09-28 |
+| BLG-066 | **Email deliverability setup — SPF, DKIM, reverse DNS** | Not a code change. It is a **school-onboarding step** in School Setup Workflow §14, and it is the thing most likely to make password reset silently fail in production | Before the first production deployment | 2026-09-28 |
+
 ## Architecture
 
 | ID | Idea | Why deferred | Trigger | Raised |
@@ -95,6 +109,10 @@ These were considered and declined. If you want one, open an ADR.
 | **BLG-096** | Add a second attendance, stock, booking, approval, document, notification or ledger engine | `AGENTS.md` §2.9. Extend the existing one by implementing its interface. |
 | **BLG-097** | Fork BookShop/Canteen logic per operator model | `AGENTS.md` §2.10. Operator is **data**, not code. Only `IConcessionSettlementStrategy` and RBAC scope differ. |
 | **BLG-098** | Add tenancy-scoping later "just in case" | `AGENTS.md` §2.1. Each guard is a new bypass surface with no threat behind it. Adding it later costs more than never adding it. |
+| **BLG-099** | Queue sensitive-action audit writes "for performance" | **`ADR-013`.** A queued audit row can be lost when the queue is unavailable, leaving a committed financial or disciplinary action with no trace. The record exists to answer *"did this happen, and who did it"* — that cannot be probabilistic. This overrides the Jira document's `PLT-402` wording. |
+| **BLG-100** | Fake permission keys instead of `@Public` for public routes | **`ADR-018`.** With no documented escape hatch, exemptions get built as `HEALTH_CHECK` or `PUBLIC_LOGIN` permissions. A fake key is a real key: it appears in the catalogue and **can be granted to a role**. Worse than a documented `@Public` in every respect. |
+| **BLG-101** | Build the auth surface before the logger and redaction exist | **`ADR-017` deviation ①.** `PLT-101`'s own acceptance criteria require redaction. Building it two epics later means the guarantee is met by assertion, not by test, on the most sensitive surface in the system. |
+| **BLG-102** | Invent `Student` / `Class` / `Teacher` entities in Platform Core so the ownership engine has something to work with | Prompt Pack §2.2, §9. `PLT-203` is built against **abstract ports with fakes**. Real entities arrive with Academic. Inventing them here creates a second, wrong definition that Academic must then reconcile. |
 
 ---
 

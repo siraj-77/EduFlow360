@@ -6,6 +6,84 @@
 
 ---
 
+## 2026-09-28 — Prompt Pack Reconciliation (Phase 2 + Phase 3)
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-09-28 |
+| **Phase** | SRS Part E **Phase 0** — repository now version-controlled, execution order being corrected. |
+| **Task** | (a) Apply the 7 owner-approved `AGENTS.md` corrections; (b) reconcile all analysis docs with the Agentic Prompt Pack; (c) write ADRs 007–018; (d) resequence to P0–P14 |
+| **Agent** | opencode · skills: `using-superpowers`, `writing-plans`, `test-driven-development`, `tdd-workflow` |
+| **Status** | ✅ Phase 2 complete · ✅ Phase 3 complete (7/7 corrections) · ⏸ Phase 4 (branch protection) blocked on a paid plan |
+
+### Activity
+
+1. **Applied the 7 `AGENTS.md` corrections** — verified as exactly 6 hunks / +8 −7 lines, no collateral edits.
+2. **Created the 5 `idea-bank` stubs** with a uniform loud `NOT YET EXTRACTED` header.
+3. **Wrote `ADR-007` … `ADR-018`** (12 decision records) covering Prompt Pack decisions D-A…D-J, the four sprint-order deviations, and the `@Public` escape hatch.
+4. **Reindexed `docs/adr/README.md`** to all 18 records, contiguous 001–018.
+5. **Applied the 2 owner-approved Prompt Pack corrections** — `ADR-005` → `ADR-009` in the §10.3 commit-message example, and §1.2's layout amended.
+6. **Resequenced `PLATFORM_CORE_PLAN.md`** from the 5-sprint map to **P0–P14**, with the four pull-forwards and the four compose services.
+7. **`ARCHITECTURE.md`** — added `@Public` to the guard table, §9.1 audit durability, §9.2 what is audited, and expanded §17 from 13 to **25** enforcement rows.
+8. **`SSOT.md`** — added the **M1/M2 naming legend** and made the Prompt Pack the authority on execution order.
+9. **`CLAUDE.md`** — one-line pointer, per Prompt Pack §10.1.
+10. **`TODO.md` / `BACKLOG.md`** — recorded `PLT-107`, 6 new deferred ideas, 4 new rejected ideas, the ADR approval list, and 4 new open questions.
+
+### Findings resolved
+
+| # | Finding | Resolution |
+|---|---|---|
+| **C1** | **Audit durability contradiction.** Prompt Pack D-G: audit in the same transaction. Jira `PLT-402`: "asynchronously, via queue" | **`ADR-013` — D-G wins.** A queued audit row can be lost, leaving a committed financial or disciplinary action with **no trace**. The record exists to answer *"did this happen, and who did it"*; that cannot be probabilistic. Changes the `IAuditRecorder` port to take a `TransactionContext` — a signature change, still create-only |
+| **C2** | `ADR-005` collision | New ADRs from **007**; Prompt Pack §10.3 example corrected to `ADR-009` |
+| **C3** | "M2" meant two things | Naming legend: **Milestone 1/2** vs **Gate M1–M6**. Never a bare "M2" |
+| **C4** | Missing MinIO + Mailpit | `OPS-01` now requires **Postgres, Redis, MinIO, Mailpit** |
+| **C5** | Incomplete lint rules | Added `Math.random()`, `@Public`, `check-i18n`, `check-worklog`, gitleaks, lint-staged, commit-msg check |
+| **6** | **`PLT-107` has no story.** School Setup Workflow §6.5 requires a first administrator; no `PLT` story creates one, so a fresh deployment cannot bootstrap | Recorded as a **proposed** story with placement, constraints and acceptance-criteria intent. IDs never renumbered |
+| **7** | **Audit and Auth ordering.** Epic 01 must record login/lockout/reset events before the audit store lands | `ADR-017` deviation ④: `IAuditRecorder` port + interim adapter in P5, mandatory retrofit in P7 with its own human gate |
+| **8** | `SRS` §24's Gate M2 (licensing) was inconsistent with the sprint map | **Resolved by reordering** — P0–P14 puts licensing at **P8**, before the **P14** gate |
+
+### Decisions Made
+
+| # | Decision | Rationale |
+|---|---|---|
+| **D17** | **The Prompt Pack's P0–P14 supersedes the sprint map** | More granular, encodes four pull-forwards and two interim-adapter patterns, and was authored against the full corpus |
+| **D30** | **Five loud stubs, not silent empty files** | Prompt Pack §4.2 greps `fr-index.md` and `business-rules.md` before **every** story. A stub that merely looked like content would send an agent off to invent an answer with no signal that anything was missing. A loud header makes the absence detectable |
+| **D31** | **Stubs record the *columns*, not sample rows** | Fixes the shape so the extraction is mechanical, while guaranteeing no plausible-looking-but-invented data can be mistaken for a real rule |
+| **D32** | **No `AGENTS.md` corrections beyond the 7 approved** | Approval to edit is not approval of a diff. Verified 6 hunks against the proposal, not "approximately the 7 things" |
+| **D33** | **A "no escape hatch" guard rule is worse than a documented `@Public`** | Without it, exemptions get built as fake permission keys — which appear in the catalogue and **can be granted to a role**. Recorded as `BLG-100` so it is not "solved" that way later |
+| **D34** | **Left the dated gap analysis unrewritten; added a snapshot banner** | Editing a dated document retroactively destroys the evidence of what was true when it was made |
+
+### Files Changed
+
+**Created (19):** `CLAUDE.md` · 5 × `docs/idea-bank/*.md` stubs · `docs/adr/ADR-007`…`ADR-018` (12)
+
+**Modified (11):** `AGENTS.md` · `docs/adr/README.md` · `docs/core/ARCHITECTURE.md` · `docs/core/SSOT.md` · `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` · `docs/idea-bank/README.md` · `docs/work/PLATFORM_CORE_PLAN.md` · `docs/work/TODO.md` · `docs/work/BACKLOG.md` · `docs/work/CHANGELOG.md` · `docs/work/WORKLOG.md`
+
+### Next Steps
+
+1. **Owner reviews this branch** → merge to `main`.
+2. **Prompt Pack P1** — approve `ADR-001`…`ADR-018`. **Already drafted, so P1 is a review not a writing task.** `ADR-003` (reconstructed), `ADR-013` (overrides the Jira text) and `ADR-018` (the only guard exemption) are the three that most need a human.
+3. Open questions ⚑9 (mobile), ⚑11 (`PLT-107`), ⚑12 (M1/M2 legend).
+4. **Prompt Pack P0** (orientation) is now largely redundant with the gap analysis — worth deciding whether to run it.
+5. **P2** scaffold → **P3** quality gates + CI. **P3 is the highest-value step in the whole sequence**: it is what makes every `AGENTS.md` rule executable rather than aspirational.
+
+### Quality
+
+| Check | Result |
+|---|---|
+| ADR numbering contiguous 001–018, no gaps or duplicates | ✅ verified |
+| Every ADR link in `docs/adr/README.md` resolves | ✅ verified |
+| All 5 `idea-bank` paths named by `AGENTS.md` §6 now exist | ✅ verified |
+| Cross-reference sweep across all markdown files | ✅ no accidental broken references (only intentional future-work targets remain) |
+| No fabricated business rules | ✅ zero data rows in any stub; columns only |
+| No real secrets staged | ✅ re-ran the token scan on the pending diff — clean |
+| `AGENTS.md` diff matches the approved proposal | ✅ 6 hunks, +8 −7, nothing extra |
+| `pnpm test` / `lint` / `typecheck` / `build` | ❌ **still not runnable** — GAP-03, unchanged. **Zero application code written**, which is correct. |
+| Application code written | **0 files** |
+| Branch protection | ❌ **not enabled** — requires a paid plan for private repos |
+
+---
+
 ## 2026-09-28 — Git Bootstrap + Prompt Pack Reconciliation Planned
 
 | Field | Entry |

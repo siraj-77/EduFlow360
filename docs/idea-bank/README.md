@@ -1,11 +1,30 @@
 # IDEA-BANK — Requirements Extraction
 
-**Status:** 🔴 **EMPTY BY DESIGN. Extraction not yet performed.**
-**Why this directory has a README and no content:** see §3 below.
+**Status:** 🔴 **STUBS ONLY. The extraction has not been performed.**
+**Why stubs and not content:** see §3 below.
 **Referenced by:** `AGENTS.md` §6 — *"The authoritative requirements are in `docs/idea-bank/`, extracted from the archived planning corpus."*
 **Tracked as:** `REQ-01` … `REQ-07` in `docs/work/GAP_ANALYSIS_2026-09-28.md` §6
 
 ---
+
+## The five files
+
+| File | Carries | `REQ` | State |
+|---|---|---|---|
+| [`module-inventory.md`](module-inventory.md) | One row per module from Master Plan §5, cross-checked against §29's 30-row table | `REQ-01` | 🔴 Stub — columns defined, **zero data rows** |
+| [`domain-entities.md`](domain-entities.md) | Fields, constraints, `schoolId`/money flags, and the **existing-equivalent** check | `REQ-02` | 🔴 Stub — Platform Core entity list recorded, **no definitions** |
+| [`business-rules.md`](business-rules.md) | One rule per row, each with a **source citation** and a **test target** | `REQ-03` | 🔴 Stub — mandatory engine coverage listed, **no rules** |
+| [`fr-index.md`](fr-index.md) | FR → MVP flag → implementing story → test reference | `REQ-04` | 🔴 Stub — known mapping gaps listed, **no FR rows** |
+| [`edge-cases-and-risks.md`](edge-cases-and-risks.md) | Boundaries, failure modes, `PC-000`…`PC-006`, each mapped to a test | `REQ-05` | 🔴 Stub — Platform Core boundary table listed, **no entries** |
+
+Every stub opens with the same loud header, so a **grep returning nothing is explained rather than silent**:
+
+> 🔴 **NOT YET EXTRACTED.** … A grep against this file returning nothing is the **expected** result today, not a bug.
+
+**This matters in practice.** Prompt Pack §4.2 Step 0 instructs the agent to read `fr-index.md` and `business-rules.md` before every story, and §10.5 gives the `grep` commands. A stub that merely *looked* like content would send an agent off to invent an answer with no signal that anything was missing.
+
+---
+
 
 ## 1. Why This Matters
 

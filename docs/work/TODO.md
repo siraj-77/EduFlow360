@@ -127,22 +127,61 @@ Blocking the items marked ⚑.
 | ⚑3 | Approve the four `AGENTS.md` corrections: D8 legacy path, D9 i18n claim, D10 raw-SQL count, C-01 repo name | Doc accuracy |
 | ⚑4 | Font stack for Tamil / Sinhala / Arabic (screen **and** PDF) | `DSN-04` |
 | ⚑5 | Required report-card layouts for the initial customer set — Master Plan §30 flags this as needed **before Phase 5** | Document/Print Engine abstraction |
-| ⚑6 | Activation server: in this repo or a separate service? Where do licence keypairs live? | `PLT-301`, `PLT-303` |
-| ⚑7 | `SRS` §24 sets `M2 Foundation Complete` = "license enforcement demonstrably working", but licensing is Sprint 3 while `M2` is the Sprint 2 gate. Slip the gate, redefine `M2`, or move licensing earlier? | Sprint 2/3 boundary |
+| ⚑6 | ~~Activation server: in this repo or a separate service?~~ | ✅ **Answered** — `ADR-010`: **external vendor service**, port + OpenAPI + local fake. Private key never in this repo |
+| ⚑7 | ~~`SRS` §24 Gate M2 vs. the licensing sprint position.~~ | ✅ **Resolved by reordering** — the P0–P14 sequence puts licensing at **P8**, before the **P14** gate. `ADR-006`, `ADR-017` |
 | ⚑8 | Design `PC-000`…`PC-006` now, or formally defer with owners and milestones? | `REQ-07` |
+| ⚑9 | **`SRS` §19 vs. `AGENTS.md` §7 (D5) on mobile.** `SRS` puts a Parent/Student Personal Portal in the MVP and `SRS` §20 AC-5 requires it; `AGENTS.md` makes `apps/mobile` milestone 2. Three options in `ADR-005` — A (adopt D5, amend `SRS`), B (revert to `SRS`), C (parent read-only **web** portal in the MVP, satisfies AC-5's substance without a mobile build) | MVP scope · **Recommended: C**, then A |
+| ⚑10 | **Approve `ADR-001`…`ADR-018`.** None is `Accepted` yet. **Prompt Pack P1 is the approval step** — and the ADRs are already drafted, so P1 becomes a review rather than a writing task | Everything that depends on a decision |
+| ⚑11 | **Approve proposed story `PLT-107`** (first-admin bootstrap via one-time setup token). School Setup Workflow §6.5 requires it; **no existing story covers it** | Epic 01 / school onboarding |
+| ⚑12 | **The `M2` naming legend** — approve the "Milestone 2" vs "Gate M2" distinction in `SSOT.md` §4 | All milestone references |
+
+---
+
+## 3. Approve the Decision Records — Prompt Pack P1 ⚑10
+
+`docs/adr/ADR-001` … `ADR-018` are **drafted but none is `Accepted`.** Review them, edit, and mark each Accepted. Highest-risk first:
+
+| ADR | Why it needs a human |
+|---|---|
+| [ADR-003](adr/../core/../adr/ADR-003-new-app-single-tenant-selective-reuse.md) | **Reconstructed**, not contemporaneous. Records who decided, and whether the D1 carve-out was in the original decision. **Needs sign-off most of all** |
+| [ADR-013](adr/../core/../adr/ADR-013-audit-durability-same-transaction.md) | **Overrides the Jira document's `PLT-402` text.** Changes the `IAuditRecorder` port signature |
+| [ADR-018](adr/../core/../adr/ADR-018-public-route-escape-hatch.md) | Introduces the only exemption from the fail-closed rule |
+| [ADR-009](adr/../core/../adr/ADR-009-licence-signature-ecdsa-canonical-json.md) | If a signing service already issues **RSA**, use RSA and skip this ADR |
+| [ADR-010](adr/../core/../adr/ADR-010-activation-server-external-boundary.md) | Confirms the private key never enters this repo |
+| [ADR-005](adr/../core/../adr/ADR-005-mobile-is-milestone-2.md) | **Conflicts with `SRS` §19** — see ⚑9 |
+| [ADR-017](adr/../core/../adr/ADR-017-deviations-from-jira-sprint-order.md) | The four pull-forwards. The Jira sprint table no longer describes the real order |
+| ADR-001, 002, 004, 006, 007, 008, 011, 012, 014, 015, 016 | Lower risk. Each has a recommended default already applied |
+
+---
+
+## 4. Proposed Story — `PLT-107` ⚑11
+
+**First-admin bootstrap via a one-time setup token.**
+
+- **Required by:** `EduFlow_School_Setup_Workflow_v1.md` §6.5 (Phase 3, first launch, first administrator).
+- **Gap:** **no `PLT` story covers it.** The 33 stories in the Jira document do not include any bootstrap mechanism, and `PLT-101` is ordinary credential login against existing users — so a fresh deployment has **no way to create its first administrator.**
+- **Status:** **proposed.** IDs are never renumbered (`AGENTS.md` §7), so this is `PLT-107`, appended.
+- **Where it runs:** inside Epic 01, **before Epic 03 completes** (Prompt Pack §2.2), because licence activation (P8) and school settings (P10) both presuppose an administrator exists.
+- **Constraints it inherits:** no default credentials, ever; the setup token is single-use, short-lived, and consumed on first successful use; the act is audited; the route is `@Public('<reason>')` (there is no user to authenticate) and therefore allowlisted per `ADR-018`.
+
+**Next step:** the Prompt Pack P5 prompt asks for the story *text* to be proposed for approval. Draft it as part of Epic 01, do not implement without sign-off.
 
 ---
 
 ## Do Not
 
-- ❌ **Do not start `PLT-101`** before the entry conditions in `PLATFORM_CORE_PLAN.md` §2 are met — chiefly the test harness (`REPO-05`) and the ERD (`ARC-01`)
-- ❌ **Do not `git init` before the token is rotated** — the credential becomes permanent history
+- ❌ **Do not start `PLT-101`** before the entry conditions in `PLATFORM_CORE_PLAN.md` §2 are met — chiefly the **test harness** and the **ERD**. Two of TDD's three prerequisites now exist (git, working tree); the test runner does not
 - ❌ **Do not port any legacy code** until `LEGACY_REUSE_INVENTORY.md` names the file with a reason (`AGENTS.md` §5.2)
 - ❌ **Do not build tenancy machinery.** See `ARCHITECTURE.md` §5 for the worked counter-example of exactly why
-- ❌ **Do not hard-code user-facing strings.** `DSN-02` must exist before the first UI story, not after
+- ❌ **Do not hard-code user-facing strings.** The four-locale skeleton must exist before the first UI story, not after
 - ❌ **Do not invent business rules** to fill the idea-bank. A gap is visible; a fabricated threshold is not
+- ❌ **Do not queue sensitive-action audit writes.** `ADR-013` — a queued audit row can be lost, and a record that exists to prove what happened cannot be probabilistic
+- ❌ **Do not use a fake permission key** for a public route. Use `@Public('<reason>')` and add an allowlist row (`ADR-018`)
+- ❌ **Do not invent `Student` / `Class` / `Teacher`** in Platform Core. `PLT-203` uses abstract ports with fakes
+- ❌ **Do not follow the Jira sprint table literally** — it cannot satisfy its own acceptance criteria. Use the P0–P14 sequence (`ADR-017`)
 - ❌ **Do not add a new top-level module** without checking Master Plan §5 and the module inventory
+- ❌ **Do not port the frontend template's social-login buttons** or its marketing claims. See `docs/design/FRONTEND_TEMPLATE.md`
 
 ---
 
-*Companion documents: `docs/work/GAP_ANALYSIS_2026-09-28.md` · `docs/work/PLATFORM_CORE_PLAN.md` · `docs/work/WORKLOG.md` · `docs/work/BACKLOG.md` · `docs/core/SSOT.md`.*
+*Companion documents: `docs/work/GAP_ANALYSIS_2026-09-28.md` · `docs/work/PLATFORM_CORE_PLAN.md` · `docs/work/WORKLOG.md` · `docs/work/BACKLOG.md` · `docs/core/SSOT.md` · `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md`.*

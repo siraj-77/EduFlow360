@@ -80,9 +80,14 @@ Every route. All three where applicable. None optional.
 | Permission | `@RequirePermission('<PERMISSION_KEY>')` | The user's role grants this action |
 | Entitlement | `@RequireEntitlement('<feature_key>')` | The school's licence includes this feature |
 | Audit | `@Audited('<ACTION_KEY>')` | The action is recorded, append-only |
+| **Public** | **`@Public('<reason>')`** | **The only exemption from `@RequirePermission`. The reason is mandatory** |
 
-- **A route with no `@RequirePermission` is a defect.** The static check (`ARC-04`, shipped in `REPO-04`) fails the build. Fail-closed, never fail-open.
-- `@RequireEntitlement` is required on any feature-gated capability, so a Basic-edition school cannot reach Deluxe functionality **by calling the API directly**. Hiding a menu item is not enforcement.
+- **A route with neither `@RequirePermission(...)` nor `@Public('<reason>')` is a defect.** The CI static check accepts either and rejects everything else. Fail-closed, never fail-open.
+- **Every `@Public` use is listed in a checked-in allowlist with its justification**, enforced in both directions, so exemptions are **reviewable rather than invisible** (`ADR-018`).
+- Legitimate exemptions are few and knowable in advance: health probes, metrics scraping, login, and licence activation — the last two are unauthenticated by necessity, because a locked-out user has no session and activation is how a school obtains a licence.
+- **A missing escape hatch would be worse than a documented one.** Without `@Public`, exemptions get built as fake permission keys, commented-out guards or `skipAuth` booleans — all invisible to the check, and a fake key can even be granted to a role. `ADR-018` exists so that does not happen.
+- `@Public` is rejected on a feature-gated route (a route that skips permission resolution has no resolved entitlement) and on a route declaring entity-scoped ownership (there is no actor to own anything).
+- `@RequireEntitlement` is required on any feature-gated capability so a Basic-edition school cannot reach Deluxe functionality **by calling the API directly**. Hiding a menu item is not enforcement.
 - `@Audited` is required on: finance, grades, permissions, attendance overrides, leave approvals, document issuance, GL postings, hall-booking overrides, wallet movements.
 - **The frontend gate is UX only.** It is never the security boundary.
 
@@ -185,6 +190,28 @@ Enforced by a static check (`ARC-03`): a `Date.now()` or `new Date()` in `domain
 - No raw SQL that mutates `audit_records`.
 - **Database-level too:** revoke `UPDATE`/`DELETE` grants on the audit table from the application role. Defence in depth, not convention.
 
+### 9.1 Durability — same transaction, not a queue
+
+**Sensitive-action audit rows are written in the same database transaction as the business change** (`ADR-013`).
+
+- One transaction covers both the domain write and the audit insert. **Either both commit or neither does.** A committed business change always has its audit row.
+- Queuing remains correct for **non-critical, high-volume events** — cases where losing the record is acceptable and per-event transactions are undesirable.
+- No mail and no vendor call happens inside the transaction.
+
+This **overrides** the Jira document's `PLT-402` wording ("asynchronously, via queue"), which would allow a committed financial or disciplinary action with **no audit record at all** if the queue were unavailable. A record that exists to answer *"did this happen, and who did it"* cannot be written probabilistically. `ADR-017` records the deviation.
+
+The port therefore takes a transaction context — which changes its **signature**, not its shape. It is still create-only:
+
+```ts
+create(record: AuditRecord, tx: TransactionContext): Promise<void>
+```
+
+### 9.2 What is audited
+
+Login success · login failure · lockout · logout and session revocation · refresh-reuse detection · password reset request and confirm · role change and forced logout · every sensitive action in `AGENTS.md` §2.3.
+
+Epic 01 defines the `IAuditRecorder` **port** with an interim adapter; the real audit store arrives later and **retrofits every auth event** (`ADR-017` deviation ④). The retrofit is a named deliverable with its own human gate, not a nice-to-have — if it is skipped, auth events are unaudited.
+
 ---
 
 ## 10. Adapters — Where Vendors Live
@@ -285,21 +312,31 @@ Assessment and measurements: `docs/design/FRONTEND_TEMPLATE.md`.
 
 A rule that is not mechanically enforced is a suggestion. Every rule above has a landing place:
 
-| Rule | Enforced by | Story |
+| Rule | Enforced by | Story / ADR |
 |---|---|---|
-| Layer dependency | ESLint `no-restricted-imports` by path | `REPO-04` |
-| No `Date.now()` in domain/use-cases | ESLint | `ARC-03` |
-| Every route has `@RequirePermission` | ESLint static check | `ARC-04` |
-| New route ⇒ matrix row | CI check against the fixture | `ARC-05` |
-| Journal entries balance | Domain unit test | `ARC-06` |
-| `any` needs `// TODO: type this` + ticket | ESLint; `@ts-ignore` banned outright | `REPO-04` |
+| Layer dependency | ESLint `no-restricted-imports` by path | `REPO-04`, ADR-001 |
+| No `Date.now()` **or `Math.random()`** in domain/use-cases | ESLint | `ARC-03`, ADR-004 |
+| Every route has `@RequirePermission` **or** `@Public('<reason>')` | `scripts/check-route-guards` (TypeScript AST) | `ARC-04`, **ADR-018** |
+| Every `@Public` use is in a checked-in allowlist with a justification | CI, two-way (code ⇒ list and list ⇒ code) | **ADR-018** |
+| `@Public` is rejected on a feature-gated route and on entity-scoped ownership routes | `check-route-guards` | **ADR-018** |
+| New route ⇒ matrix row | CI check against the `PLT-205` fixture | `ARC-05`, ADR-012 |
+| Journal entries balance, in the domain layer, before the DB | Domain unit test | `ARC-06`, ADR-002 |
+| Money is integer minor units + explicit currency | Type system + review | ADR-002 |
+| Sensitive audit rows share the business transaction | `IAuditRecorder` takes a `TransactionContext` | **ADR-013** |
+| `any` needs `// TODO: type this` + ticket; `@ts-ignore` banned outright | ESLint | `REPO-04` |
 | No user-facing literal in JSX/TSX | ESLint | `DSN-06` |
 | No hard-coded hex in a component | ESLint | `DSN-06` |
+| All four locale files have identical key sets | `scripts/check-i18n` | `DSN-02` |
+| A PR changing source must change `WORKLOG.md` | `scripts/check-worklog` | `AGENTS.md` §9 |
+| Commit message follows Conventional Commits | commit-msg hook | `AGENTS.md` §9 |
 | Coverage thresholds | Jest `coverageThreshold` per path glob | `OPS-03` |
-| No secrets tracked | Secret scanner in CI | `OPS-04` |
+| No secrets tracked | gitleaks in CI | `OPS-04` |
 | Audit table immutable | Postgres `REVOKE UPDATE, DELETE` | `PLT-401` |
 | No raw SQL mutating `audit_records` | ESLint restricted pattern | `PLT-401` |
-| All four locales populated | Key-parity test | `DSN-02` |
+| No module imports an S3 SDK directly | ESLint | `PLT-801`, ADR-015 |
+| Metrics labels are redacted and low-cardinality | ESLint + review | ADR-016 |
+| Licence signature is over canonical JSON | Domain unit test | **ADR-009** |
+| Private signing key never in this repo | Review + test keypair generation | **ADR-009**, ADR-010 |
 | Documented paths exist | `docs:verify` script | `OPS-05` |
 
 ---
