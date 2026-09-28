@@ -10,16 +10,18 @@
 
 | | |
 |---|---|
-| **Phase** | Pre-scaffold. SRS Part E **Phase 0** (Architecture, ERD, SRS sign-off), week ~1 of 2–3. |
+| **Phase** | Pre-scaffold. SRS Part E **Phase 0** (Architecture, ERD, SRS sign-off), week ~2 of 2–3. |
 | **Application code** | **None.** Zero source files. |
 | **Toolchain** | **None.** No `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.json`, ESLint or Prettier config. |
-| **Version control** | **Not a git repository.** |
+| **Version control** | ✅ **Git, on `main`, pushed to the private remote `siraj-77/EduFlow`.** 2 commits (`0bedbe30` → `f7257cf` → `032bd42`). `origin/main` in sync, working tree clean. |
+| **Repository contents** | `AGENTS.md` + `docs/` only. **No `apps/`, `packages/`, `infra/`, `directives/`.** |
 | **CI** | **None.** All seven `AGENTS.md` §4 quality gates are unrunnable and therefore vacuous. |
+| **Branch protection** | ❌ Not enabled. Push protection is unavailable on a private repo without GitHub Advanced Security (HTTP 422). |
 | **Phase 0 exit criteria** | SRS ✅ exists · MVP scope ✅ locked (SRS Part D) · **ERD ❌ does not exist in any form** |
 | **Story points committed** | 0 of 199 (Platform Core) · 0 of ~172 (REPO/ARC/REQ/DSN/OPS) |
 | **Stories completed** | 0 |
 
-**Do not describe this project as "in development".** Nothing is built. The correct description is *"planning complete, engineering not started"*.
+**Do not describe this project as "in development".** Nothing is built. The correct description is *"planning complete and now version-controlled, engineering not started"*.
 
 ---
 
@@ -97,7 +99,9 @@ Nothing has been built. The following are **specified but absent**, and are the 
 
 > **Updated 2026-09-28, after `git init` and the first push.** GAP-01 and GAP-02 are now closed or accepted. Read §5.1 as the *current* state, not the pre-initialisation state.
 
-### 5.1 S1 — blocks all work
+### 5.1 S1 — the top severity tier
+
+**GAP-02 is closed** and **GAP-01 is an accepted risk** (D24). Three remain genuinely open.
 
 | ID | Blocker | Owner action | State |
 |---|---|---|---|
