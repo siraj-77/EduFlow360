@@ -1,0 +1,51 @@
+{
+    "name":  "@eduflow/web",
+    "version":  "0.0.0",
+    "private":  true,
+    "description":  "EduFlow web. UI only â€” the API is a separate NestJS service (AGENTS.md 3.1). No server actions.",
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "next dev --port 3000",
+                    "build":  "next build",
+                    "start":  "next start --port 3000",
+                    "typecheck":  "tsc --noEmit",
+                    "lint":  "eslint .",
+                    "test":  "vitest run",
+                    "test:coverage":  "vitest run --coverage",
+                    "test:integration":  "echo \"no web integration suite at P2\" \u0026\u0026 exit 0",
+                    "test:e2e":  "playwright test",
+                    "clean":  "node -e \"const fs=require(\u0027node:fs\u0027);[\u0027dist\u0027,\u0027.next\u0027,\u0027coverage\u0027,\u0027test-results\u0027,\u0027playwright-report\u0027].forEach(d=\u003efs.rmSync(d,{recursive:true,force:true}))\""
+                },
+    "dependencies":  {
+                         "@eduflow/i18n-resources":  "workspace:*",
+                         "@eduflow/shared-types":  "workspace:*",
+                         "@eduflow/ui-kit":  "workspace:*",
+                         "class-variance-authority":  "^0.7.1",
+                         "clsx":  "^2.1.1",
+                         "next":  "^15.1.3",
+                         "next-intl":  "^3.26.3",
+                         "react":  "^19.0.0",
+                         "react-dom":  "^19.0.0",
+                         "tailwind-merge":  "^2.5.5"
+                     },
+    "devDependencies":  {
+                            "@eduflow/config":  "workspace:*",
+                            "@eslint/js":  "^9.17.0",
+                            "@playwright/test":  "^1.49.1",
+                            "@tailwindcss/postcss":  "^4.0.0",
+                            "@testing-library/jest-dom":  "^6.6.3",
+                            "@testing-library/react":  "^16.1.0",
+                            "@types/node":  "^22.10.2",
+                            "@types/react":  "^19.0.2",
+                            "@types/react-dom":  "^19.0.2",
+                            "@vitejs/plugin-react":  "^4.3.4",
+                            "eslint":  "^9.17.0",
+                            "globals":  "^15.14.0",
+                            "jsdom":  "^25.0.1",
+                            "tailwindcss":  "^4.0.0",
+                            "typescript":  "^5.7.2",
+                            "typescript-eslint":  "^8.18.1",
+                            "vitest":  "^2.1.8"
+                        }
+}
+

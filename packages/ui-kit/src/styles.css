@@ -1,0 +1,102 @@
+/**
+ * EduFlow design tokens.
+ *
+ * Harvested from docs/template/EduFlow — Frontend Template.html, which is
+ * a token and RTL-PATTERN donor only. It has 21 landing-page marketing i18n
+ * keys and zero application keys, so no content was taken from it
+ * (docs/design/FRONTEND_TEMPLATE.md).
+ *
+ * AGENTS.md 3.2.5 requires BOTH light and dark, a one-click toggle,
+ * `data-theme` set on <html> before first paint, and no hard-coded hex
+ * in any component. Every colour below is a variable for that reason.
+ *
+ * Tailwind v4 pattern: variables live in :root, and @theme inline maps
+ * them into Tailwind's theme so `bg-surface` resolves to var(--surface).
+ */
+
+:root {
+  /* Light theme — the default. */
+  --bg: #f7f8fb;
+  --surface: #ffffff;
+  --text: #161a23;
+  --muted: #6b7280;
+  --border: #e6e8ee;
+  --brand: #4f46e5;
+  --brand-2: #7c3aed;
+  --accent: #06b6d4;
+  --danger: #dc2626;
+  --ok: #059669;
+
+  /* Motion. AGENTS.md 3.2.7: <= 200ms, and reduced-motion respected. */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Touch target floor. AGENTS.md 3.2.2. */
+  --touch-target-min: 44px;
+}
+
+[data-theme='dark'] {
+  --bg: #0d0f16;
+  --surface: #141824;
+  --text: #eef0f6;
+  --muted: #9099ad;
+  --border: #242938;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+
+  --radius-card: 12px;
+  --radius-control: 8px;
+}
+
+/*
+ * AGENTS.md 3.2.7 — the template had NO prefers-reduced-motion rule, so
+ * this is added rather than inherited. Motion is disabled, not merely
+ * shortened: a vestibular trigger is not cured by a faster animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * AGENTS.md 3.2.6 — logical properties only, so RTL works by writing
+ * `padding-inline-start` rather than `padding-left`. Physical left/right
+ * is what the template did, and it is why its RTL was landing-page-only.
+ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    /* Font stack must cover Tamil, Sinhala and Arabic. */
+    font-family:
+      'Noto Sans', 'Noto Sans Tamil', 'Noto Sans Sinhala', 'Noto Sans Arabic',
+      system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}

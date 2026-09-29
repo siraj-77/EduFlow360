@@ -1,0 +1,24 @@
+{
+  "extends": "@eduflow/config/tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "noUncheckedIndexedAccess": false,
+
+    // `incremental: true` (inherited) plus a `--noEmit` typecheck run writes
+    // a .tsbuildinfo. A later real build then reads that file, concludes
+    // nothing changed, and emits NOTHING while still exiting 0. Observed
+    // during P2. The fix is to give the noEmit run its own info file, so
+    // typecheck state and build state cannot collide.
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}

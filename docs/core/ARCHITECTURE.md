@@ -270,8 +270,27 @@ All consuming modules read settings through **one shared service**. No module ha
 
 ---
 
-## 14. Errors and Logging
+## 13a. Configuration Is Validated at the Process Edge
 
+`AGENTS.md` §11: *"Start-up must fail fast naming the missing variable; no silent defaults."*
+
+Configuration is validated by a Zod schema at the **process edge**, in `apps/api/src/config/env.ts`, **before** the Nest application is constructed — so an invalid environment fails with a readable message rather than a dependency-injection error twenty frames deep. Every invalid variable is named **in one throw**, not one restart at a time.
+
+**There are three states for `DATABASE_URL`, not two.** A missing variable is neither defaulted nor fatal:
+
+| State | Behaviour |
+|---|---|
+| **Absent** | `persistence: 'disabled'`. The API boots, prints a loud banner naming what is missing and why that is acceptable *at this stage*, and **constructs no repository at all** |
+| **Present but invalid** — not `postgresql://`, still a `<placeholder>`, unparseable | **Throws.** Names every invalid variable at once |
+| **Present and valid** | `persistence: 'enabled'` |
+
+A guessed `localhost` URL is the silent default §11 forbids: it converts a two-second fix into an afternoon of debugging a connection error in a file that has nothing to do with configuration. Absence is visible; a convincing default is not. **From P4 the absent case is removed and the variable becomes required** (`ADR-019`).
+
+Nothing is mocked or substituted. PostgreSQL remains the only database (`ADR-003`, and `ADR-002` needs real numerics for money). Docker is one convenient way to supply the variables, not a dependency.
+
+---
+
+## 14. Errors and Logging
 Every `ERROR`/`CRITICAL` goes to **both** the rotating structured-JSON file log **and** the DB error log — never one without the other.
 
 - Structured JSON with **correlation IDs**, propagated per request.

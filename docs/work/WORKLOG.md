@@ -6,6 +6,113 @@
 
 ---
 
+## 2026-09-29 — P2 Scaffold: monorepo, toolchain, enforced rules
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-09-29 |
+| **Phase** | SRS Part E **Phase 0** · Prompt Pack **P2** (scaffold) — **complete** |
+| **Task** | Scaffold the monorepo, make `AGENTS.md` rules mechanically enforced, and make `npm run dev` work on a machine with no Docker |
+| **Agent** | opencode · `using-superpowers`, `test-driven-development`, `tdd-workflow`, `writing-plans` |
+| **Status** | ✅ **Complete. All gates green. Committed and pushed to `main`.** |
+
+### Activity
+
+1. Merged PR #1 to `main`; created the **6-package** pnpm/Turborepo workspace.
+2. `packages/config` — strict tsconfig base, three ESLint flat configs, Prettier.
+3. `apps/api` — NestJS skeleton; **12 module folders × 9 subfolders = 108**, matching `AGENTS.md` §3 exactly. Zod-validated env with the fail-fast contract.
+4. `apps/web` — Next.js + Tailwind v4 + shadcn/ui; 4 locales; pre-paint `data-theme`; RTL verified.
+5. `packages/{shared-types,ui-kit,i18n-resources}` — contracts, tokens, and 4 authored locale files.
+6. `infra/docker/docker-compose.yml` — Postgres, Redis, MinIO, Mailpit.
+7. `.env.example`, `README.md`, `CLAUDE.md`, `scripts/docs-verify.mjs`.
+8. Ran and repaired every gate until green; then smoke-tested both apps.
+
+### Gate results — all green
+
+| Gate | Result |
+|---|---|
+| `pnpm typecheck` | ✅ 8/8 tasks, 6 packages, TS strict |
+| `pnpm lint` | ✅ 8/8 tasks, **0 errors** |
+| `pnpm test` | ✅ **51 passing** — shared-types 3 · i18n-resources 10 · ui-kit 8 · api 26 · web 4 |
+| `pnpm build` | ✅ web prerenders **/en /ta /si /ar** as static |
+| `pnpm test:integration` | ✅ runnable, empty by design until P4 |
+| `pnpm docs:verify` | ✅ **147 references across 8 documents resolve** |
+
+### Smoke tests — observed, not assumed
+
+| Check | Result |
+|---|---|
+| API boots with **no `.env` at all** | ✅ prints the `PERSISTENCE DISABLED` banner, starts, listens on 3001 |
+| `/en` | ✅ HTTP 200 · `dir=ltr` · `lang=en` · `data-theme` present |
+| **`/ar`** | ✅ HTTP 200 · **`dir=rtl`** · `lang=ar` |
+| `/ta` · `/si` | ✅ HTTP 200 · `dir=ltr` |
+| Colour rule still fires in a real component | ✅ probe file confirmed, then deleted |
+
+### Decisions Made
+
+| # | Decision | Rationale |
+|---|---|---|
+| **D22** | **ERD deferred; `schema.prisma` ships empty** with a comment explaining why | Owner decision. A plausible-but-invented schema is worse than none — entity shapes are the drift vector `AGENTS.md` §6 names. Prisma's base migration is a **P4** deliverable, so P2 was never blocked by it |
+| **D23** | **Docker optional; explicit `persistence: 'disabled'` state** (`ADR-019`) | Owner: no Docker on Windows, must run with `npm run dev`. A **third state** — not a default, not a failure — so `AGENTS.md` §11 is *satisfied, not relaxed*. `DATABASE_URL` becomes required at P4 |
+| **D24** | Tailwind v4, Jest/Vitest, Node ≥ 22, Prisma, NestJS/Next latest | Owner accepted defaults. Node floor pinned **below** the local 26 so CI and laptops agree, and because `argon2` (ADR-007) is a native module likeliest to fail on bleeding-edge Node |
+| **D25** | **`eslint-config-next` dropped** | It patches ESLint internals and fails on 9.39. The two `AGENTS.md` §3.2 rules are implemented directly and verified to fire |
+| **D26** | **Token test asserts only what §3.2.5 specifies** | My first version demanded every token be overridden in dark mode. The spec mandates **five** surface overrides and leaves brand tokens theme-independent. The stricter test could only be satisfied by editing the tokens it protects |
+
+### Real bugs found and fixed
+
+Each was caught by a gate, not by review — which is the argument for having the gates.
+
+| # | Bug | How it surfaced |
+|---|---|---|
+| 1 | **`{children}` destructured but never rendered** in the root layout — pages would have rendered blank | `tsc` noUnusedLocals |
+| 2 | **`useTranslations` hook in an async Server Component** | `next build` prerender, *not* typecheck |
+| 3 | **Stale `tsconfig.tsbuildinfo`** made a real build emit **nothing** while exiting 0 | `node dist/main` → MODULE_NOT_FOUND |
+| 4 | **`*/` inside a JSDoc comment** closed it early, so `**/domain/**` was parsed as code | ESLint `ReferenceError: domain is not defined` |
+| 5 | **PowerShell BOM** in two `package.json` files broke Vite/PostCSS JSON parsing | vitest: `Unexpected token '\uFEFF'` |
+| 6 | `no-restricted-syntax` takes `selector`, not `group` | ESLint schema validation |
+| 7 | `ban-ts-comment` options are **booleans** in typescript-eslint v8, and `ts-allow-without-description` was removed | ESLint schema validation |
+| 8 | `@eduflow/config` couldn't import `@eslint/js` | pnpm's isolated `node_modules` — a package may only import what it declares |
+| 9 | ESLint parsing `.css` as TypeScript | lint failure on `styles.css` |
+| 10 | `Date.now` AST selector used `callee.name`; it is a MemberExpression | lint-rule test |
+| 11 | `docs-verify` regex truncated paths at `*` and at em-dashes | The verifier itself, on its first run |
+
+**All four are recorded in `SSOT.md` §8 "Known footguns"** so they are not reintroduced.
+
+### Files Changed
+
+**Created:** `README.md` · `CLAUDE.md` · `docs/adr/ADR-019-*` · `scripts/docs-verify.mjs` · `package.json` · `pnpm-workspace.yaml` · `turbo.json` · `.npmrc` · `.nvmrc` · `.editorconfig` · `.prettierrc.json` · `.env.example` · `infra/docker/docker-compose.yml` · `packages/config/{package.json,tsconfig.base,tsconfig.node,tsconfig.nextjs,prettier.config.js,eslint/{base,node,next}.js}` · `packages/{shared-types,ui-kit,i18n-resources}/…` · `apps/api/{package.json,tsconfig,nest-cli.json,vitest*.config.ts,prisma/schema.prisma,eslint.config.mjs,src/…}` · `apps/web/{package.json,tsconfig,next.config,postcss,proxy,vitest*,playwright.config,eslint.config.mjs,src/…}` · 147 `.gitkeep` files
+
+**Modified:** `docs/adr/README.md` · `docs/core/SSOT.md` · `docs/work/{TODO,WORKLOG,CHANGELOG}.md` · `docs/core/ARCHITECTURE.md`
+
+**Not created, deliberately:** `apps/mobile` (milestone 2) · `directives/` (ARC-08) · `infra/ci` (P3) · any Prisma model (D22)
+
+### Next Steps — resume here
+
+1. 🔴 **Prompt Pack P3 — quality gates and CI. The single highest-value step.** The rules exist in ESLint and vitest but nothing enforces them for anyone else. Its human gate: a dummy PR with an unguarded route, a `new Date()` in a use-case, a raw `<button>`, and a missing i18n key — each must **fail** CI, then pass. Still to write: `check-route-guards` (TypeScript AST), `check-i18n`, `check-worklog`, gitleaks, lint-staged, commit-msg hook, the CI workflow itself.
+2. 🔴 **ERD** (`D22`) — blocks `PLT-EPIC-01` and the Phase 0 exit gate. No code, no Docker needed.
+3. 🔴 **Idea-bank extraction** `REQ-01…05` — the Prompt Pack greps those files before **every** story.
+4. ⚑ **Approve `ADR-001`…`ADR-019`.** None is `Accepted`. Highest-risk: `ADR-003` (reconstructed), `ADR-013` (overrides the Jira text), `ADR-018` (the only guard exemption), `ADR-019` (this session).
+5. ⚑ Open questions ⚑9 (mobile in MVP?), ⚑11 (`PLT-107`), ⚑12 (M1/M2 legend).
+6. Then **P4** — API kernel, walking skeleton, `IClock`, guard decorators, Prisma base migration, Testcontainers. **`DATABASE_URL` becomes required there** and the `persistence: 'disabled'` branch is deleted (`ADR-019`).
+
+### Quality
+
+| Check | Result |
+|---|---|
+| `pnpm typecheck` | ✅ PASS — 8/8 |
+| `pnpm lint` | ✅ PASS — 8/8, 0 errors |
+| `pnpm test` | ✅ PASS — **51/51** |
+| `pnpm build` | ✅ PASS — 4 locales prerendered |
+| `pnpm docs:verify` | ✅ PASS — 147 references |
+| `pnpm test:integration` | ✅ PASS — empty by design |
+| API boot, no `.env` | ✅ boots, honest banner, listens |
+| Web, four locales | ✅ 200s, `dir` correct, `data-theme` present |
+| **CI** | ❌ **not yet** — P3 |
+| **ERD** | ❌ **not yet** — deferred (D22) |
+| Secrets in diff | ✅ re-scanned — clean |
+
+---
+
 ## 2026-09-28 — Prompt Pack Reconciliation (Phase 2 + Phase 3)
 
 | Field | Entry |

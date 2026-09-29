@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "EduFlow Node (API, packages)",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"],
+
+    // NestJS is CommonJS: it relies on emitDecoratorMetadata and
+    // decorator metadata resolution, which require CJS output. Under
+    // CommonJS, `verbatimModuleSyntax` rejects every ESM-style
+    // import/export, so it is disabled for Node targets only. The ESM
+    // packages (web, ui-kit) keep it, because that is where it earns its
+    // keep by catching value-vs-type import mistakes at build time.
+    "verbatimModuleSyntax": false
+  }
+}

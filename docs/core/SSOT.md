@@ -10,18 +10,52 @@
 
 | | |
 |---|---|
-| **Phase** | Pre-scaffold. SRS Part E **Phase 0** (Architecture, ERD, SRS sign-off), week ~2 of 2–3. |
-| **Application code** | **None.** Zero source files. |
-| **Toolchain** | **None.** No `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.json`, ESLint or Prettier config. |
-| **Version control** | ✅ **Git, on `main`, pushed to the private remote `siraj-77/EduFlow`.** 2 commits (`0bedbe30` → `f7257cf` → `032bd42`). `origin/main` in sync, working tree clean. |
-| **Repository contents** | `AGENTS.md` + `docs/` only. **No `apps/`, `packages/`, `infra/`, `directives/`.** |
-| **CI** | **None.** All seven `AGENTS.md` §4 quality gates are unrunnable and therefore vacuous. |
-| **Branch protection** | ❌ Not enabled. Push protection is unavailable on a private repo without GitHub Advanced Security (HTTP 422). |
-| **Phase 0 exit criteria** | SRS ✅ exists · MVP scope ✅ locked (SRS Part D) · **ERD ❌ does not exist in any form** |
-| **Story points committed** | 0 of 199 (Platform Core) · 0 of ~172 (REPO/ARC/REQ/DSN/OPS) |
-| **Stories completed** | 0 |
+| **Phase** | Pre-scaffold. SRS Part E **Phase 0**, but **P2 (Prompt Pack scaffold) is complete.** |
+| **Application code** | **Scaffold only.** Infrastructure, no business logic. 6 workspace packages, 51 passing tests. |
+| **Toolchain** | ✅ **Working.** pnpm 11 workspace + Turborepo, TS strict, ESLint 9 flat config, Prettier, Jest/Vitest, Playwright configured. |
+| **Version control** | ✅ **Git, on `main`, pushed to the private remote `siraj-77/EduFlow`.** Working tree clean. |
+| **Repository contents** | `AGENTS.md` · `CLAUDE.md` · `README.md` · `apps/{api,web}` · `packages/{config,shared-types,ui-kit,i18n-resources}` · `infra/docker` · `docs` · `scripts` |
+| **Quality gates** | ✅ **All green locally**: typecheck · lint · test (51) · build · docs:verify · test:integration. ❌ **Not yet in CI** — P3. |
+| **CI** | ❌ **None yet.** Branch protection also unavailable (needs a paid plan for private repos). |
+| **ERD** | ❌ **Not written** — owner deferred. `apps/api/prisma/schema.prisma` is deliberately empty. |
+| **Phase 0 exit criteria** | SRS ✅ · MVP scope ✅ · **ERD ❌** — so Phase 0 has **not** exited. |
+| **Stories completed** | 0 of 33 Platform Core stories. The P0–P2 prompts are infrastructure, not stories. |
 
-**Do not describe this project as "in development".** Nothing is built. The correct description is *"planning complete and now version-controlled, engineering not started"*.
+**Do not describe this project as "in development".** The correct description is *"scaffolded and gate-enforced; no feature code yet"*.
+
+---
+
+## 1a. Verified working (2026-09-29)
+
+These were observed, not assumed:
+
+| Check | Result |
+|---|---|
+| `pnpm typecheck` | ✅ 8/8 tasks, 6 packages |
+| `pnpm lint` | ✅ 8/8 tasks, 0 errors |
+| `pnpm test` | ✅ **51 tests passing** — shared-types 3 · i18n-resources 10 · ui-kit 8 · api 26 · web 4 |
+| `pnpm build` | ✅ web prerenders **/en /ta /si /ar** as static HTML |
+| `pnpm test:integration` | ✅ runnable, empty by design until P4 |
+| `pnpm docs:verify` | ✅ **147 references across 8 documents resolve** |
+| API boots with **no `.env`** | ✅ prints `PERSISTENCE DISABLED` banner, starts, listens on 3001 |
+| Web serves all four locales | ✅ `/en` `dir=ltr` · `/ar` **`dir=rtl`** · `/ta` `dir=ltr` · `/si` `dir=ltr`, all HTTP 200, `data-theme` present |
+| Docker | ❌ **Not installed** — by owner decision, `ADR-019` |
+
+**Enforced rules, each with a test that watches it fire:**
+
+| Rule | Mechanism |
+|---|---|
+| `domain/` + `use-cases/` import no framework, ORM, queue or vendor SDK | ESLint `no-restricted-imports` |
+| `domain/` + `use-cases/` call no `Date.now()` / `new Date()` / `Math.random()` | ESLint `no-restricted-syntax` |
+| No `@ts-ignore`, `@ts-expect-error`, bare `any`, empty `catch` | ESLint |
+| No raw `<button>` `<input>` `<select>` `<textarea>` `<table>` `<dialog>` | ESLint |
+| No hard-coded colour in a component | ESLint |
+| All four locales have identical key sets | vitest |
+| Every token defined in light **and** dark | vitest |
+| Environment validated; every invalid variable named at once | vitest |
+
+---
+
 
 ---
 
@@ -81,6 +115,11 @@ Nothing has been built. The following are **specified but absent**, and are the 
 | **D19** | **`.claude/` is gitignored in full** rather than committed as a sanitised template. | It is machine-specific model routing plus a credential — local machine configuration, not project configuration. | Owner decision 2026-09-28 |
 | **D20** | **The remote's GitHub-default `.gitignore` was replaced** with the repository's own. | The default is Next.js-oriented and did not exclude `.claude/`. Replaced in `f7257cf` as a fast-forward, so the remote's `0bedbe30` is preserved. | Owner decision 2026-09-28 |
 | **D21** | **GitHub push protection could not be enabled** (HTTP 422). | `security_and_analysis` requires GitHub Advanced Security, which is paid-only for private repositories. Reported, not worked around. The compensating control is the `gitleaks` job in Prompt Pack P3.6. | 2026-09-28 |
+| **D22** | **The ERD is deferred by owner decision.** `apps/api/prisma/schema.prisma` ships **empty** with a comment explaining why. | 2026-09-29. A plausible-but-invented schema is worse than none: entity shapes are the thing `AGENTS.md` §6 warns causes drift, and a guessed `Student`/`Class` would have to be reconciled against the real ERD later. Prisma base migration remains a **P4** deliverable, so P2 was never blocked by it. |
+| **D23** | **Docker is optional; the API has an explicit `persistence: 'disabled'` boot state** (`ADR-019`). | 2026-09-29, owner: *"no docker installed on my windows PC, we should be able to run the project by `npm run dev`"*. A third state — not a default, not a failure — so `AGENTS.md` §11 ("no silent defaults") is **satisfied rather than relaxed**. `DATABASE_URL` becomes **required at P4**, where the branch is deleted. |
+| **D24** | **Tailwind v4, Jest, Node ≥ 22, Prisma, NestJS/Next.js latest stable.** | 2026-09-29, owner accepted the recommended defaults. Tailwind v4 because migrating off it later is the painful direction. Node floor pinned **below** the local 26 so CI and laptops agree, and because `argon2` (ADR-007) is a native module most likely to fail on a bleeding-edge Node. |
+| **D25** | **`eslint-config-next` is not used.** | It patches ESLint internals and fails against ESLint 9.39 ("calling module was not recognized"). The two rules that matter for `AGENTS.md` §3.2 are implemented directly and verified to fire. React-hooks rules return in **P3** when there are hooks to check. |
+| **D26** | **The token test asserts only what `AGENTS.md` §3.2.5 actually specifies.** | An early version required every token to be overridden in dark mode. `AGENTS.md` mandates **five** surface overrides and leaves the five brand tokens theme-independent. Asserting the stricter rule meant the only way to satisfy it was to change the design tokens — a test that can only be passed by editing the thing it is supposed to protect. |
 
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
@@ -120,11 +159,12 @@ In the Prompt Pack §7 story table, the `M1`/`M2` column means **milestone** —
 
 | ID | Blocker | Owner action | State |
 |---|---|---|---|
-| **GAP-01** | Live `thk_live_` credential in `.claude/settings.json`; third-party `ANTHROPIC_BASE_URL` | Rotate at the issuer | ⚠️ **Accepted risk (D24).** Never committed — `.claude/` gitignored before `git init`, verified absent from the first commit by the staging gate. Remote is **private**, owner is sole holder. Residual exposure is local-disk only. Revisit if the repo goes public, a second person gets access, or the folder is shared/archived. |
-| **GAP-02** | Not a git repository | `git init` + harden `.gitignore` | ✅ **Closed 2026-09-28.** `main` initialised, remote `origin` set, first commit `f7257cf` pushed as a fast-forward on top of the remote's `0bedbe30`. `.gitignore` hardened (`.claude/`, `graphify-out/`). Working tree clean. |
-| **GAP-03** | No toolchain, therefore no test runner | — | 🔴 **Open. Hardest remaining blocker.** TDD is impossible until `REPO-05` / Prompt Pack **P3** lands. Blocks all feature work. |
-| **GAP-04** | `docs/idea-bank/` has no content | — | 🔴 **Open.** Directory + README + 5 loud stubs exist; the **extraction** (`REQ-01…05`) has not been performed. Doc-only, zero code dependencies — highest-leverage parallel work. |
-| **GAP-05** | No ERD / data model | — | 🔴 **Open, longest pole.** `ARC-01` / Prompt Pack **P4**. Blocks `PLT-EPIC-01` and the SRS Phase 0 exit gate. Needs no code — start day one. |
+| **GAP-01** | Live `thk_live_` credential in `.claude/settings.json`; third-party `ANTHROPIC_BASE_URL` | Rotate at the issuer | ⚠️ **Accepted risk (D16).** Never committed — `.claude/` gitignored before `git init`, verified absent from the first commit. Remote is **private**, owner is sole holder. Revisit if the repo goes public, a second person gets access, or the folder is shared. |
+| **GAP-02** | Not a git repository | — | ✅ **Closed 2026-09-28.** `main` → `siraj-77/EduFlow` (private), 4 commits, working tree clean. |
+| **GAP-03** | No toolchain, therefore no test runner | — | ✅ **Closed 2026-09-29.** pnpm + Turborepo + TS strict + ESLint + Vitest + Playwright. 51 tests green. `GAP-09` (no CI) remains open. |
+| **GAP-04** | `docs/idea-bank/` has no content | — | 🔴 **Open.** README + 5 loud stubs exist; the **extraction** (`REQ-01…05`) has not been performed. Highest-leverage work available. |
+| **GAP-05** | No ERD / data model | — | 🔴 **Open, deferred by owner (D22).** `schema.prisma` is deliberately empty. Blocks `PLT-EPIC-01` and the SRS Phase 0 exit gate. |
+| **GAP-09** | No CI, no environments | — | 🔴 **Open. Now the top engineering priority** — Prompt Pack P3. Branch protection also unavailable (paid plan). |
 | **GAP-05** | No ERD | **Longest pole.** Blocks `PLT-EPIC-01` and SRS Phase 0 exit |
 
 ### 5.2 Known-unresolved requirement gaps (`AGENTS.md` §6.1)
@@ -172,13 +212,24 @@ It has been created with a README that **specifies the extraction** but does not
 
 ## 8. The Three Most Important Facts
 
-1. **There is no test runner, so TDD cannot start.** `test-driven-development` and `tdd-workflow` both require a working `<test>` command, a coverage command, and git for RED/GREEN checkpoints. **Git is now done (GAP-02 closed). The test runner is not** — so two of the three prerequisites are met and the decisive one is missing. `REPO-03` (workspace), `REPO-05` (harness) and Prompt Pack **P3** (gates + CI) are the unblocking sequence. Until then, no production code may be written.
-2. **The ERD does not exist.** It is `PLT-EPIC-01`'s Definition of Ready, the SRS Phase 0 exit gate, and the longest pole in the plan. It needs no code, so it can start in parallel with the toolchain work on day one.
-3. **The requirements layer does not exist.** `docs/idea-bank/` has a README and five loud stubs, but no extracted content. Every story author is reconstructing requirements from ~3,000 lines of prose. `REQ-01…05` is the highest-leverage work in the plan, and it is pure documentation with zero code dependencies.
+1. **CI does not exist yet, so the gates are green only on this machine.** `pnpm typecheck`, `lint`, `test`, `build` and `docs:verify` all pass locally, but nothing enforces them for anyone else. **Prompt Pack P3 is the single highest-value remaining step** — it is what turns `AGENTS.md` from prose into something that fails a build. Its human gate is the best one in the whole sequence: a dummy PR containing an unguarded route, a `new Date()` in a use-case, a raw `<button>` and a missing i18n key, each of which must fail CI and then pass.
+2. **The ERD does not exist** (deferred, D22). It is `PLT-EPIC-01`'s Definition of Ready and the SRS Phase 0 exit gate. It needs no code and no Docker, so it can be written whenever — but until it exists, no Platform Core story can start.
+3. **The requirements layer does not exist.** `docs/idea-bank/` has five loud stubs and zero data rows. Every story author is reconstructing requirements from ~3,000 lines of prose, and the Prompt Pack greps those files before *every* story. `REQ-01…05` is the highest-leverage work available and is pure documentation.
 
 ### Deferred, not forgotten
 
-The live `thk_live_` token in `.claude/settings.json` was **accepted as a risk on 2026-09-28 (D24)** rather than rotated. It was never committed — `.claude/` was gitignored *before* `git init`, and the first-commit staging gate verified the token value was absent. The remote is private with the owner as sole holder, so residual exposure is local-disk only. **Revisit if the repo goes public, a second person gains access, or the folder is shared or archived.** Until then, the CI secret scan (`OPS-04` / Prompt Pack P3.6) is the one control here with forward value.
+The live `thk_live_` token in `.claude/settings.json` was **accepted as a risk on 2026-09-28 (D16)** rather than rotated. It was never committed — `.claude/` was gitignored *before* `git init`, and the first-commit staging gate verified the token value was absent. The remote is private with the owner as sole holder. **Revisit if the repo goes public, a second person gains access, or the folder is shared or archived.**
+
+### Known footguns in the current scaffold
+
+Recorded so they are not reintroduced:
+
+| Footgun | Why it matters |
+|---|---|
+| `incremental: true` + a `--noEmit` typecheck run | Writes a `.tsbuildinfo`, so a later real build concludes nothing changed and **emits nothing while exiting 0**. Fixed via `tsBuildInfoFile`; `typecheck` also passes `--incremental false` |
+| A `*/` sequence inside a JSDoc block comment | `**/domain/**` closes the comment early and the remainder is parsed as code. The layer globs are in `//` comments for this reason |
+| PowerShell `Set-Content -Encoding UTF8` | Writes a **BOM**, which breaks JSON parsing in Vite/PostCSS. Every file touched that way was stripped |
+| pnpm's isolated `node_modules` | A shared config package must declare what its config **imports**; consumers do not leak. `@eduflow/config` declares `@eslint/js` for this reason |
 
 ---
 

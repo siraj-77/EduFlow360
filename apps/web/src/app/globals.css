@@ -1,0 +1,56 @@
+/**
+ * EduFlow web — global styles.
+ *
+ * AGENTS.md 3.2.5: "Light and dark are both required, with a one-click
+ * toggle. Tokens are CSS variables; never hard-code a hex value in a
+ * component." The tokens themselves live in @eduflow/ui-kit/styles.css
+ * (harvested from the frontend template) and are imported here.
+ *
+ * AGENTS.md 3.2.7: motion <= 200ms and prefers-reduced-motion respected.
+ * That block is in styles.css too -- the template had none.
+ *
+ * AGENTS.md 3.2.6: logical properties only, so RTL works by writing
+ * `padding-inline-start` rather than `padding-left`. This is why app-shell
+ * RTL is being built from scratch rather than inherited from the template.
+ */
+@import 'tailwindcss';
+@import '@eduflow/ui-kit/styles.css';
+
+/*
+ * `data-theme` is set on <html> by a pre-paint inline script (see
+ * ThemeScript) so a dark-mode user never sees a light flash. The default
+ * here matches :root in styles.css, and prefers-color-scheme is honoured
+ * when the user has not chosen.
+ */
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+
+  /*
+   * Directional-agnostic spacing. `ms-`/`me-` are logical, so they flip
+   * automatically under dir="rtl" with no extra rule.
+   */
+  .app-shell {
+    display: flex;
+    min-height: 100dvh;
+  }
+
+  /*
+   * AGENTS.md 3.2.2: touch targets >= 44px. Applied at the layer level
+   * so a new interactive element inherits it without remembering.
+   */
+  button,
+  a[role='button'] {
+    min-height: var(--touch-target-min);
+  }
+}

@@ -9,7 +9,84 @@
 
 ## [Unreleased]
 
-Nothing yet. The first product entry will be the **Foundation Harness** milestone (Prompt Pack P4): all seven `AGENTS.md` §4 quality gates green in CI on a fresh clone, with an under-covered file proven to fail the coverage gate.
+**P3 — quality gates and CI.** All gates pass locally; nothing enforces them for anyone else. The `AGENTS.md` rules are already machine-checked by ESLint and vitest, so P3 is mostly about making those gates *required checks*, plus `check-route-guards`, `check-i18n`, `check-worklog`, gitleaks, lint-staged and the commit-msg hook.
+
+---
+
+## [0.1.0-scaffold] — 2026-09-29
+
+### Added
+
+**Monorepo** — 6 packages, pnpm 11 + Turborepo (`ADR-001`)
+- `apps/api` — NestJS 11 + Prisma + Zod. **12 module folders × 9 subfolders = 108**, matching `AGENTS.md` §3 exactly: `controllers/ use-cases/ domain/{entities,repositories,services,ports}/ infrastructure/{postgres,adapters}/ dto/`
+- `apps/web` — Next.js 15 + React 19 + Tailwind v4 + shadcn/ui. **UI only** — no server actions (`AGENTS.md` §3.1)
+- `packages/config` — strict tsconfig, three ESLint flat configs, Prettier
+- `packages/shared-types` · `packages/ui-kit` · `packages/i18n-resources`
+- `infra/docker/docker-compose.yml` — Postgres, Redis, MinIO, Mailpit
+- `README.md` (incl. the no-Docker Windows path) · `CLAUDE.md` · `.env.example` · `.npmrc` · `.nvmrc` · `.editorconfig` · `.prettierrc.json`
+- `scripts/docs-verify.mjs` (`OPS-05`)
+- 147 `.gitkeep` files so the module structure is tracked
+
+**Configuration**
+- `apps/api/src/config/env.ts` — Zod-validated environment. Validated **before** the Nest app is constructed; every invalid variable named in one throw; cites `AGENTS.md` §11 in the message.
+- **Three states for `DATABASE_URL`, not two** (`ADR-019`): absent → `persistence: 'disabled'` with a loud banner and **no repository constructed**; present-but-invalid → throws; present-and-valid → enabled. Nothing is mocked, defaulted or substituted.
+
+**Design tokens** (`DSN-01`, `DSN-05`)
+- `packages/ui-kit/src/styles.css` — light and dark token sets, Tailwind v4 `@theme inline` mapping, `--motion-*` and `--touch-target-min`
+- **`prefers-reduced-motion` added** — the template had none (`AGENTS.md` §3.2.7)
+- Logical properties throughout; app-shell RTL built from scratch, not inherited
+
+**i18n** (`DSN-02`) — `en/ta/si/ar` resource files, **authored for the application**, with none of the template's 21 marketing keys. RTL driven by `dir` on `<html>` from the locale.
+
+### Changed
+
+- `AGENTS.md` §2.2 — the eight vendor SDKs that may not be imported from `domain/`/`use-cases/` are now named explicitly in the lint config
+- `docs/adr/README.md` — reindexed to 19 ADRs, contiguous 001–019
+
+### Enforced, not just documented
+
+Each rule has a test that watches it **fail**, so removing a rule breaks the build rather than quietly disabling the guarantee:
+
+| Rule | Mechanism | Test |
+|---|---|---|
+| `domain/` + `use-cases/` import no framework, ORM, queue or vendor SDK | ESLint `no-restricted-imports` | 6 cases in `api` |
+| `domain/` + `use-cases/` call no `Date.now()` / `new Date()` / `Math.random()` | ESLint `no-restricted-syntax` | 5 cases in `api` |
+| No `@ts-ignore`, `@ts-expect-error`, bare `any`, empty `catch` | ESLint | 3 cases in `api` |
+| No raw `<button>` `<input>` `<select>` `<textarea>` `<table>` `<dialog>` | ESLint | rule firing, verified by probe |
+| No hard-coded colour in a component | ESLint | rule firing, verified by probe |
+| All four locales have identical key sets; none empty; none a copy of English | vitest | 10 cases |
+| Every token defined in light **and** dark; exact `AGENTS.md` §3.2.5 dark values | vitest | 8 cases |
+| Environment validated; every invalid variable named at once; `AGENTS.md` §11 cited | vitest | 10 cases |
+| `dir` correct for all four locales | vitest | 4 cases |
+| Documented paths exist | `pnpm docs:verify` | **147 references, 8 documents** |
+
+### Quality
+
+| Gate | Result |
+|---|---|
+| `pnpm typecheck` | ✅ 8/8 tasks, 6 packages, TS strict |
+| `pnpm lint` | ✅ 8/8 tasks, **0 errors** |
+| `pnpm test` | ✅ **51 passing** |
+| `pnpm build` | ✅ web prerenders `/en` `/ta` `/si` `/ar` |
+| `pnpm test:integration` | ✅ runnable, empty by design until P4 |
+| `pnpm docs:verify` | ✅ 147 references resolve |
+
+**Smoke-tested, not assumed:** the API boots with **no `.env`** and prints the honest banner; the web app serves all four locales with `/ar` returning `dir=rtl`.
+
+### Fixed
+
+Eleven real defects were caught by the gates during this phase, including: `{children}` destructured but never rendered (blank pages); `useTranslations` hook in an async Server Component (failed at prerender, not typecheck); a stale `tsbuildinfo` that made a build emit **nothing while exiting 0**; a `*/` inside a JSDoc comment that closed it early and parsed the glob as code; and a PowerShell BOM in two `package.json` files. All recorded in `SSOT.md` §8 "Known footguns".
+
+### Known issues
+
+- ❌ **No CI yet** (P3) — the gates above are green on one machine and enforced nowhere else.
+- ❌ **No ERD** — deferred by owner decision (D22). `prisma/schema.prisma` is deliberately empty. Blocks `PLT-EPIC-01` and the SRS Phase 0 exit gate.
+- ❌ **Branch protection unavailable** — requires a paid plan for private repos.
+- ⚠️ **19 ADRs, none `Accepted`** (⚑10).
+- ⚠️ **`OPS-03` coverage thresholds are written but not yet verified to fail.** An unenforced threshold is indistinguishable from no threshold.
+- ⚠️ **`docs/idea-bank/` is stubs, not extraction** (`REQ-01…05` not done). The Prompt Pack greps those files before every story.
+- ⚠️ **`eslint-config-next` dropped** (D25) — it patches ESLint internals and fails on 9.39. React-hooks rules return in P3.
+- ⚠️ **DSN-03/DSN-01 partially done** — the token foundation and the `/ar` RTL route are proven; the login/form/table archetypes and the shadcn component set are P4W.
 
 ---
 

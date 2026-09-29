@@ -8,49 +8,81 @@
 
 ## P0 — Do These First
 
-### 1. Rotate the exposed credential — ⚠️ **ACCEPTED RISK, NOT BLOCKING** *(decided 2026-09-28)*
+> **State 2026-09-29: P2 (scaffold) is DONE.** Toolchain, monorepo and enforced rules all green. Read `docs/core/SSOT.md` §1a for what was verified.
+> The ERD is deferred by owner decision (D22). The top engineering priority is now **P3 — CI**.
+
+### 1. Rotate the exposed credential — ⚠️ **ACCEPTED RISK, NOT BLOCKING** *(decided 2026-09-28, D16)*
 
 `.claude/settings.json` holds a **live** `thk_live_` bearer token and a third-party `ANTHROPIC_BASE_URL` (`https://tokenharbor.ai`).
 
-**Status: deferred by owner decision (D24).** Not a blocker. Reasoning:
+**Deferred by owner decision.** The token was **never committed** — `.claude/` was added to `.gitignore` *before* `git init`, and the first-commit staging audit confirmed the token value is absent. The remote is **private**, sole holder. Residual exposure is **local-disk only**.
 
-- The token was **never committed**. `.claude/` was added to `.gitignore` *before* `git init`, and the first-commit staging audit confirmed the real token value is absent from staged content.
-- The remote `siraj-77/EduFlow` is **private**, with the owner as sole holder.
-- Residual exposure is therefore **local-disk only**, which the owner judges acceptable.
+- [x] `.claude/` gitignored — `.gitignore:99`
+- [x] Verified absent from the first commit — staging gate 2b/2c
+- [ ] *Deferred:* rotate at the issuer
+- [ ] *Deferred:* decide whether the third-party base URL is intentional
+- [ ] **Enable secret scanning in CI** — Prompt Pack P3.6. **This is now the only un-done item here, and it is part of P3.**
 
-- [x] Add `.claude/` to `.gitignore` — done 2026-09-28 (`.gitignore:99`)
-- [x] Verify the token is absent from the first commit — done, staging gate 2b/2c
-- [ ] *Deferred:* rotate/revoke at the issuer
-- [ ] *Deferred:* decide whether the third-party base URL is intentional (if yes → record an ADR)
-- [ ] Enable secret scanning in CI (`OPS-04` / Prompt Pack P3.6) — **recommended**, and the one item here that has forward value
+**Revisit if:** the repo goes public · a second person is granted access · the folder is shared or archived · the machine is shared.
 
-**Revisit immediately if any of these become true:** the repo is made public · a second person is granted access · the folder is shared or archived as a zip · the machine is shared or backed up to a service you do not control. At that point rotation is urgent, because the token is still live.
+### 2. Prompt Pack P3 — Quality gates and CI 🔴 **THE TOP PRIORITY**
 
-> **This entry is deliberately downgraded from P0.** It previously read "must happen before `git init`". That gate passed on 2026-09-28 with the token excluded from history, and a stale BLOCKING marker would incorrectly halt a future session.
+The `AGENTS.md` rules are already machine-enforced **locally**. Nothing enforces them for anyone else. P3 is what turns the contract from prose into something that fails a build.
 
-### 2. Initialise the repository ✅ **DONE 2026-09-28** (GAP-02 closed)
+- [ ] `check-route-guards` — TypeScript AST: every NestJS route must carry `@RequirePermission(...)` **or** `@Public('<reason>')`. Also reject `@Public` combined with `@RequireEntitlement`, and on entity-scoped routes. Allowlist file with mandatory justification, enforced **both ways** (`ADR-018`)
+- [ ] `check-i18n` — all four locale files have identical key sets. *(A vitest suite already covers this in `packages/i18n-resources`; the script is for CI reporting on a PR.)*
+- [ ] `check-worklog` — a PR changing source must also change `docs/work/WORKLOG.md` (`AGENTS.md` §9)
+- [ ] gitleaks + dependency audit
+- [ ] lint-staged pre-commit hook; commit-msg Conventional Commits check
+- [ ] **CI workflow**: PR → typecheck → lint → custom checks → unit + coverage → build → integration (containerised Postgres) → secrets scan. E2E on `main` only
+- [ ] **React-hooks ESLint rules** — dropped with `eslint-config-next` (D25); add when there are hooks
+- [ ] **Human gate:** a dummy PR with (a) an unguarded route (b) a `new Date()` in a use-case (c) a raw `<button>` (d) a missing i18n key — **CI must FAIL for each**, then pass
 
-- [x] Harden `.gitignore` — added `.claude/`, `graphify-out/`, `.graphify_*.json`
-- [x] `git init -b main`; `origin` → `siraj-77/EduFlow` (private)
-- [x] Pushed on top of the remote's `0bedbe30` via `git reset --mixed FETCH_HEAD` → **fast-forward, no force**
-- [x] First commit `f7257cf` — 27 files, 8,694 insertions, **docs only, no code**
-- [x] Staging audit: no secret-shaped paths, no real token values, no scaffold dirs, working tree clean
-- [x] Remote `.gitignore` replaced with the repository's own
-- [ ] Branch protection — **not yet enabled**; push protection is unavailable on a private repo without GitHub Advanced Security (HTTP 422). Protect `main` via branch rules once available.
+### 3. Write the ERD 🔴 **Deferred (D22) — blocks `PLT-EPIC-01`**
 
-> Two of TDD's three prerequisites are now met (git, and a working tree). **The test runner is still missing** — see item 5.
+`apps/api/prisma/schema.prisma` is **deliberately empty**. The ERD is `PLT-EPIC-01`'s Definition of Ready and the SRS Phase 0 exit gate. It needs no code and no Docker.
 
-### 3. Write the ERD 🔴 **Longest pole**
-
-The data model does not exist in any form. It is `PLT-EPIC-01`'s Definition of Ready **and** the SRS Phase 0 exit gate. It needs no code, so start it in parallel with the toolchain work.
-
-- [ ] Entities from `SRS` §6 plus: `User`, `Role`, `Permission`, `RolePermission`, `Session`, `RefreshToken`, `AuditRecord`, `SchoolSettings`, `ModuleRegistry`, `License`, `NotificationPreference`, `NotificationDelivery`, `StoredFile`
-- [ ] Money as **integer minor units + explicit currency** (`AGENTS.md` §2.5)
-- [ ] `schoolId` on school-scoped tables as **metadata, not a security control** (§2.1)
-- [ ] Uniqueness scoped within a school's database — never global
+- [ ] Platform Core entities: `User` `Role` `Permission` `RolePermission` `Session` `RefreshToken` `AuditRecord` `ErrorLog` `SchoolSettings` `ModuleRegistry` `License` `NotificationPreference` `NotificationDelivery` `StoredFile`
+- [ ] Money as **integer minor units + explicit currency** (`ADR-002`)
+- [ ] `schoolId` as **metadata, not a security control** (`ADR-003`)
+- [ ] Uniqueness scoped within one school's database — never global
+- [ ] `audit_records`: `REVOKE UPDATE, DELETE` from the application role
 - [ ] Resolve the `PC-004` admission gap
 - [ ] **Do not** port the legacy 59-model tenant scoping
 - [ ] Sign-off recorded before `PLT-101` starts
+
+### 4. Extract the requirements (`docs/idea-bank/`) 🔴
+
+Five loud stubs exist; **zero data rows.** The Prompt Pack §4.2 greps `fr-index.md` and `business-rules.md` before **every** story.
+
+- [ ] `REQ-01` `module-inventory.md` — cross-checked against Master Plan §29's 30-row table
+- [ ] `REQ-02` `domain-entities.md` — each entry states whether an SSOT/§2.9 equivalent exists
+- [ ] `REQ-03` `business-rules.md` — every rule carries a source citation **and** a test target
+- [ ] `REQ-04` `fr-index.md` — every FR traced to its story and a test
+- [ ] `REQ-05` `edge-cases-and-risks.md`
+- [ ] Every rule engine named in `AGENTS.md` §4.1 has at least one row
+- [ ] Silence in the corpus is recorded as `GAP — needs design (PC-xxx)`, never invented
+
+> ⚑2 still open: was `docs/archive/corpus/` deleted, or never migrated? It determines whether this is *extraction* (verifiable citations) or *summarisation* (weaker provenance). The work is the same either way.
+
+### 5. ~~Initialise the repository~~ ✅ **DONE 2026-09-28** (GAP-02 closed)
+
+- [x] `git init -b main`; `origin` → `siraj-77/EduFlow` (private)
+- [x] `.gitignore` hardened — `.claude/`, `graphify-out/`
+- [x] Pushed as a fast-forward on top of `0bedbe30`; no force
+- [x] Branch protection — ❌ **unavailable** (needs a paid plan for private repos). Report, don't work around it
+
+### 6. ~~Scaffold the monorepo~~ ✅ **DONE 2026-09-29** (GAP-03 closed)
+
+- [x] 6 packages, pnpm 11 + Turborepo, TS strict
+- [x] 12 API module folders × 9 subfolders, matching `AGENTS.md` §3
+- [x] 4 locales with key-parity enforcement
+- [x] Tokens in light **and** dark; `prefers-reduced-motion` added
+- [x] `docker-compose.yml` — Postgres, Redis, MinIO, Mailpit
+- [x] `.env.example` + fail-fast validation + `README.md`
+- [x] **All gates green: typecheck · lint · test (51) · build · docs:verify**
+- [x] **API boots with no `.env`** — honest `PERSISTENCE DISABLED` banner (`ADR-019`)
+- [x] **Web serves `/en` `/ta` `/si` `/ar`**, `/ar` with `dir=rtl`
 
 ### 4. Build the toolchain 🔴 **Unblocks TDD**
 
@@ -81,25 +113,25 @@ Directory created with a README on 2026-09-28. **Contents deliberately not writt
 
 ## P1 — Needed Before the First Feature
 
-- [ ] `ARC-03` `IClock` + static check banning `Date.now()`/`new Date()` in `domain/` and `use-cases/` + shared test factories
-- [ ] `ARC-04` guard decorator **shapes** + static check — so no route is ever written without all three
+- [ ] `ARC-03` `IClock` — the **ESLint ban on `Date.now()`/`new Date()`/`Math.random()` is already live**; only the `IClock` interface and shared test factories remain (P4)
+- [ ] `ARC-04` guard decorator **shapes** + static check — so no route is ever written without all three (P3/P4)
 - [ ] `ARC-05` RBAC permission-matrix fixture — **seeded in Sprint 1, not deferred to `PLT-205` in Sprint 4**
 - [ ] `ARC-06` `Money` value object + journal-balance invariant test
-- [ ] `DSN-01` `packages/ui-kit` from template tokens (light + dark, no hard-coded hex)
-- [ ] `DSN-02` `packages/i18n-resources` — en/ta/si/ar, key-parity enforced by a test
-- [ ] `DSN-03` RTL foundation — verified on login, form and table archetypes
-- [ ] `DSN-04` font stack for Tamil/Sinhala/Arabic — **needs owner decision**; PDF pipeline must be covered too
-- [ ] `DSN-05` `prefers-reduced-motion`, ≤ 200 ms motion, ≥ 44 px touch targets
-- [ ] `DSN-06` CI enforcement: no literal user-facing string in JSX/TSX; no hard-coded hex
-- [ ] `OPS-01` `infra/docker/docker-compose.yml` — Postgres + Redis
-- [ ] `OPS-02` CI pipeline — green on an empty commit; gates are **required checks**
-- [ ] `OPS-03` coverage gate enforcement, **verified to fail**
-- [ ] `OPS-04` security scanning — dependency, OWASP ZAP, **secret scanning**, log-content scan
-- [ ] `OPS-05` `docs:verify` — fails when a backticked path in `AGENTS.md`/`SSOT.md` does not exist
+- [x] `DSN-01` `packages/ui-kit` tokens — **done 2026-09-29**: light + dark in `styles.css`, `prefers-reduced-motion` added, verified by test. *shadcn/ui components themselves still to add (P4W).*
+- [x] `DSN-02` `packages/i18n-resources` — **done 2026-09-29**: en/ta/si/ar with key-parity enforced by 10 vitest cases
+- [ ] `DSN-03` RTL foundation — **core proven 2026-09-29** (`/ar` serves `dir=rtl`). *Login, form and table archetypes still to build (P4W).*
+- [ ] `DSN-04` font stack for Tamil/Sinhala/Arabic — ⚑ **needs owner decision**; PDF pipeline must be covered too. *A provisional Noto stack is in `styles.css`.*
+- [x] `DSN-05` `prefers-reduced-motion`, ≥ 44 px touch targets — **done 2026-09-29**, verified by test
+- [ ] `DSN-06` CI enforcement: no literal user-facing string in JSX/TSX. *The no-hard-coded-hex half is done and firing; the string half is P3 — a heuristic produces false positives, which is worse than no check.*
+- [x] `OPS-01` `infra/docker/docker-compose.yml` — **done 2026-09-29**: Postgres, Redis, MinIO, Mailpit
+- [ ] `OPS-02` CI pipeline — **P3, the top priority**
+- [x] `OPS-03` coverage gate — **thresholds written** into all three vitest configs. ⚠️ **Not yet verified to FAIL** — an unenforced threshold is indistinguishable from no threshold
+- [ ] `OPS-04` security scanning — dependency, OWASP ZAP, **secret scanning**, log-content scan (P3)
+- [x] `OPS-05` `docs:verify` — **done 2026-09-29**: 147 references across 8 documents resolve
 - [ ] `OPS-07` backup & restore **drill** — a restore actually performed and verified
-- [ ] `ARC-07` `docs/adr/` — sign off the reconstructed `ADR-003`; record money, mobile-at-M2, licensing-at-M1, i18n approach
+- [x] `ARC-07` `docs/adr/` — **19 ADRs written** (001–019, contiguous). **None is `Accepted`** — see ⚑10
 - [ ] `ARC-08` `directives/` — module, route, rule-engine, table-driven-test, new-`ILedgerPostingRule` SOPs
-- [ ] `ARC-09` close contradiction register C-01…C-08
+- [x] `ARC-09` contradiction register C-01…C-08 — **closed** 2026-09-28/29; see the resolved-conflicts table in `CHANGELOG.md`
 
 ---
 
@@ -110,6 +142,9 @@ Directory created with a README on 2026-09-28. **Contents deliberately not writt
 - [ ] `OPS-06` per-school deployment provisioning
 - [ ] `OPS-08` observability skeleton — correlation IDs, file **and** DB error logging, 25 MB × 4 rotation
 - [ ] `OPS-09` staging environment
+- [ ] `apps/mobile` scaffold — **milestone 2** (`AGENTS.md` §7 D5, `ADR-005`)
+- [ ] `infra/terraform` — `AGENTS.md` §3.1 marks it optional; `OPS-06` first
+- [ ] ⚑ **Install Docker Desktop** (optional) or **PostgreSQL for Windows** (required at P4). See `README.md` § "Running without Docker" — Redis is the one service with no official Windows build
 - [ ] `docs/analysis/LEGACY_REUSE_INVENTORY.md` — per-file port judgements (created 2026-09-28 with measurements only)
 - [ ] `docs/modules/<module>/` working notes as modules land
 - [ ] Reconcile the three phase-numbering schemes (SSOT §4 precedence table now records the answer; `AGENTS.md` and SRS §15 still need updating)

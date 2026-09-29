@@ -1,0 +1,32 @@
+{
+  "name": "eduflow",
+  "version": "0.0.0",
+  "private": true,
+  "description": "EduFlow — single-tenant school ERP. One database and one deployment per school.",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml}\"",
+    "docs:verify": "node scripts/docs-verify.mjs",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "migration:generate": "pnpm --filter @eduflow/api migration:generate",
+    "migration:run": "pnpm --filter @eduflow/api migration:run"
+  },
+  "devDependencies": {
+    "@eduflow/config": "workspace:*",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

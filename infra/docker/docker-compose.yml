@@ -1,0 +1,92 @@
+/**
+ * EduFlow local services (Prompt Pack 1.1 / P2.3).
+ *
+ * All four services are defined here. The application itself NEVER
+ * depends on this file existing -- it reads DATABASE_URL, REDIS_URL and
+ * STORAGE_ENDPOINT from the environment. So on a machine without Docker,
+ * a developer can point those at native binaries and the same code runs
+ * unchanged. See README.md, "Running without Docker".
+ *
+ * Credentials below are LOCAL DEVELOPMENT ONLY. They are deliberately
+ * obvious, because AGENTS.md 11 forbids real-looking example values in
+ * tracked files. Production credentials come from the per-school
+ * environment provisioned by OPS-06.
+ */
+
+name: eduflow
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: eduflow-postgres
+    restart: unless-stopped
+    environment:
+      # LOCAL DEV ONLY — not a credential for anything real.
+      POSTGRES_USER: eduflow_dev
+      POSTGRES_PASSWORD: local_dev_only_not_a_secret
+      POSTGRES_DB: eduflow
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U eduflow_dev -d eduflow']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: eduflow-redis
+    restart: unless-stopped
+    # Persist so a BullMQ job queue survives a restart. Required from P4.
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # S3-compatible object storage (ADR-015). Private buckets only; access
+  # is via signed, time-limited URLs.
+  minio:
+    image: minio/minio:latest
+    container_name: eduflow-minio
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      # LOCAL DEV ONLY.
+      MINIO_ROOT_USER: eduflow_dev
+      MINIO_ROOT_PASSWORD: local_dev_only_not_a_secret
+    ports:
+      - '9000:9000' # S3 API
+      - '9001:9001' # console
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Catches outbound email so password-reset and OTP mails are
+  # inspectable without sending them (ADR-014).
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: eduflow-mailpit
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # web UI — open http://localhost:8025
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

@@ -1,0 +1,25 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+allowBuilds:
+  '@prisma/client': set this to true or false
+  '@prisma/engines': set this to true or false
+  esbuild: set this to true or false
+  prisma: set this to true or false
+  unrs-resolver: set this to true or false
+
+# Explicit allow-list, not a blanket `pnpm approve-builds`. These five
+# need a postinstall step to place a platform-native binary; every other
+# dependency stays blocked, so a supply-chain postinstall cannot run
+# unapproved.
+#
+#   esbuild            - vitest's transform pipeline
+#   @prisma/*, prisma  - query engine binary (from P4)
+#   unrs-resolver      - eslint-plugin-import-x resolver
+onlyBuiltDependencies:
+  - esbuild
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
+  - unrs-resolver

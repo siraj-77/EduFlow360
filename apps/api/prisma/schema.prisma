@@ -1,0 +1,38 @@
+// EduFlow Prisma schema — DEFERRED.
+//
+// The ERD (ARC-01 / Prompt Pack P4) has not been written. The owner has
+// deferred it, so no schema is guessed here.
+//
+// WHY THIS FILE IS EMPTY RATHER THAN PARTIAL
+// -----------------------------------------
+// A plausible-looking but invented schema is worse than none. Entity
+// shapes are the thing AGENTS.md 6 warns about: "creating a parallel
+// concept under a new name is the most common way this codebase drifts."
+// A guessed `Student` or `Class` written now would have to be reconciled
+// against the real ERD later, and a reviewer would have to decide which
+// of the two was right.
+//
+// CONSTRAINTS THAT WILL APPLY WHEN IT IS WRITTEN
+// ----------------------------------------------
+//   - PostgreSQL only. SQLite is not an option (ADR-003, one database
+//     per school; and money needs real numerics — ADR-002).
+//   - Money is integer minor units + explicit currency. Never float.
+//   - school_id is carried as METADATA, not a security control
+//     (AGENTS.md 2.1). Do not build tenant scoping. Do not add a
+//     cross-tenant role.
+//   - Uniqueness is scoped within one school's database. A global
+//     @unique would be wrong, not merely redundant.
+//   - audit_records has UPDATE and DELETE revoked from the application
+//     role (AGENTS.md 2.7, PLT-401).
+//
+// The API runs with persistence DISABLED until this file exists — see
+// src/config/env.ts, which makes that state explicit rather than silent.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@eduflow/i18n-resources",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Locale resource files: en, ta, si, ar. Key parity is enforced by a test (AGENTS.md 4.2).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./locales/*": "./src/locales/*"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "node -e \"require('node:fs').rmSync('coverage',{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "@eduflow/config": "workspace:*",
+    "@eduflow/shared-types": "workspace:*",
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1",
+    "vitest": "^2.1.8"
+  }
+}

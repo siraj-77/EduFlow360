@@ -26,8 +26,9 @@
 | [ADR-016](ADR-016-metrics-prometheus.md) | Metrics in Prometheus exposition format | Prompt Pack D-J | 🟡 Proposed |
 | [ADR-017](ADR-017-deviations-from-jira-sprint-order.md) | **Documented deviations from the Jira sprint order** (4 pull-forwards) | Prompt Pack §2.2 | 🟡 Proposed |
 | [ADR-018](ADR-018-public-route-escape-hatch.md) | `@Public('<reason>')` is the only route exemption, and it is allowlisted | Prompt Pack §P3.2/§P4.7 | 🟡 Proposed |
+| [ADR-019](ADR-019-docker-optional-persistence-disabled-state.md) | **Docker is optional: an explicit `persistence: 'disabled'` boot state** | Owner decision 2026-09-28 | 🟡 Proposed · **deviates from Prompt Pack §1.1** |
 
-**18 ADRs. Numbering is contiguous 001–018 and must stay that way** — the Prompt Pack §6 P1 instruction is to "continue after the highest existing ADR".
+**19 ADRs. Numbering is contiguous 001–019 and must stay that way** — the Prompt Pack §6 P1 instruction is to "continue after the highest existing ADR".
 
 ---
 
