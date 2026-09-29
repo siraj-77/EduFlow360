@@ -60,7 +60,7 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 - [x] **FIX-01** ✅ ~~`@vitest/coverage-v8` in all 5 test-bearing packages~~ **DONE 2026-09-29** — ⚠️ but the tiers still enforce nothing → **G1-6** / `FIX-26`
 - [x] **FIX-02** ✅ ~~one real e2e spec~~ **DONE 2026-09-29** — 11 tests — ⚠️ but one passes vacuously → **G1-4** / `AUD-30-03`
 - [ ] **FIX-03** 🔴 `docker-compose.yml` does not parse → **G1-10**
-- [ ] **FIX-04** 🔴 `proxy.ts` compiles to zero middleware → **G3-3**
+- [x] **FIX-04** ✅ `proxy.ts` compiled to zero middleware → **G3-3, DONE 2026-09-30** - `src/middleware.ts`, `proxy.ts` deleted, `/` no longer 404s
 - [ ] **FIX-05** ⚠️ `pnpm format:check` → **G1-7**
 - [ ] **FIX-06 / FIX-20** ⚠️ `turbo.json` + `packages/config` has no `scripts` → **G1-8**, **G1-9**
 - [ ] **FIX-07** ⚠️ specs excluded from typecheck in **4** tsconfigs → **G1-9**

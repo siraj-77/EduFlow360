@@ -29,12 +29,19 @@ const BASE_URL = `http://localhost:${WEB_PORT}`;
 /**
  * The readiness probe must hit a URL that actually returns 2xx.
  *
- * `/` is a **404** here: the app is locale-prefixed (`/en`, `/ta`, `/si`,
- * `/ar`), so probing the root makes Playwright wait out its full timeout on a
- * server that is up and serving. The tests navigate to `/${locale}`
- * themselves, so only the probe needs the real path.
+ * This was `/en`, with a comment explaining that `/` is a 404 because the app
+ * is locale-prefixed. **That 404 was a defect, not a design decision** —
+ * `src/middleware.ts` was missing, so nothing negotiated a locale — and this
+ * probe had been quietly working around it. A test config accommodating a
+ * broken route is how a broken route survives review, and the comment made it
+ * read as intended behaviour. `FIX-04`.
+ *
+ * `src/middleware.ts` now redirects `/` to the best-matching locale, so the
+ * probe is back to the root: the thing a visitor actually types. If this ever
+ * needs to change again, check whether the *application* broke before assuming
+ * the *configuration* is wrong.
  */
-const PROBE_PATH = '/en';
+const PROBE_PATH = '/';
 
 export default defineConfig({
   testDir: './tests/e2e',

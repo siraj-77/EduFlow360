@@ -6,6 +6,133 @@
 
 ---
 ---
+---
+
+## 2026-09-30 — FIX-04: the root URL was a 404, and the e2e probe had been hiding it
+
+| Field      | Entry |
+| ---------- | ----- |
+| **Date**   | 2026-09-30 |
+| **Phase**  | `ACTION_PLAN` **G3-3** (from EPIC-G1's follow-on). Closes `FIX-04`. |
+| **Task**   | The user opened `http://localhost:3500` and got a 404. Verify, diagnose, fix. |
+| **Agent**  | `opencode` / space-bunny-free |
+| **Status**  | ✅ Fixed, with a TDD cycle and a browser-verified redirect. |
+
+### What the user found, and what it actually was
+
+`http://localhost:3500` returned **404**. `/en`, `/ta`, `/si`, `/ar` all returned 200.
+
+The cause is not a misconfiguration. `i18n/routing.ts` sets `localePrefix: 'always'`, so **every real route is locale-prefixed and `/` matches no page.** With no middleware, the bare root had no route to land on and no redirect to negotiate one. A visitor who typed the site address got "This page could not be found" — and a visitor whose browser prefers Tamil got English, because nothing read `Accept-Language` at all.
+
+**Two compounding defects:**
+
+1. **Zero middleware emitted.** `proxy.ts` is the **Next 16** filename; Next 15 looks for `middleware.ts`. The compiled manifest said so plainly and silently:
+   ```json
+   { "version": 3, "middleware": {}, "functions": {}, "sortedMiddleware": [] }
+   ```
+2. **`proxy.ts` was also *redundant*, not merely misnamed.** It exported `createNextIntlPlugin('./src/i18n/request.ts')({})` — and `next.config.ts:17` already applies that exact plugin to the real config. So it constructed a wrapped config object that **nothing consumed**. Renaming it, as D31 anticipated, would have produced a middleware that negotiated nothing.
+
+### The part that matters most: the 404 was known and worked around
+
+`playwright.config.ts` probed `/en`, with a comment stating:
+
+> `/` is a **404** here: the app is locale-prefixed (`/en`, `/ta`, `/si`, `/ar`), so probing the root makes Playwright wait out its full timeout on a server that is up and serving.
+
+That comment makes a **product defect read as expected behaviour** — and it is the same failure the 2026-09-30 audit names twice: *a gate or config accommodating a broken thing so nobody notices it*. A test config that works around a broken route is how a broken route survives review. The probe was pointed at the only URL that worked, precisely so the missing one would never be requested.
+
+**The workaround is now removed**, not just the defect. `PROBE_PATH` is back to `'/'` — the thing a visitor actually types — and the comment records why it moved and warns that if it ever needs to move again, check the *application* before assuming the *configuration* is wrong.
+
+### TDD cycle
+
+**RED** — two new e2e cases in `shell.spec.ts`, both failing for the right reason:
+
+```text
+✘ locale negotiation at the root › the bare root is not a 404
+    Error: the bare root 404s. A visitor who types the site address sees
+           "This page could not be found"
+    Expected: not 404
+✘ locale negotiation at the root › Accept-Language: ar did not send the
+  visitor to /ar, so a Tamil or Sinhala speaker gets English
+  11 passed | 2 failed
+```
+
+`pnpm test:e2e` had **never been executed in this session** before now — the docs' "11 passed" claim is now measured rather than quoted. It was true.
+
+**GREEN** — `apps/web/src/middleware.ts`:
+
+```ts
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+export default createMiddleware(routing);
+
+export const config = {
+  matcher: '/((?!api|_next|_vercel|.*\\..*).*)',
+};
+```
+
+`src/` rather than the root, because this app uses a `src/app` directory. The `.*\\..*` term in the matcher is load-bearing: without it every `.js` and `.css` request would be rewritten to a locale-prefixed path that does not exist.
+
+**Result:** `13 passed (17.7s)`, `exit 0`.
+
+### Verified the fix is real, not another silently-dead file
+
+This is the trap the audit named: a gate going green after you add a file tells you nothing if the file was ignored. So the manifest was re-read:
+
+```json
+"middleware": { "/": { "files": ["server/edge-runtime-webpack.js", "server/middleware.js"],
+                        "name": "middleware", "matchers": [{ "regexp": "^/.*$" }] } },
+"sortedMiddleware": ["/"]
+```
+
+`{}` → `["/"]`, and `server/middleware.js` is now emitted. The middleware is genuinely registered.
+
+### Browser and HTTP verification
+
+| Check | Before | After |
+| ----- | ------ | ----- |
+| `GET /` | **404** | **307** → `/en` → **200** |
+| `GET /en` | 200 | 200 |
+| `GET /ar` | 200 | 200 |
+| `GET /favicon.ico` | 404 | 404 — **not** a 307, so the matcher is not rewriting asset URLs |
+| `Accept-Language: ar` → `/` | 404 | `/ar`, `dir=rtl` |
+| Browser at `localhost:3500/` | 404 page | lands on `/en` |
+
+### Files changed
+
+| File | Change |
+| ---- | ------ |
+| `apps/web/src/middleware.ts` | **new** — `createMiddleware(routing)` + matcher |
+| `apps/web/proxy.ts` | **deleted** — dead *and* redundant |
+| `apps/web/tests/e2e/shell.spec.ts` | 2 new e2e cases (root is not 404; `Accept-Language` honoured) |
+| `apps/web/playwright.config.ts` | `PROBE_PATH` `/en` → `/`; the workaround comment replaced |
+| `docs/core/SSOT.md` | `FIX-04` closed; the §3 "absent" row corrected |
+| `docs/work/TODO.md` | `FIX-04` checked, points at G3-3 |
+
+### Quality
+
+| Check | Result |
+| ----- | ------ |
+| `pnpm test:e2e` | ✅ 0 — **13 passed** (11 → 13) |
+| `pnpm typecheck` · `lint` · `test` · `test:coverage` · `build` · `test:integration` · `docs:verify` | ✅ all 0 |
+| TDD cycle | ✅ RED observed (2 cases, correct reasons) → minimal GREEN (1 new file, 1 deletion, 1 line of config) → manifest + HTTP + browser verified |
+| Still red | `format:check` exit 2 — pre-existing `FIX-05`, untouched |
+
+### Decisions
+
+| ID | Decision | Rationale |
+| -- | -------- | --------- |
+| **D43** | `proxy.ts` is **deleted, not renamed.** D31 anticipated a rename. | A rename would have produced a real middleware that negotiates nothing, because `createMiddleware(routing)` was never called. Deleting the file and writing the correct one is smaller than renaming dead code and then adding the missing call. D31's *intent* — do not upgrade to Next 16 to chase a filename — is unchanged. |
+| **D44** | The e2e readiness probe is reverted to `/`, removing the workaround. | Fixing the route while leaving the probe pointed at `/en` would keep the accommodation in place, and the next person would read the comment and believe a 404 at the root was normal. The workaround is the second half of the defect. |
+
+### Next steps
+
+1. **G1-2** — the test-file oracle. Still the highest-value remaining story in EPIC-G1.
+2. **G1-4** — the nav-parity floor. Now more visible: the shell still renders zero links.
+3. **G3-1** — shadcn/ui. `AGENTS.md §3.2.1` is still unsatisfiable.
+
+---
+
 
 ## 2026-09-30 — G1-1: the test that guards the port incident now actually runs
 

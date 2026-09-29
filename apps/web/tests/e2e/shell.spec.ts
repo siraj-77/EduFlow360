@@ -21,6 +21,55 @@ const LOCALES = [
   { code: 'ar', dir: 'rtl' },
 ] as const;
 
+/**
+ * The bare root is the first URL anyone types, and it is a 404.
+ *
+ * `i18n/routing.ts` sets `localePrefix: 'always'`, so every real route is
+ * locale-prefixed and `/` matches no page. Nothing rescues it: `proxy.ts` is
+ * the Next 16 filename, Next 15 expects `middleware.ts`, and even renamed it
+ * would not negotiate a locale because `createMiddleware(routing)` is never
+ * called - it only wires the request config. The compiled manifest confirms it:
+ * `middleware: {}`.
+ *
+ * This was known and worked around rather than fixed. `playwright.config.ts`
+ * probes `/en` and says so in a comment, which makes a product defect read as
+ * expected behaviour. That is the pattern worth catching: a test config
+ * accommodating a broken route is how a broken route survives.
+ *
+ * Only a browser can see this. A unit test cannot - the redirect happens in the
+ * request pipeline, before any page renders.
+ */
+test.describe('locale negotiation at the root', () => {
+  test('the bare root is not a 404', async ({ page }) => {
+    const response = await page.goto('/');
+
+    expect(
+      response?.status(),
+      'the bare root 404s. A visitor who types the site address sees "This page could not be found"',
+    ).not.toBe(404);
+
+    expect(
+      page.url(),
+      'the bare root did not land on a locale-prefixed URL',
+    ).toMatch(/\/(en|ta|si|ar)$/);
+  });
+
+  test.describe('with an Arabic browser preference', () => {
+    test.use({ locale: 'ar-SA' });
+
+    test('the root negotiates to Arabic, not to the default', async ({ page }) => {
+      await page.goto('/');
+
+      expect(
+        page.url(),
+        'Accept-Language: ar did not send the visitor to /ar, so a Tamil or Sinhala speaker gets English',
+      ).toContain('/ar');
+
+      await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    });
+  });
+});
+
 test.describe('locale shell', () => {
   for (const { code, dir } of LOCALES) {
     test(`/${code} renders with dir="${dir}" and lang="${code}"`, async ({ page }) => {
