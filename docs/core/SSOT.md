@@ -1,29 +1,31 @@
 # SSOT — Single Source of Truth
 
 **Purpose:** The answer to "what is the current state of this project?"
-**Last updated:** 2026-09-29
+**Last updated:** 2026-09-30
 **Precedence:** `AGENTS.md` and `ADR-003` > this file > all other documents. This file records _state and decisions_. It does not restate the rules — see `ARCHITECTURE.md` for those.
 
 ---
 
-## 1. Current State — 2026-09-29
+## 1. Current State — 2026-09-30 (evening)
 
 |                           |                                                                                                                                                                                              |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Phase**                 | SRS Part E **Phase 0**. Prompt Pack **P0–P2 complete; P3 not started.**                                                                                                                      |
-| **Application code**      | **Scaffold only.** Infrastructure, no business logic. 6 workspace packages, **103 passing tests** + 11 e2e — of which **3 never run** (§1b). **~350 lines of real source**; 147 of 269 tracked files are `.gitkeep`. |
+| **Application code**      | **Scaffold plus one real screen.** The landing page (`apps/web/src/features/landing/`) is production-shaped UI with a four-locale dictionary; everything else is infrastructure. **110 unit tests** + **37 e2e**, all executing. 147 of **293** tracked files are `.gitkeep`. |
 | **Toolchain**             | ✅ **Working.** pnpm 11 workspace + Turborepo, TS strict, ESLint 9 flat config, Prettier, **Vitest** (`ADR-020`), Playwright configured.                                                     |
-| **Version control**       | 🔴 **14 commits — and the working tree is NOT clean.** 15 modified, 12 untracked. The entire ARC-01 ERD, the FIX-01/02/22 fixes and the 11-test e2e suite exist **only in the working tree and have never been pushed.** |
+| **Version control**       | ✅ **23 commits, working tree clean, all pushed to `origin/main`.** 🔴 The uncommitted-work problem recorded in the previous revision of this table is **closed** — see `G0-1`. Every TDD RED/GREEN pair is in history as a separate commit, unamended. |
 | **Repository contents**   | `AGENTS.md` · `CLAUDE.md` · `README.md` · `apps/{api,web}` · `packages/{config,shared-types,ui-kit,i18n-resources}` · `infra/docker` · `docs` · `scripts`                                    |
-| **Quality gates**         | 🔴 **`format:check` FAILS** (FIX-05). **5 of 9 green and trustworthy; 2 green but hollow; 1 not run.** ❌ **Not in CI** — P3.                                                     |
+| **Quality gates**         | 🔴 **`format:check` FAILS** (FIX-05) — the only red gate. **7 of 9 green and trustworthy; 0 hollow; 1 red.** ❌ **Not in CI** — P3.                                                     |
 | **CI**                    | ❌ **None.** No `.github/`, no `.husky/`. Branch protection also unavailable (needs a paid plan for private repos).                                                                          |
-| **ERD**                   | ✅ **Written 2026-09-29** — ARC-01. 14 Platform Core entities, generated from one source that also draws the diagram. `docs/diagrams/ERD_PLATFORM_CORE.{excalidraw,md}` · **Supersedes D22** · ⚠️ **uncommitted** |
+| **ERD**                   | ✅ **Written 2026-09-29** — ARC-01, and now **committed**. 14 Platform Core entities, generated from one source that also draws the diagram. `docs/diagrams/ERD_PLATFORM_CORE.{excalidraw,md}` · **Supersedes D22** · ⚠️ sign-off still owed |
 | **Phase 0 exit criteria** | SRS ✅ · MVP scope ✅ · **ERD ✅ — Phase 0 has exited.** Next gate is the `PLT-EPIC-01` Definition of Ready sign-off, not the ERD                                                            |
-| **Stories completed**     | 0 of 33 Platform Core stories. The P0–P2 prompts are infrastructure, not stories.                                                                                                            |
+| **Stories completed**     | 0 of 33 Platform Core stories. The P0–P2 prompts are infrastructure, not stories. **And `PLT-101` must not start until EPIC-G1 closes** — see `TODO.md` §Do Not.                                   |
 
-**Do not describe this project as "in development".** The correct description is _"scaffolded; a test that has never run; a coverage gate that enforces nothing; four gates green for the wrong reason; no feature code yet."_
+**Do not describe this project as "in development", and do not describe it as bare scaffold either.** The correct description is _"scaffolded, plus one real screen; gates that execute and are honest except one red; no Platform Core story started; no CI."_
 
-**Every row in this table was re-measured on 2026-09-30, not carried forward.** The previous version of this file stated _"8 commits, working tree clean"_ — both false. Evidence: `docs/analysis/CODE_AUDIT_2026-09-30.md` §1.1 and §2.
+**Every row in this table was measured on 2026-09-30, not carried forward.** The 2026-09-29 version said _"8 commits, working tree clean"_ — both false. The 2026-09-30 morning version said _"14 commits, tree NOT clean, 3 tests never run"_ — the counts were right and the situation has since changed. Evidence: `docs/analysis/CODE_AUDIT_2026-09-30.md` §1.1 and §2, plus `WORKLOG.md` for the two later commits.
+
+> ⚑ **This table is hand-maintained and has now been wrong twice.** `G2-2` replaces it with `scripts/report-status.mjs`, which runs the gates and emits this section. Until then, **re-measure before believing any cell** — including the ones that are correct today.
 
 ---
 
@@ -35,21 +37,23 @@ Every row below was **executed on 2026-09-30**, not inferred. Full evidence: `do
 | --- | --- | --- | --- |
 | `pnpm typecheck` | **0** | ✅ yes | 8/8 tasks |
 | `pnpm lint` | **0** | ✅ yes | 8/8 tasks, 0 errors |
-| `pnpm test` | **0** | ⚠️ partly | 8/8, **103 tests** — but 3 of them never run (§1b) |
+| `pnpm test` | **0** | ✅ yes | 8/8, **110 tests** (api 78 · i18n-resources 10 · ui-kit 8 · shared-types 7 · web 7), **none of them dormant** — the `web-port.spec.ts` hole is closed (`G1-1`) |
 | `pnpm build` | **0** | ✅ yes | 5/5; `/en /ta /si /ar` prerendered |
 | `pnpm docs:verify` | **0** | ✅ yes | **207 references** across 8 documents, resolving. The corpus said 147, 155 and 179 — all three wrong. ⚠️ **This count moved 188 → 207 the moment the four new documents added cross-references**, which is the whole argument for `D38` / `G2-2`: a hand-written count is wrong before it is ever published. Re-measure with `pnpm docs:verify`; do not trust this cell. |
 | `pnpm format:check` | **2** | ✅ yes | **FAILS.** The one honestly red gate → FIX-05 |
-| **`pnpm test:coverage`** | **0** | ❌ **no** | The `§4` tiers match **0 instrumented files** — `domain/`, `use-cases/` and `*.controller.ts` contain only `.gitkeep`. `web` reports **0% lines**. The gate enforces nothing → FIX-26 |
+| **`pnpm test:coverage`** | **0** | ❌ **no** | The `§4` tiers match **0 instrumented files** — `domain/`, `use-cases/` and `*.controller.ts` contain only `.gitkeep`. `web` reports **0% lines**. The gate enforces nothing → FIX-26. ⚠️ Note the only tiers that *do* bite today are the two `G1-1` created by accident: `src/lib/**/*.ts` (`web-port.ts`, 100%) and the ui/i18n sources |
 | **`pnpm test:integration`** | **0** | ❌ **no** | `apps/api` → `No test files found`; `apps/web` → `echo "no web integration suite at P2" && exit 0`. A passing stub, in a package `e2e-gate.spec.ts` would have caught if that gate checked `test:integration` → AUD-30-02 |
-| `pnpm test:e2e` | *not run* | ⚠️ partly | 11 tests declared. **One passes vacuously** — the nav-parity test proves four locales render the same number of nav links, which is **zero** (§1b) |
+| **`pnpm test:e2e`** | **0** | ⚠️ partly | **37 tests, all executing**, and they have teeth — deliberate regressions were reintroduced to prove it (a `<button>` for the language trigger, a 32px touch target, a 12px overflow at 375px, a reduced-motion marquee that kept clipping). ⚠️ **Still partly hollow in one place: the dark-theme case only ever asserts `'light'`, so `ThemeScript`'s `prefers-color-scheme: dark` and `localStorage` branches never execute** → AUD-30-04, `G1-5` |
 | `pnpm add` | 0 | ✅ yes | `allowBuilds` boolean map; `onlyBuiltDependencies` is inert in pnpm 11.22.0. Regression test exists |
 | API boots with no `.env` | — | ✅ yes | Prints the `PERSISTENCE DISABLED` banner, listens on 3001 (D23, `ADR-019`) |
 | Web serves four locales | — | ✅ yes | `/en` `dir=ltr` · `/ar` **`dir=rtl`** · `/ta` · `/si`, all 200, `data-theme` present |
 | Docker | — | — | ❌ not installed, by owner decision (`ADR-019`) |
 
-**Honest score: 5 of 9 gates green and trustworthy, 2 green but hollow, 1 red, 1 not run.**
+**Honest score: 7 of 9 gates green and trustworthy, 0 green-but-hollow, 1 red.** Three of the four hollow gates in §1b have been closed in one day (`AUD-30-01`, `AUD-30-03`, and the dormant `pnpm test` tests). `AUD-30-02` and `AUD-30-04` are open, so `test:integration` still runs nothing and `test:e2e` still does not execute the dark-theme branch.
 
 **A green gate is not the same as an enforced gate, and a test that exists is not the same as a test that runs.** Both distinctions were violated four times on 2026-09-30, all of them invisible from reading the configuration. The plan that fixes them is `docs/work/ACTION_PLAN_2026-09-30.md` EPIC-G1.
+
+**A fifth instance appeared the same day, and it is the reason the score is not 9 of 9.** Four new e2e cases for the language picker passed on arrival, and two of them were *vacuously* true: the order case read `href` attributes off a menu that was closed, so it would have passed against a picker that never opens, and the collapsed options were reported as `"EnglishEN" 0x0` by a touch-target sweep that conflated *hidden* with *too small*. A closed `<details>` was also failing to hide its menu in one real Chromium build while Playwright's engine hid it. All three are fixed, and the tests now assert visible state rather than attributes. **The lesson is the one in `TODO.md` §Do Not: ask what the gate actually ran, not whether it was green.**
 
 ---
 
@@ -61,8 +65,10 @@ Added 2026-09-30. None of these was in any prior document. Each is a gate or a t
 | --- | --- | --- | --- |
 | **`AUD-30-01`** | **`apps/web/src/lib/web-port.spec.ts` matched neither of its package's `include` globs and had never executed.** Proven: `vitest run web-port.spec.ts` → `No test files found, exiting with code 1` — **even when named explicitly**, because Vitest applies `include` as a filter to explicit arguments. At the time of the audit the file sat at the **package root**. **✅ Closed by G1-1 (2026-09-30): moved to `src/lib/`, colocated with `web-port.ts`; the web suite went 4 tests / 1 file → 7 / 2.** | Three tests written specifically to prevent a documented incident in which Playwright ran all 11 e2e tests against an unrelated application on port 3000. The fix is unguarded, and the guard is dead while still *looking* correct in review | 🔴 **P0** |
 | **`AUD-30-02`** | The integration gate is hollow in **both** packages that declare it — `passWithNoTests: true` in one, a literal `echo && exit 0` in the other. `e2e-gate.spec.ts` implements `isPassingStub()` and checks only `test:e2e` | `AGENTS.md §4` lists integration as mandatory. It runs nothing, in either package, and nothing watches it | 🔴 open |
-| **`AUD-30-03`** | The e2e nav-parity test resolves `nav a, header a` — and the app renders **zero** `<a>` elements. `expect(0).toBe(0)` passes | The tagline test nine lines above carries the correct `not.toBe('')` floor. The nav test has no equivalent, so it proves nothing | 🔴 open |
-| **`AUD-30-04`** | The e2e theme test only ever asserts `'light'`. Playwright's default `colorScheme` is light, so the `prefers-color-scheme: dark` and `localStorage` branches of `ThemeScript` are **never executed** | `AGENTS.md §3.2.5` requires both themes. Only the source-CSS unit test covers dark, and `shell.spec.ts` itself argues source-CSS is not the shipped bundle | 🔴 open |
+| **`AUD-30-03`** | The e2e nav-parity test resolves `nav a, header a` — and the app renders **zero** `<a>` elements. `expect(0).toBe(0)` passes | The tagline test nine lines above carries the correct `not.toBe('')` floor. The nav test has no equivalent, so it proves nothing | ✅ **Closed 2026-09-30 by `G1-4`.** The 320px topnav case now asserts `expect(nav.linkCount).toBeGreaterThan(0)` and names the shortest control in the failure message. Closing it then caught a *second* instance of the same class: the global touch-target sweep's selector was `a[href], button`, and since `AGENTS.md` §3.2.1 bans `<button>`, the `<summary>` language trigger was never measured at all |
+| **`AUD-30-04`** | The e2e theme test only ever asserts `'light'`. Playwright's default `colorScheme` is light, so the `prefers-color-scheme: dark` and `localStorage` branches of `ThemeScript` are **never executed** | `AGENTS.md §3.2.5` requires both themes. Only the source-CSS unit test covers dark, and `shell.spec.ts` itself argues source-CSS is not the shipped bundle | 🔴 open → `G1-5` |
+
+**A fifth instance, found 2026-09-30 evening — it was not in this register.** `AUD-30-01` asks "is this test file inside its runner's `include`?" The parallel question for any assertion is **"does it pass because the thing is right, or because the thing is absent?"** The language picker's order and `aria-current` cases passed against a *closed* menu — correct attributes, invisible element — so a picker that never opened would have passed both. A sweep then reported that same hidden menu as a `"EnglishEN" 0x0` touch-target violation. Recorded here because `G1-2`'s general oracle is the only thing that addresses it; the three targeted tests I wrote for it were all green on arrival.
 
 **One root cause.** `coverage-gate.spec.ts` and `e2e-gate.spec.ts` were written on 2026-09-29 to solve exactly this problem — *is a gate actually wired to anything?* — and they work. The class of defect then recurred in four adjacent places they do not cover. **What is missing is a general oracle**, not four more targeted tests: `ACTION_PLAN` G1-2.
 

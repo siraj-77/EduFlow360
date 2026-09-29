@@ -1643,3 +1643,86 @@ what fixed it. The first attempt looked like it should have worked and did not.
   name reads "اللغة: العربية".
 - `pnpm format:check` still exits 2 — pre-existing `FIX-05`, untouched.
 
+
+## 2026-09-30 — Records reconciled: G0 and G1-4 closed, next task named
+
+**Date:** 2026-09-30 · **Phase:** G1 · **Agent:** builder (OpenCode) · **Status:** Complete · **Type:** documentation only, no code changed
+
+### Activity
+
+Re-measured every number in `SSOT.md` §1 / §1a rather than carrying it
+forward, then updated `TODO.md` to match. Docs-only: the previous commit left the
+working tree clean and this one re-opens it for two files.
+
+Measured before writing anything: **23 commits** · **293 tracked files** (147
+`.gitkeep`) · **0 uncommitted** · **110 unit tests** (api 78 · i18n-resources 10
+· ui-kit 8 · shared-types 7 · web 7) · **37 e2e** · **209** `docs:verify`
+references across 8 documents.
+
+Closed: **`G0-1`** (all 27 files committed and pushed, no amend, no squash) and
+**`G1-4`** (the nav-parity floor, which closes `AUD-30-03`).
+
+### Findings
+
+**A `done` marker survived a day on a rule nothing measured.** `DSN-05` read
+_"`prefers-reduced-motion`, ≥ 44 px touch targets — done 2026-09-29, verified by
+test"_ while the page shipped at 32px and both CTAs at 43px. A checkbox is a
+claim about a *measurement*, and this one was a claim about a *token existing*.
+Corrected in place, with the new §Do Not rule: check for a test that reads the
+rendered box, not for a constant in a stylesheet.
+
+**The 110 needed a second attempt.** A regex over the `pnpm test` output
+over-counted to 122 by matching `Test Files 1 passed` alongside `Tests 7 passed`.
+Read the per-package `Tests` lines instead: 7+10+8+78+7 = 110, which matches the
+110 recorded in the previous entry. **A wrong number written into an SSOT is
+worse than a missing one**, because the next session inherits it.
+
+**`G1-4` fixing a floor then found a second one.** The 320px nav case now asserts
+a non-zero control count; doing so exposed that the global touch-target sweep
+selected `a[href], button` — and since `AGENTS.md` §3.2.1 bans `<button>`, the
+`<summary>` language trigger had never been measured by the one test whose job is
+the 44px floor. `summary` is now in the selector.
+
+**§1 has been hand-maintained and wrong twice in one day** ("8 commits, clean" →
+"14 commits, not clean" → 23/clean). Both corrections were manual. I re-measured
+rather than recalculating, and left `G2-2` (`scripts/report-status.mjs`) as the
+real fix with an explicit note not to patch §1 a third time by hand.
+
+### Decisions Made
+
+- **`G2-1` marked mostly-done but explicitly not finished.** The numbers are
+  right; the *approach* is still hand-maintained, and marking it `[x]` would
+  retire the item that is actually worth doing.
+- **The landing page is recorded as "shipped, and not in any plan"** rather than
+  given an invented epic ID. It is a slice, not a milestone. Its five remaining
+  gaps are cross-referenced to the items that already own them (`FIX-10`,
+  `G1-5`, `DSN-03`, `DSN-04`, `FIX-11`) so nothing is quietly dropped.
+- **`SSOT.md` §1 gets a "do not trust this cell" warning** on the `docs:verify`
+  count, because it moved 188 → 207 → 209 without anyone editing a requirement.
+
+### Files Changed
+
+- `docs/core/SSOT.md` — §1, §1a, §1b re-measured; score corrected to
+  *"7 of 9 green and trustworthy, 0 hollow, 1 red"*; `AUD-30-03` closed; a fifth
+  hollow-gate instance added to the register.
+- `docs/work/TODO.md` — `G0` and `G1-4` closed; `DSN-03` / `DSN-05` corrected;
+  `FIX-02`, `G2-1`, item 3 and the `PLT-101` entry condition updated; two new
+  §Do Not rules; the landing page recorded; `PLT-107` and the ADR tables untouched.
+
+### Next Steps
+
+**`G1-2` — a test-file oracle.** Assert that every `*.spec.ts` is matched by its
+own package's runner `include` globs, so `AUD-30-01` cannot recur. It generalises
+`coverage-gate.spec.ts`'s guard-on-the-guard pattern. Then `G1-3` (extend
+`isPassingStub()` to `test:integration`) and `G1-5` (dark-theme e2e).
+
+### Quality
+
+- `pnpm docs:verify` → exit 0, **209** references resolving (was 207; the two new
+  are the `AUD-30-05`-style cross-references added above).
+- No code changed, so no gate was re-run beyond `docs:verify` — re-running the
+  full seven on a markdown-only diff would be theatre.
+- `pnpm format:check` still exits 2 — pre-existing `FIX-05`, untouched. Note that
+  this commit edits `.md` files, which are among the 60 that gate reports, so it
+  neither fixes nor worsens `FIX-05`.
+

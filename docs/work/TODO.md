@@ -6,11 +6,11 @@
 
 ---
 
-## G0 — Commit the work that exists 🔴 **DO THIS FIRST**
+## G0 — Commit the work that exists ✅ **DONE 2026-09-30**
 
 > **Added 2026-09-30.** `SSOT.md:16` said *"8 commits, working tree clean."* Measured: **14 commits, 15 modified, 12 untracked.** The entire ARC-01 ERD, the FIX-01/02/22 fixes, the 11-test e2e suite and every doc change from the last 24 hours exist **only in the working tree** and have never been pushed. A TDD checkpoint that is never committed is not a checkpoint, and `AGENTS.md §9` makes the worklog part of the commit.
 
-- [ ] **G0-1** 🔴 Commit the 27 uncommitted files as the ARC-01 / FIX-01 / FIX-02 / FIX-22 checkpoints, in WORKLOG order. `git status --porcelain` empty; `pnpm test` still exits 0. **No amend, no squash** — the RED/GREEN pairs are the evidence. → `AUD-30-09`
+- [x] **G0-1** ✅ **DONE 2026-09-30.** All 27 files committed as discrete checkpoints and pushed to `origin/main`. **No amend, no squash** — the RED/GREEN pairs are the evidence and were preserved as separate commits. `git status --porcelain` empty; `pnpm test` 0. **23 commits**, tree clean. The ERD, the e2e suite and every fix are now in history rather than in a working tree. → `AUD-30-09`
 
 ---
 
@@ -27,7 +27,7 @@
 - [x] **G1-1** ✅ **P0 — `web-port.spec.ts` had never executed.** **DONE 2026-09-30.** RED observed twice: `vitest run web-port.spec.ts` → `No test files found, exit 1` *even when named explicitly*, and the suite green at `4 passed (4)` while the test did not run. Moved to `src/lib/web-port.spec.ts` beside the module it tests; `playwright.config.ts` import updated; the spec's root-derivation replaced with a walk up to the `@eduflow/web` manifest so it is position-independent. **GREEN `2 files / 7 tests`** — the exact predicted count. **Teeth proven:** `--port 3500` → `3000` gives `AssertionError: "dev" must use --port 3500: expected 'next dev --port 3000' to contain '--port 3500'`, exit 1; reverted. Side effect: the `src/lib/**/*.ts` coverage tier is now **live** (`web-port.ts` 100%) — a partial `FIX-26` win obtained by fixing the real defect. Full evidence: `TDD_EVIDENCE_GATES.md`. → closes **`AUD-30-01`**
 - [ ] **G1-2** 🔴 **A test-file oracle.** Every `*.spec.ts` must be inside its runner's `include`. **This is what stops G1-1 recurring** — G1-1 fixed one instance, G1-2 fixes the class. Generalises the `coverage-gate.spec.ts` guard-on-the-guard pattern
 - [ ] **G1-3** 🔴 **Integration gate guards.** `apps/web`'s `test:integration` is `echo "no web integration suite at P2" && exit 0`; `apps/api`'s is `passWithNoTests: true`. `isPassingStub()` already exists in `e2e-gate.spec.ts` — extend it from `test:e2e` to `test:integration`. → `AUD-30-02`
-- [ ] **G1-4** 🔴 **Nav-parity floor.** `shell.spec.ts` resolves `nav a, header a`; the app renders **zero** `<a>` elements, so `expect(0).toBe(0)` passes. Add `expect(en.length).toBeGreaterThan(0)`. The tagline test nine lines above already carries the correct floor. → `AUD-30-03`
+- [ ] **G1-4** ✅ **DONE 2026-09-30.** The 320px topnav case asserted `expect(0).toBe(0)` over zero links. It now asserts `expect(nav.linkCount).toBeGreaterThan(0)` and reports the shortest control by name. **Closing it caught a second instance of the same class:** the global touch-target sweep selects `a[href], button`, and because `AGENTS.md` §3.2.1 bans `<button>`, the `<summary>` language trigger was never measured — a control the whole `AGENTS.md` §3.2.2 floor depends on. `summary` added. → closes **`AUD-30-03`**
 - [ ] **G1-5** ⚠️ **Dark theme e2e.** The theme test only asserts `'light'`; Playwright's default colour scheme is light, so `ThemeScript`'s `prefers-color-scheme: dark` and `localStorage` branches never run. `AGENTS.md` §3.2.5 requires both themes. → `AUD-30-04`
 - [ ] **G1-6** 🔴 **Coverage globs bite.** `domain/`, `use-cases/` and `*.controller.ts` match **0 files**; `web` reports 0%. Add tiers covering the real source, and assert every configured glob matches ≥1 instrumented file. → `FIX-26`
 - [ ] **G1-7** ⚠️ `pnpm format:check` (exit 2, 60 files, **including `AGENTS.md` itself** — reformatting the contract needs owner approval, `D14`)
@@ -45,7 +45,7 @@
 
 > **Six quantity classes are wrong at once:** `docs:verify` 147/155/179 → **188** · tests 51/63/67/78 → **103** · commits 3/4/8 → **14** · ADRs 19/21 → **21** · tracked files 262 → **269** · tsconfigs excluding specs 5 → **4**. Six wrong numbers is evidence the class recurs, so the fix is to **generate** the report, not write it (`D38`).
 
-- [ ] **G2-1** Correct `SSOT.md` §1 — every number re-measured; delete the duplicate `pnpm test` row; the gate line becomes *"5 of 9 green and trustworthy, 2 hollow, 1 red"*, not "6 of 7". → `AUD-30-06` ✅ **partly done by this edit**
+- [ ] **G2-1** Correct `SSOT.md` §1 — every number re-measured; delete the duplicate `pnpm test` row; the gate line becomes *"5 of 9 green and trustworthy, 2 hollow, 1 red"*, not "6 of 7". → `AUD-30-06` ✅ **mostly done 2026-09-30 evening** — §1, §1a and §1b re-measured and the score corrected to *"7 of 9 green and trustworthy, 0 hollow, 1 red"*; `AUD-30-03` closed. ⚠️ **Do not hand-maintain the rest: this line has now been wrong twice in one day, which is the argument for G2-2 below, not a reason to patch it a third time**
 - [ ] **G2-2** 🔴 **`scripts/report-status.mjs`** — run the 9 gates, emit the `SSOT.md` §1 table. The `D33` pattern applied to the status report: one source, generated artefact, drift **impossible**. Include a `--check` mode for CI. Worth more than fixing six instances
 - [ ] **G2-3** ⚠️ **Renumber the collision.** `REMEDIATION_PLAN_2026-09-29.md` uses `ARC-01` for `IClock` and `OPS-01` for the integration harness; `GAP_ANALYSIS`/`TODO` use `ARC-01` for the **completed** ERD and `OPS-01` for compose. Renumber to `ARC3-xx` / `OPS-01b`; the ERD keeps `ARC-01` everywhere. **`PLT-*` is never touched** (`D39`). → `AUD-30-07`
 - [ ] **G2-4** ⚠️ `PLATFORM_CORE_PLAN.md` — delete `:139`'s *"resolves cleanly — P14 sits after P8"* (retracted), fix the Jest reference, the "test runner is missing" line, and *"MinIO is not optional"*. **The doc most likely to mislead the next session.** → `AUD-30-08`, `DOC-07`
@@ -58,7 +58,7 @@
 Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-09-29.md` EPIC-00. **Re-sequenced into EPIC-G1 (gates), EPIC-G3 (scaffold) and EPIC-G4 (CI) by `ACTION_PLAN_2026-09-30.md`; this section is the index, not the plan.**
 
 - [x] **FIX-01** ✅ ~~`@vitest/coverage-v8` in all 5 test-bearing packages~~ **DONE 2026-09-29** — ⚠️ but the tiers still enforce nothing → **G1-6** / `FIX-26`
-- [x] **FIX-02** ✅ ~~one real e2e spec~~ **DONE 2026-09-29** — 11 tests — ⚠️ but one passes vacuously → **G1-4** / `AUD-30-03`
+- [x] **FIX-02** ✅ ~~one real e2e spec~~ **DONE 2026-09-29** — 11 tests — ✅ **now 37, all executing, and the vacuous nav case is closed (`G1-4`)**
 - [ ] **FIX-03** 🔴 `docker-compose.yml` does not parse → **G1-10**
 - [x] **FIX-04** ✅ `proxy.ts` compiled to zero middleware → **G3-3, DONE 2026-09-30** - `src/middleware.ts`, `proxy.ts` deleted, `/` no longer 404s
 - [ ] **FIX-05** ⚠️ `pnpm format:check` → **G1-7**
@@ -74,11 +74,15 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 
 ---
 
+> 📌 **Shipped, and not in any plan — the landing page.** `apps/web/src/features/landing/` is the first real screen: template-faithful visual language and motion, four locales, RTL, dark mode, responsive to 320px, an honest `/[locale]/sign-in` placeholder, and a `<details>`-based language dropdown ordered English/Sinhala/Tamil/Arabic. **It is a slice, not a milestone** — no Platform Core story, no API, no data. It exists partly because the RTL, i18n, theme and touch-target rules in `AGENTS.md` §3.2 have nothing to bite on until a screen exists, and a rule with nothing to bite on is a rule nothing tests. **Its remaining gaps are tracked normally:** `FIX-10` (theme toggle, `loading.tsx`, `error.tsx`, `not-found.tsx`), `G1-5` (dark-mode e2e), `DSN-03` (table archetype), `DSN-04` (font stack), and `FIX-11` (shadcn — the disclosure becomes a real `DropdownMenu`).
+
+---
+
 ## P0 — Do These First
 
-> **State 2026-09-30:** P2 (scaffold) is DONE. The ERD is **written** (ARC-01) and Phase 0 has exited — but it is **uncommitted**, so do **G0** before anything else. The top engineering priority is **EPIC-G1**, then **EPIC-G4 (P3 CI)**.
+> **State 2026-09-30 (evening):** P2 (scaffold) is DONE. The ERD is written **and committed** (ARC-01); Phase 0 has exited. `G0` is closed — 23 commits, clean tree, everything pushed. **The top engineering priority is `EPIC-G1`, then `EPIC-G4 (P3 CI)`.** The single next task is **`G1-2`**.
 >
-> ⚠️ **`PLT-101` entry condition is NOT met.** `TODO.md:226` records it as *"the harness is still not trustworthy"*, and the 2026-09-30 audit confirmed why in more detail. **Do not start a Platform Core story until EPIC-G1 closes.**
+> ⚠️ **`PLT-101` entry condition is NOT met.** `TODO.md:226` records it as *"the harness is still not trustworthy"*, and the 2026-09-30 audit confirmed why in more detail. It got measurably closer today — 3 of the 4 hollow gates are closed — but `test:integration` still runs nothing (`AUD-30-02`), the coverage tiers still match **zero** instrumented files (`FIX-26`), `format:check` is red (`FIX-05`), and nothing runs in CI (`FIX-12`). **Do not start a Platform Core story until EPIC-G1 closes.**
 
 ### 1. Rotate the exposed credential — ⚠️ **ACCEPTED RISK, NOT BLOCKING** _(decided 2026-09-28, D16)_
 
@@ -108,7 +112,7 @@ The `AGENTS.md` rules are already machine-enforced **locally**. Nothing enforces
 - [ ] **G4-8** CI workflow: PR → typecheck → lint → custom checks → unit + coverage → build → integration (containerised Postgres) → secrets scan. E2E on `main` only
 - [ ] **G4-9** ⚠️ **Human gate** — a PR with (a) an unguarded route (b) a `new Date()` in a use-case (c) a raw `<button>` (d) a missing i18n key must **FAIL CI for each**, then pass. ⚠️ **Requires G3-1 (shadcn) first** — the gate needs a raw `<button>` to fail *and* a compliant `<Button>` to pass
 
-### 3. Write the ERD ✅ **DONE 2026-09-29 (ARC-01) — supersedes D22. Phase 0 exited. ⚠️ UNCOMMITTED → G0-1**
+### 3. Write the ERD ✅ **DONE 2026-09-29 (ARC-01) — supersedes D22. Phase 0 exited. ✅ COMMITTED 2026-09-30 (G0-1)**
 
 `apps/api/prisma/schema.prisma` now holds 14 generated models, and the diagram is generated from **the same source** — see `docs/diagrams/ERD_PLATFORM_CORE.md` for every decision, its rationale, and 7 open questions. Gate: `apps/api/src/config/{prisma-schema,schema-generation}.spec.ts` — **26 cases**, including a live `prisma validate` subprocess and a byte-identical check that neither artefact has been hand-edited.
 
@@ -170,9 +174,9 @@ Five loud stubs exist; **zero data rows.** The Prompt Pack §4.2 greps `fr-index
 - [ ] `ARC-06` `Money` value object + journal-balance invariant test — ⚠️ **front-loaded by proposed `ADR-024`**; the `bigint` → JSON boundary must be designed here, per `ADR-002:48`
 - [x] `DSN-01` `packages/ui-kit` tokens — **done 2026-09-29**: light + dark in `styles.css`, `prefers-reduced-motion` added, verified by test. _shadcn/ui components themselves are FIX-11_
 - [x] `DSN-02` `packages/i18n-resources` — **done 2026-09-29**: en/ta/si/ar, 38 keys, parity enforced by 10 vitest cases
-- [ ] `DSN-03` RTL foundation — **core proven 2026-09-29** (`/ar` serves `dir=rtl`). _Login, form and table archetypes still to build (P4W)._
+- [ ] `DSN-03` RTL foundation — **core proven 2026-09-29** (`/ar` serves `dir=rtl`); **advanced 2026-09-30** — the language dropdown anchors its menu to the trigger's *inline* end (flush left in Arabic, `alignLeft: 0`), and the first form-shaped card in the product (`/[locale]/sign-in`) is verified in Tamil and Arabic. _Table archetype still to build (P4W)._
 - [ ] `DSN-04` font stack for Tamil/Sinhala/Arabic — ⚑ **needs owner decision**; PDF pipeline must be covered too. _A provisional Noto stack is in `styles.css`._
-- [x] `DSN-05` `prefers-reduced-motion`, ≥ 44 px touch targets — **done 2026-09-29**, verified by test
+- [x] `DSN-05` `prefers-reduced-motion`, ≥ 44 px touch targets — **done 2026-09-29**, and **corrected 2026-09-30**. ⚠️ The first version of this line said "verified by test" and **nothing was measuring the rendered box** — the token existed and the page shipped at 32px, with both CTAs at **43px, one pixel under the floor**. Six real violations. Now `every interactive element is at least 44px tall` sweeps `a[href], button, summary`, skips zero-area (hidden) elements, asserts the count is non-zero, and names the trigger so the sweep cannot pass vacuously. `prefers-reduced-motion` was equally nominal: cancelling the marquee left a **clipped** strip — now a centred wrapping list. _shadcn/ui components themselves are FIX-11_
 - [ ] `DSN-06` CI enforcement: no literal user-facing string in JSX/TSX. _The no-hard-coded-hex half is done and firing; the string half is P3 — a heuristic produces false positives, which is worse than no check. `ARCHITECTURE.md:346` currently overstates this._
 - [x] `OPS-01` `infra/docker/docker-compose.yml` — **services defined 2026-09-29**: Postgres, Redis, MinIO, Mailpit. ⚠️ **the file does not parse — FIX-03**
 - [ ] `OPS-02` CI pipeline — **P3, the top priority after P0a**
@@ -266,9 +270,10 @@ Blocking the items marked ⚑.
 
 ## Do Not
 
-- ❌ **Do not start `PLT-101`** before the entry conditions in `PLATFORM_CORE_PLAN.md` §2 are met. **The ERD is done** (ARC-01) and `test:coverage`/`test:e2e` are fixed (FIX-01/02), but the harness is still **not trustworthy**: the coverage tiers match **zero** instrumented files (FIX-26), `format:check` fails (FIX-05), and nothing runs in CI (FIX-12). **ERD sign-off is also still owed** — see item 3
+- ❌ **Do not start `PLT-101`** before the entry conditions in `PLATFORM_CORE_PLAN.md` §2 are met. The ERD is done **and committed** (ARC-01) and `test:coverage`/`test:e2e` are fixed (FIX-01/02), but the harness is still **not trustworthy**: the coverage tiers match **zero** instrumented files (FIX-26), `format:check` fails (FIX-05), `test:integration` runs nothing in either package (AUD-30-02), and nothing runs in CI (FIX-12). **ERD sign-off is also still owed** — see item 3
+- ❌ **Do not treat a green gate as evidence the gate is sound.** **Five** different defects have now made `pnpm test:e2e` report a meaningless result — an empty `testDir`, an always-passing stub script, a readiness probe that accepted a foreign server, a nav-parity floor that asserted `expect(0).toBe(0)`, and four language-picker cases that passed against a *closed* menu. Ask what the gate actually ran
+- ❌ **Do not accept a "done" marker on a rule that nothing measures.** `DSN-05` read _"≥ 44px touch targets — done, verified by test"_ for a day while the page shipped at 32px and its CTAs at 43px. The token existing is not the floor being enforced. Check for a test that *reads the rendered box*
 - ❌ **Do not merge while any §4 gate is red.** One is (`format:check`). P0a exists for this
-- ❌ **Do not treat a green gate as evidence the gate is sound.** Three different defects made `pnpm test:e2e` report a meaningless result — an empty `testDir`, an always-passing stub script, and a readiness probe that accepted a foreign server. Ask what the gate actually ran
 - ❌ **Do not treat a config file existing as a gate passing**, and equally **do not treat a green coverage gate as enforced coverage.** FIX-01 closed while the tiers still matched 0 files — `AGENTS.md §4.1`'s "a test count is not evidence of coverage" applies to a passing gate too
 - ❌ **Do not reintroduce `onlyBuiltDependencies` as an alternative to `allowBuilds` in `pnpm-workspace.yaml`.** It is **inert in pnpm 11.22.0** — it reads back correctly via `pnpm config get`, so it looks configured, but pnpm never acts on it and every postinstall is blocked. A key that reads back correctly and does nothing is worse than one that is absent (FIX-22)
 - ❌ **Do not port any legacy code** until `LEGACY_REUSE_INVENTORY.md` names the file with a reason (`AGENTS.md` §5.2)
