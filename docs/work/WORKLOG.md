@@ -8,6 +8,99 @@
 ---
 ---
 
+## 2026-09-30 — The landing page, built from the template but not its claims
+
+| Field      | Entry |
+| ---------- | ----- |
+| **Date**   | 2026-09-30 |
+| **Phase**  | Landing page. Follows `G3-1` but does **not** depend on it — see "Why this was buildable now". |
+| **Task**   | The user: _"we can use the template for the landing page for now"_, after I flagged that the template's copy contains three claims `AGENTS.md §2.8` names as false. Proceeded on the recommended option: build the page, replace those claims. |
+| **Agent**  | `opencode` / space-bunny-free |
+| **Status**  | ✅ Complete. 16 e2e (was 13), 3 new; all gates 0. |
+
+### What was taken from the template, and what was not
+
+| Taken | Not taken, and why |
+| ----- | ----------------- |
+| Section order: hero → capability strip → feature grid → footer | `badge`: **"Trusted by 200+ schools"** — named false in `AGENTS.md §2.8` |
+| Gradient-accented heading | KPI stats: **"1.2M Students Managed"** — named false in `AGENTS.md §2.8` |
+| The 4-locale dictionary (**all four, real translations**) | `ctaTrial`: **"Start Free Trial"** — contradicts D2/D4, per-school deployment sold on editions |
+| 3 of 4 feature blocks | `f4h`: **"Mobile for Everyone"** — contradicts D5/`ADR-005`, `apps/mobile` is milestone 2 |
+| | The inline 11.7 KB script — `next-intl` + `ThemeScript` already do all three of its jobs |
+| | The 24 hex literals — the token system exists to prevent exactly that |
+
+The four-locale dictionary was recovered by extracting the template's `I18N` object to JSON with a one-shot script, because this shell's console is code page 850 and renders Tamil/Sinhala/Arabic as garbage. Reading raw bytes to a file and opening it with a UTF-8 reader is the only way to see them. **The same trap was already recorded as `D40`.**
+
+### The TDD cycle, including the part that was not a RED
+
+**RED** — three new e2e cases, two of which failed for the right reasons:
+
+```text
+x renders the hero and the four feature blocks
+    Error: the landing page renders no feature blocks
+    Expected: 4
+    Received: 0
+x every locale renders the landing page in its own language
+    Error: /ta fell back to the English hero
+    Expected: not "EduFlow"
+  14 passed | 2 failed
+```
+
+**The third test — "states no claim the governing contract calls false" — passed immediately and therefore was not a RED.** It cannot be one: an empty page trivially contains no forbidden strings. It is a **regression guard**, and it is paired with a positive test that *was* red. Recorded explicitly, because a suite that claims three REDs when it had two is the exact accounting error this project keeps catching in itself.
+
+**GREEN** — `13 passed` → then **16 passed** after fixing a regression I introduced (below).
+
+### Two decisions taken on the way, and one error
+
+**The CTAs could not be links to `/demo` or `/docs`, because neither exists.** My first draft of the hero pointed at them, with a comment claiming `next/link` was used while the code rendered a plain `<a>` — the comment and the code disagreed, which is the kind of thing that survives review and means nothing to a reader. Both CTAs are now **in-page anchors** to sections that are genuinely on the page, and the copy says what they do. When `/demo` and a real sign-in exist, they become `next/link` and the four-locale strings change together — which is what the parity suite is for. (D46)
+
+**The gradient heading is two keys, not one string with markup.** The template stored `"Run your entire school on<br><span class=\"grad\">one connected platform</span>"` as a single value. That is HTML inside a translation: untranslatable by anyone who cannot read the tags, and impossible to restyle. `heroTitle` + `heroTitleAccent` keeps the visual and makes the copy translatable. (D45)
+
+**A regression I caused, and caught.** The existing test `"every locale renders translated copy"` probed `page.locator('header p')` — the old shell's tagline. The landing page renders no `<header>`, so the locator matched nothing and the test **timed out after 30 s**. Fixed by adding `data-testid="hero-sub"` and re-pointing the probe. The test's *intent* — a locale silently falling back to English must be caught — is unchanged and still independent of the new `h1` test, which probes a different string.
+
+### Why this was buildable before `FIX-11`
+
+`AGENTS.md §3.2.1` bans raw `<button>`, and shadcn does not exist yet, so no screen with a button can be written. **A landing page whose calls to action are links needs no button.** The page uses `<a>`, `<section>`, `<ul>`, `<li>`, `<h1>`–`<h3>`, `<p>`, `<footer>` — none of the six banned elements — so `§3.2.1` is satisfied rather than circumvented, and the design system is not on the critical path for this screen.
+
+### RTL needed no rules at all
+
+`/ar` was verified in a browser: the grid reverses, the CTAs swap sides, the accent bars move, and all text is right-aligned — with **zero** `html[dir="rtl"]` CSS. That is the whole argument in `AGENTS.md §3.2.6` about logical properties, demonstrated rather than asserted. The template needed four `[dir="rtl"]` overrides because it used physical properties; this page needed none because it does not.
+
+### Files changed
+
+| File | Change |
+| ---- | ------ |
+| `apps/web/src/features/landing/components/hero.tsx` | **new** — badge, gradient heading, sub, two anchor CTAs |
+| `.../components/capability-strip.tsx` | **new** — four capability tiles, **no numbers** |
+| `.../components/feature-grid.tsx` | **new** — four cards, 4th is the audit trail not mobile |
+| `.../components/site-footer.tsx` | **new** |
+| `.../pages/landing-page.tsx` | **new** — composes the four |
+| `apps/web/src/app/[locale]/page.tsx` | renders `LandingPage` |
+| `apps/web/src/app/[locale]/layout.tsx` | reduced to the document shell — **no product copy** |
+| `packages/i18n-resources/src/locales/{en,ta,si,ar}.json` | **+20 `landing` keys each** (38 → 58 per locale) |
+| `apps/web/tests/e2e/shell.spec.ts` | +3 landing cases; tagline probe re-pointed |
+
+### Quality
+
+| Check | Result |
+| ----- | ------ |
+| `pnpm test:e2e` | ✅ 0 — **16 passed** (13 → 16) |
+| `pnpm test` | ✅ 0 — 106 unit, unchanged; the i18n parity suite held across 20 new keys × 4 locales |
+| `pnpm typecheck` · `lint` | ✅ 0 — including the `no-restricted-syntax` raw-element and hard-coded-hex rules |
+| `pnpm build` | ✅ 0 — `/en /ta /si /ar` all prerendered |
+| `test:coverage` · `test:integration` · `docs:verify` | ✅ 0 |
+| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, untouched |
+| Browser | `/` → `/en` → landing page; `/ar` verified mirrored, `dir=rtl` |
+
+### Still open, deliberately not fixed here
+
+- **`AUD-30-03` / `G1-4`** — the nav-parity test still resolves `nav a, header a` and still finds **zero** links, so it still passes vacuously. It was untouched by this work and remains the vacuous assertion the audit named. Fixing it needs a floor assertion, which will then correctly fail and force navigation to be built — a `G3` decision, not a landing-page one.
+- **`app.tagline`** is now referenced by no screen. The key stays in all four locales; it is not dead weight yet, and deleting it is a one-line change whenever a second screen appears.
+
+---
+
+---
+
 ## 2026-09-30 — FIX-04: the root URL was a 404, and the e2e probe had been hiding it
 
 | Field      | Entry |

@@ -3,6 +3,28 @@
     "name": "EduFlow",
     "tagline": "School management, one connected platform"
   },
+  "landing": {
+    "badge": "One school. One deployment. One database.",
+    "heroTitle": "Run your entire school on",
+    "heroTitleAccent": "one connected platform",
+    "heroSub": "Attendance, academics, fees, leave, homework and more — unified in a single, secure, role-aware ERP.",
+    "ctaFeatures": "See the features",
+    "ctaCapabilities": "See what's inside",
+    "marqueeLabel": "Built for every corner of school operations",
+    "kpiStudents": "Total students",
+    "kpiAttendance": "Present today",
+    "kpiFees": "Fees collected",
+    "kpiLeave": "Open requests",
+    "f1h": "Unified Attendance",
+    "f1p": "Student, teacher and staff attendance in one engine — biometric, QR or manual.",
+    "f2h": "Finance & General Ledger",
+    "f2p": "Invoicing, payments, scholarships and double-entry general ledger posting.",
+    "f3h": "Academic Engine",
+    "f3p": "Configurable grades, curricula, timetables and promotion rules.",
+    "f4h": "Immutable Audit Trail",
+    "f4p": "Every sensitive action is recorded append-only. Updates and deletes are refused at the database.",
+    "footer": "© 2026 EduFlow — All rights reserved."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "students": "Students",

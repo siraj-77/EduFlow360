@@ -70,6 +70,82 @@ test.describe('locale negotiation at the root', () => {
   });
 });
 
+/**
+ * The landing page.
+ *
+ * Its layout, visual language and four-locale copy are built from
+ * `docs/template/` — but not its claims. `AGENTS.md` 2.8 says of that file:
+ * _"Do not take the marketing claims — 'Trusted by 200+ schools' and '1.2M
+ * Students Managed' are false, and 'Start Free Trial' contradicts a
+ * per-school deployment sold on editions."_
+ *
+ * So the forbidden strings are asserted **absent**. That is the part of this
+ * block that matters and the part that is easy to lose: the page looks finished,
+ * so a later edit that restores "Trusted by 200+ schools" changes nothing
+ * visually and fails nothing. Until now nothing in the repository would have
+ * noticed.
+ */
+test.describe('landing page', () => {
+  test('renders the hero and the four feature blocks', async ({ page }) => {
+    await page.goto('/en');
+
+    await expect(
+      page.getByRole('heading', { level: 1 }),
+      'the landing page has no h1, so /en is still the bare scaffold shell',
+    ).toBeVisible();
+
+    const features = page.locator('[data-testid="feature"]');
+    await expect(
+      features,
+      'the landing page renders no feature blocks',
+    ).toHaveCount(4);
+
+    await expect(
+      features.first(),
+      'a feature block rendered empty, so a translation key resolved to nothing',
+    ).not.toBeEmpty();
+  });
+
+  test('states no claim the governing contract calls false', async ({ page }) => {
+    await page.goto('/en');
+
+    const text = await page.locator('body').innerText();
+
+    // Each of these is named or implied by AGENTS.md 2.8, D2/D4 (per-school
+    // deployment sold on editions) or D5/ADR-005 (mobile is milestone 2).
+    const FORBIDDEN: ReadonlyArray<readonly [string, string]> = [
+      ['200+', 'AGENTS.md 2.8: "Trusted by 200+ schools" is not true of this product'],
+      ['1.2M', 'AGENTS.md 2.8: "1.2M Students Managed" is not true of this product'],
+      ['Free Trial', 'D2/D4: one deployment per school, sold on editions. There is no trial to start.'],
+      ['Mobile for Everyone', 'D5/ADR-005: apps/mobile is milestone 2, not a shipped feature'],
+    ];
+
+    for (const [claim, why] of FORBIDDEN) {
+      expect(text, `the landing page claims "${claim}" - ${why}`).not.toContain(claim);
+    }
+  });
+
+  test('every locale renders the landing page in its own language', async ({ page }) => {
+    // Parity of keys is a unit-test concern (packages/i18n-resources). That a
+    // key is *reachable* and *used* is an e2e concern, and the failure mode is
+    // silent: a missing key renders the key path, or falls back to English
+    // without changing dir or lang.
+    const readHero = async (locale: string) => {
+      await page.goto(`/${locale}`);
+      return page.locator('h1').first().innerText();
+    };
+
+    const en = await readHero('en');
+    expect(en, 'the English hero did not render, so this test cannot prove anything').not.toBe('');
+
+    for (const locale of ['ta', 'si', 'ar']) {
+      const hero = await readHero(locale);
+      expect(hero, `/${locale} rendered an empty hero`).not.toBe('');
+      expect(hero, `/${locale} fell back to the English hero`).not.toBe(en);
+    }
+  });
+});
+
 test.describe('locale shell', () => {
   for (const { code, dir } of LOCALES) {
     test(`/${code} renders with dir="${dir}" and lang="${code}"`, async ({ page }) => {
@@ -86,27 +162,29 @@ test.describe('locale shell', () => {
   }
 
   test('every locale renders translated copy, not an English fallback', async ({ page }) => {
-    // `app.name` is deliberately identical in all four locales - it is the
-    // brand. `app.tagline` is genuinely translated, so it is the right probe:
-    // a locale silently falling back to English would still be dir=rtl for
+    // A locale silently falling back to English would still be dir=rtl for
     // Arabic and would still carry a valid lang attribute, and only the copy
-    // would give it away.
+    // would give it away. So the probe has to be a string that is genuinely
+    // translated in all four locales.
     //
-    // An earlier version of this test asserted on the h1 and failed, because
-    // h1 is app.name and app.name is "EduFlow" everywhere. The failure was in
-    // the test, not the application.
-    const readTagline = async (locale: string) => {
+    // It probes the hero sub, not the h1. Two earlier probes were both wrong:
+    // the h1 used to be `app.name` ("EduFlow", identical everywhere), and this
+    // one used to be `app.tagline` inside a `<header>` that the landing page
+    // no longer renders. `app.tagline` is now unused by any screen; the copy
+    // the visitor actually reads is the hero, so the test follows it there.
+    // Probing the h1 as well is what the "landing page" describe block does.
+    const readHeroSub = async (locale: string) => {
       await page.goto(`/${locale}`);
-      return page.locator('header p').first().innerText();
+      return page.locator('[data-testid="hero-sub"]').innerText();
     };
 
-    const en = await readTagline('en');
-    expect(en, 'the English tagline did not render, so this test cannot prove anything').not.toBe('');
+    const en = await readHeroSub('en');
+    expect(en, 'the English hero sub did not render, so this test cannot prove anything').not.toBe('');
 
     for (const locale of ['ta', 'si', 'ar']) {
-      const tagline = await readTagline(locale);
-      expect(tagline, `/${locale} rendered the English tagline, so the locale is falling back to en`).not.toBe(en);
-      expect(tagline, `/${locale} rendered an empty tagline`).not.toBe('');
+      const sub = await readHeroSub(locale);
+      expect(sub, `/${locale} rendered the English hero sub, so the locale is falling back to en`).not.toBe(en);
+      expect(sub, `/${locale} rendered an empty hero sub`).not.toBe('');
     }
   });
 
