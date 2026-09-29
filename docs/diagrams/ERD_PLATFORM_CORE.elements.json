@@ -1,0 +1,1412 @@
+[
+  {
+    "type": "text",
+    "x": 0,
+    "y": 130,
+    "width": 1400,
+    "height": 16,
+    "text": "EduFlow — Platform Core ERD",
+    "fontSize": 30,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 0,
+    "y": 170,
+    "width": 1600,
+    "height": 48,
+    "text": "One PostgreSQL database per school · physical isolation · no tenant scoping · no cross-tenant role\nGenerated from apps/api/prisma/schema-source.mjs — the same source that generates schema.prisma\nEvery unique constraint is scoped by school_id. audit_records is append-only and has no foreign key to users.",
+    "fontSize": 14,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_User",
+    "type": "rectangle",
+    "x": 520,
+    "y": 270,
+    "width": 400,
+    "height": 324,
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "#e8ebff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "User"
+  },
+  {
+    "type": "text",
+    "x": 534,
+    "y": 278,
+    "width": 372,
+    "height": 16,
+    "text": "User",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 534,
+    "y": 298,
+    "width": 372,
+    "height": 16,
+    "text": "users",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 534,
+    "y": 314,
+    "width": 372,
+    "height": 256,
+    "text": "schoolId  String\nPK  id\nemail  String\nusername  String\npasswordHash  String\npasswordAlgorithm  String\npasswordUpdatedAt  DateTime\nmustChangePassword  Boolean\nstatus  UserStatus\nfailedLoginAttempts  Int\nlockedUntil  DateTime\nlastLoginAt  DateTime\npreferredLocale  String\n▶  roleId → Role\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_Role",
+    "type": "rectangle",
+    "x": 0,
+    "y": 830,
+    "width": 400,
+    "height": 180,
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "#f3edff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "Role"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 838,
+    "width": 372,
+    "height": 16,
+    "text": "Role",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 858,
+    "width": 372,
+    "height": 16,
+    "text": "roles",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 874,
+    "width": 372,
+    "height": 112,
+    "text": "schoolId  String\nPK  id\nname  String\ndescription  String\nisSystemRole  Boolean\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_Permission",
+    "type": "rectangle",
+    "x": 0,
+    "y": 270,
+    "width": 400,
+    "height": 196,
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "#f3edff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "Permission"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 278,
+    "width": 372,
+    "height": 16,
+    "text": "Permission",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 298,
+    "width": 372,
+    "height": 16,
+    "text": "permissions",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 314,
+    "width": 372,
+    "height": 128,
+    "text": "schoolId  String\nPK  id\nkey  String\nmodule  String\naction  String\ndescription  String\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_RolePermission",
+    "type": "rectangle",
+    "x": 0,
+    "y": 600,
+    "width": 400,
+    "height": 132,
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "#f3edff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "RolePermission"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 608,
+    "width": 372,
+    "height": 16,
+    "text": "RolePermission",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 628,
+    "width": 372,
+    "height": 16,
+    "text": "role_permissions",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 644,
+    "width": 372,
+    "height": 64,
+    "text": "schoolId  String\n▶  roleId → Role\n▶  permissionId → Permission\ngrantedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_Session",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 270,
+    "width": 400,
+    "height": 244,
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "#e8ebff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "Session"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 278,
+    "width": 372,
+    "height": 16,
+    "text": "Session",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 298,
+    "width": 372,
+    "height": 16,
+    "text": "sessions",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 314,
+    "width": 372,
+    "height": 176,
+    "text": "schoolId  String\nPK  id\n▶  userId → User\ndeviceLabel  String\nipAddress  String\nuserAgent  String\ncreatedAt  DateTime\nlastActiveAt  DateTime\nexpiresAt  DateTime\nrevokedAt  DateTime\nrevokedReason  String",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_RefreshToken",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 560,
+    "width": 400,
+    "height": 260,
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "#e8ebff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "RefreshToken"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 568,
+    "width": 372,
+    "height": 16,
+    "text": "RefreshToken",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 588,
+    "width": 372,
+    "height": 16,
+    "text": "refresh_tokens",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 604,
+    "width": 372,
+    "height": 192,
+    "text": "schoolId  String\nPK  id\n▶  sessionId → Session\n▶  userId → User\nfamilyId  String\ntokenHash  String\nissuedAt  DateTime\nexpiresAt  DateTime\nusedAt  DateTime\nrevokedAt  DateTime\nrevokedReason  String\nreplacedByTokenId  String",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_AuditRecord",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 2314,
+    "width": 400,
+    "height": 308,
+    "strokeColor": "#dc2626",
+    "backgroundColor": "#ffeaea",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "AuditRecord"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2322,
+    "width": 372,
+    "height": 16,
+    "text": "AuditRecord",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#dc2626",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2342,
+    "width": 372,
+    "height": 16,
+    "text": "audit_records",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2358,
+    "width": 372,
+    "height": 240,
+    "text": "schoolId  String\nPK  id\noccurredAt  DateTime\n▶  actorId → User  (no FK)\nactorRole  String\nipAddress  String\ndeviceInfo  String\ncorrelationId  String\naction  String\nmodule  String\nentityType  String\nentityId  String\nbeforeValue  Json\nafterValue  Json\nreason  String",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_ErrorLog",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 2630,
+    "width": 400,
+    "height": 276,
+    "strokeColor": "#dc2626",
+    "backgroundColor": "#ffeaea",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "ErrorLog"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2638,
+    "width": 372,
+    "height": 16,
+    "text": "ErrorLog",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#dc2626",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2658,
+    "width": 372,
+    "height": 16,
+    "text": "error_logs",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2674,
+    "width": 372,
+    "height": 208,
+    "text": "schoolId  String\nPK  id\noccurredAt  DateTime\nseverity  LogSeverity\ncorrelationId  String\n▶  userId → User  (no FK)\nmodule  String\nhttpMethod  String\nroute  String\nmessage  String\nerrorClass  String\nstackTrace  String\ncontext  Json",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_SchoolSettings",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 1992,
+    "width": 400,
+    "height": 292,
+    "strokeColor": "#0e7490",
+    "backgroundColor": "#e0f5fa",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "SchoolSettings"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2000,
+    "width": 372,
+    "height": 16,
+    "text": "SchoolSettings",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#0e7490",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2020,
+    "width": 372,
+    "height": 16,
+    "text": "school_settings",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2036,
+    "width": 372,
+    "height": 224,
+    "text": "schoolId  String\nPK  id\nname  String\nlegalName  String\ntimezone  String\ndefaultLocale  String\ncurrencyCode  String\nminorUnitScale  Int\nroundingMode  RoundingMode\nacademicYearStartMonth  Int\nsettings  Json\n▶  updatedById → User\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_ModuleRegistry",
+    "type": "rectangle",
+    "x": 0,
+    "y": 1550,
+    "width": 400,
+    "height": 212,
+    "strokeColor": "#0e7490",
+    "backgroundColor": "#e0f5fa",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "ModuleRegistry"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 1558,
+    "width": 372,
+    "height": 16,
+    "text": "ModuleRegistry",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#0e7490",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 1578,
+    "width": 372,
+    "height": 16,
+    "text": "module_registry",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 1594,
+    "width": 372,
+    "height": 144,
+    "text": "schoolId  String\nPK  id\nmoduleKey  String\ndisplayNameKey  String\nadminEnabled  Boolean\nenabledAt  DateTime\ndisabledAt  DateTime\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_License",
+    "type": "rectangle",
+    "x": 0,
+    "y": 1140,
+    "width": 400,
+    "height": 356,
+    "strokeColor": "#0e7490",
+    "backgroundColor": "#e0f5fa",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "License"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 1148,
+    "width": 372,
+    "height": 16,
+    "text": "License",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#0e7490",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 1168,
+    "width": 372,
+    "height": 16,
+    "text": "licenses",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 1184,
+    "width": 372,
+    "height": 288,
+    "text": "schoolId  String\nPK  id\nlicenseId  String\nedition  String\nserialKeyHash  String\ncertificate  Json\nsignature  String\nkeyId  String\ncanonicalizationVersion  Int\nstatus  LicenseStatus\nissuedAt  DateTime\nactivatedAt  DateTime\nexpiresAt  DateTime\nlastValidatedAt  DateTime\ninstallId  String\nhostHash  String\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_NotificationPreference",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 866,
+    "width": 400,
+    "height": 276,
+    "strokeColor": "#047857",
+    "backgroundColor": "#e2f6ec",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "NotificationPreference"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 874,
+    "width": 372,
+    "height": 16,
+    "text": "NotificationPreference",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#047857",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 894,
+    "width": 372,
+    "height": 16,
+    "text": "notification_preferences",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 910,
+    "width": 372,
+    "height": 208,
+    "text": "schoolId  String\nPK  id\n▶  userId → User\neventType  String\nchannel  NotificationChannel\nenabled  Boolean\nisDefault  Boolean\ndigestEnabled  Boolean\ndigestHour  Int\nquietHoursStart  Int\nquietHoursEnd  Int\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_NotificationDelivery",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 1204,
+    "width": 400,
+    "height": 404,
+    "strokeColor": "#047857",
+    "backgroundColor": "#e2f6ec",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "NotificationDelivery"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 1212,
+    "width": 372,
+    "height": 16,
+    "text": "NotificationDelivery",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#047857",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 1232,
+    "width": 372,
+    "height": 16,
+    "text": "notification_deliveries",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 1248,
+    "width": 372,
+    "height": 336,
+    "text": "schoolId  String\nPK  id\n▶  userId → User\n▶  notificationPreferenceId → NotificationPreference\neventType  String\nchannel  NotificationChannel\nurgency  NotificationUrgency\nstatus  NotificationDeliveryStatus\nsubject  String\nbodyPreview  String\ndigestKey  String\nattempts  Int\nproviderMessageId  String\nlastAttemptAt  DateTime\nsentAt  DateTime\ndeliveredAt  DateTime\nfailedAt  DateTime\nfailureReason  String\ncorrelationId  String\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_StoredFile",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 1654,
+    "width": 400,
+    "height": 324,
+    "strokeColor": "#047857",
+    "backgroundColor": "#e2f6ec",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "StoredFile"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 1662,
+    "width": 372,
+    "height": 16,
+    "text": "StoredFile",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#047857",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 1682,
+    "width": 372,
+    "height": 16,
+    "text": "stored_files",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 1698,
+    "width": 372,
+    "height": 256,
+    "text": "schoolId  String\nPK  id\nscope  String\nstorageProvider  String\nbucket  String\nobjectKey  String\noriginalFilename  String\ncontentType  String\nsizeBytes  Int\nchecksum  String\nscanStatus  FileScanStatus\nscannedAt  DateTime\n▶  uploadedById → User\nretentionUntil  DateTime\npurgedAt  DateTime\ncreatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "edge_User_roleId",
+    "type": "arrow",
+    "x": 520,
+    "y": 432,
+    "width": -120,
+    "height": 488,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -86,
+        0
+      ],
+      [
+        -86,
+        488
+      ],
+      [
+        -120,
+        488
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "User->Role"
+  },
+  {
+    "id": "edge_RolePermission_roleId",
+    "type": "arrow",
+    "x": 400,
+    "y": 666,
+    "width": 0,
+    "height": 254,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        44,
+        0
+      ],
+      [
+        44,
+        254
+      ],
+      [
+        0,
+        254
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "RolePermission->Role"
+  },
+  {
+    "id": "edge_RolePermission_permissionId",
+    "type": "arrow",
+    "x": 400,
+    "y": 666,
+    "width": 0,
+    "height": -298,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        62,
+        0
+      ],
+      [
+        62,
+        -298
+      ],
+      [
+        0,
+        -298
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "RolePermission->Permission"
+  },
+  {
+    "id": "edge_Session_userId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 392,
+    "width": -200,
+    "height": 40,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -87,
+        0
+      ],
+      [
+        -87,
+        40
+      ],
+      [
+        -200,
+        40
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "Session->User"
+  },
+  {
+    "id": "edge_RefreshToken_sessionId",
+    "type": "arrow",
+    "x": 1520,
+    "y": 690,
+    "width": 0,
+    "height": -298,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        44,
+        0
+      ],
+      [
+        44,
+        -298
+      ],
+      [
+        0,
+        -298
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "RefreshToken->Session"
+  },
+  {
+    "id": "edge_RefreshToken_userId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 690,
+    "width": -200,
+    "height": -258,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -126,
+        0
+      ],
+      [
+        -126,
+        -258
+      ],
+      [
+        -200,
+        -258
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "RefreshToken->User"
+  },
+  {
+    "id": "edge_AuditRecord_actorId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 2468,
+    "width": -200,
+    "height": -2036,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -113,
+        0
+      ],
+      [
+        -113,
+        -2036
+      ],
+      [
+        -200,
+        -2036
+      ]
+    ],
+    "strokeColor": "#8a8f98",
+    "backgroundColor": "transparent",
+    "strokeWidth": 1,
+    "strokeStyle": "dashed",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "AuditRecord->User"
+  },
+  {
+    "id": "edge_ErrorLog_userId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 2768,
+    "width": -200,
+    "height": -2336,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -100,
+        0
+      ],
+      [
+        -100,
+        -2336
+      ],
+      [
+        -200,
+        -2336
+      ]
+    ],
+    "strokeColor": "#8a8f98",
+    "backgroundColor": "transparent",
+    "strokeWidth": 1,
+    "strokeStyle": "dashed",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "ErrorLog->User"
+  },
+  {
+    "id": "edge_SchoolSettings_updatedById",
+    "type": "arrow",
+    "x": 1120,
+    "y": 2138,
+    "width": -200,
+    "height": -1706,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -87,
+        0
+      ],
+      [
+        -87,
+        -1706
+      ],
+      [
+        -200,
+        -1706
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "SchoolSettings->User"
+  },
+  {
+    "id": "edge_NotificationPreference_userId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 1004,
+    "width": -200,
+    "height": -572,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -74,
+        0
+      ],
+      [
+        -74,
+        -572
+      ],
+      [
+        -200,
+        -572
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "NotificationPreference->User"
+  },
+  {
+    "id": "edge_NotificationDelivery_userId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 1406,
+    "width": -200,
+    "height": -974,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -126,
+        0
+      ],
+      [
+        -126,
+        -974
+      ],
+      [
+        -200,
+        -974
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "NotificationDelivery->User"
+  },
+  {
+    "id": "edge_NotificationDelivery_notificationPreferenceId",
+    "type": "arrow",
+    "x": 1520,
+    "y": 1406,
+    "width": 0,
+    "height": -402,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        62,
+        0
+      ],
+      [
+        62,
+        -402
+      ],
+      [
+        0,
+        -402
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "NotificationDelivery->NotificationPreference"
+  },
+  {
+    "id": "edge_StoredFile_uploadedById",
+    "type": "arrow",
+    "x": 1120,
+    "y": 1816,
+    "width": -200,
+    "height": -1384,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -100,
+        0
+      ],
+      [
+        -100,
+        -1384
+      ],
+      [
+        -200,
+        -1384
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "StoredFile->User"
+  },
+  {
+    "type": "rectangle",
+    "x": 0,
+    "y": 2966,
+    "width": 1560,
+    "height": 160,
+    "strokeColor": "#c9ced8",
+    "backgroundColor": "#f7f8fb",
+    "strokeWidth": 1,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid"
+  },
+  {
+    "type": "text",
+    "x": 18,
+    "y": 2978,
+    "width": 1524,
+    "height": 16,
+    "text": "Edge vocabulary — how to read the arrows",
+    "fontSize": 14,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 18,
+    "y": 3004,
+    "width": 1524,
+    "height": 16,
+    "text": "solid arrow  —  declared foreign key, with a constraint behind it",
+    "fontSize": 12,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#3a4150",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 18,
+    "y": 3024,
+    "width": 1524,
+    "height": 16,
+    "text": "dashed arrow  —  reference by value — no foreign key, on purpose",
+    "fontSize": 12,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#3a4150",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 18,
+    "y": 3044,
+    "width": 1524,
+    "height": 16,
+    "text": "no arrow at all  —  License, ModuleRegistry, AuditRecord — no foreign key to declare",
+    "fontSize": 12,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#3a4150",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 18,
+    "y": 3064,
+    "width": 1524,
+    "height": 16,
+    "text": "replacedByTokenId  —  self-pointer, not a Prisma relation: a rotation chain is a DAG",
+    "fontSize": 12,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#3a4150",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 18,
+    "y": 3084,
+    "width": 1524,
+    "height": 16,
+    "text": "▶ / PK  —  foreign key column / primary key",
+    "fontSize": 12,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#3a4150",
+    "backgroundColor": "transparent"
+  }
+]

@@ -13,4 +13,30 @@ import { node } from '@eduflow/config/eslint/node';
  * Both are scoped by path so they cannot be bypassed by editing a file
  * outside those two layers.
  */
-export default [...node, { rules: {} }];
+export default [
+  ...node,
+  { rules: {} },
+
+  /**
+   * `prisma/*.mjs` are Node build scripts — the ARC-01 schema/ERD generator
+   * and its two renderers. They run under `node`, not under NestJS, so they
+   * legitimately use `process` and `console`.
+   *
+   * Scoped to this directory on purpose. Declaring Node globals for the whole
+   * package would stop `no-undef` catching a stray `process` in application
+   * code, which is the case the rule exists for.
+   */
+  {
+    files: ['prisma/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+      },
+    },
+    rules: {
+      // A generator reports what it wrote. `console.log` is the output.
+      'no-console': 'off',
+    },
+  },
+];

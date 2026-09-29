@@ -1,0 +1,127 @@
+# ARC-01 — Platform Core ERD and data model
+
+**Status:** written 2026-09-29 · **supersedes** the D22 deferral of the ERD (`SSOT.md` §4)
+**Closes:** `docs/work/TODO.md` item 3, in the parts that are Platform Core data model
+**Diagram:** `docs/diagrams/ERD_PLATFORM_CORE.excalidraw` · **Schema:** `apps/api/prisma/schema.prisma`
+**Source of truth for both:** `apps/api/prisma/schema-source.mjs`
+**Gate:** `apps/api/src/config/prisma-schema.spec.ts` (17) + `schema-generation.spec.ts` (9)
+
+---
+
+## 1. What was built
+
+| Artefact                               | Path                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| Entity definitions — the single source | `apps/api/prisma/schema-source.mjs`                                      |
+| Prisma renderer                        | `apps/api/prisma/render-prisma.mjs`                                      |
+| ERD renderer                           | `apps/api/prisma/render-erd.mjs`                                         |
+| Generator (writes both artefacts)      | `apps/api/prisma/generate.mjs`                                           |
+| Generated schema                       | `apps/api/prisma/schema.prisma`                                          |
+| Generated diagram source               | `docs/diagrams/ERD_PLATFORM_CORE.elements.json`                          |
+| Diagram                                | `docs/diagrams/ERD_PLATFORM_CORE.excalidraw`                             |
+| `audit_records` immutability           | `apps/api/prisma/hardening/audit-immutability.sql`                       |
+| Contract gate                          | `apps/api/src/config/prisma-schema.spec.ts`, `schema-generation.spec.ts` |
+
+```bash
+pnpm --filter @eduflow/api generate:schema   # rewrite both artefacts
+```
+
+**The ERD and the schema are generated from one file.** That is the whole point. D22 left `schema.prisma` empty because _"a plausible-but-invented schema is worse than none"_ — a guessed `Student` would have to be reconciled against the real ERD later, and a reviewer would have to decide which was right. Generating both from `schema-source.mjs` means a field added to a model appears in the diagram, a relation removed from the schema loses its arrow, and `schema-generation.spec.ts` fails the build if either artefact is hand-edited.
+
+## 2. The fourteen entities
+
+`User` · `Role` · `Permission` · `RolePermission` · `Session` · `RefreshToken` · `AuditRecord` · `ErrorLog` · `SchoolSettings` · `ModuleRegistry` · `License` · `NotificationPreference` · `NotificationDelivery` · `StoredFile`
+
+Exactly fourteen, and the gate fails if a fifteenth appears. **No `Student`, `Class` or `Teacher`** — `PLT-203` and `PLT-801` build ownership and file-access policies against abstract ports with fakes, precisely so this schema does not have to guess (`AGENTS.md` §13). The gate asserts their absence by name.
+
+## 3. Five invariants, each with a test that watches it fire
+
+| #   | Invariant                                                                                                                | Source                           | Enforced by                                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | One PostgreSQL database per school. `school_id` is **metadata**, not a control. No tenant scoping, no cross-tenant role. | `ADR-003`, `AGENTS.md` §2.1, D15 | `school_id` on all 14, injected by the renderer; no `School` model; no `relation "School…"`; no `SUPER_ADMIN`; no `tenant`                 |
+| 2   | Money is integer minor units + explicit currency. No float, no decimal.                                                  | `ADR-002`, `AGENTS.md` §2.5      | Gate fails if `Float` or `Decimal` appears in any model; `currency_code`, `minor_unit_scale`, `rounding_mode` required on `SchoolSettings` |
+| 3   | Uniqueness is scoped **within** one school's database, never global.                                                     | `ADR-003`                        | Every `@unique`/`@@unique` must name `school_id` first                                                                                     |
+| 4   | `audit_records` is append-only, at the database.                                                                         | `AGENTS.md` §2.7, `PLT-401`      | No `updatedAt`/`deletedAt`, no relation to `users`; the hardening SQL must exist, must revoke, and must keep `INSERT`/`SELECT`             |
+| 5   | `prisma validate` passes.                                                                                                | Prisma                           | Invoked as a subprocess against the generated file                                                                                         |
+
+Plus the process gates: generation is deterministic, and the checked-in `schema.prisma` and `.elements.json` are byte-identical to fresh output — so the "generated, do not edit" header cannot become a lie.
+
+### Why 4 needed SQL
+
+`AGENTS.md` §2.7 requires append-only audit records and the repository exposes only `create()`/`query()`. That is a convention, and a convention binds only the code that follows it. `PLT-401`'s acceptance criterion is _"attempting an UPDATE/DELETE against the audit table **at the database connection level** fails"_. Prisma has no grammar for a `GRANT`, so the protection lives in `hardening/audit-immutability.sql`:
+
+- `REVOKE UPDATE, DELETE, TRUNCATE ON public.audit_records FROM <app role>`, and `GRANT INSERT, SELECT` so the application can still do its job.
+- **A `BEFORE UPDATE OR DELETE` trigger that raises**, because a revoke only binds the role it is revoked from — Prisma migrations run as the table _owner_, and an owner is not stopped by a revoke against a different role. The revoke limits the application's blast radius; the trigger makes the invariant true of the table.
+- The role is named (`eduflow_app`, overridable via `eduflow.app_role`) and the script **raises if the role does not exist**, because revoking from a role that is not there is a silent no-op — precisely the failure mode this file exists to prevent. It is deliberately not written against `PUBLIC`.
+- Idempotent, so it is safe to re-run on every one of the N per-school deployments.
+
+⚠️ **Stated limit, not a claim:** the gate checks that this SQL exists and is well-formed. It does **not** prove the privilege is actually revoked, because there is no PostgreSQL in this environment (`ADR-019`; Docker is not installed). An integration test that connects and attempts an `UPDATE` is `OPS-07`/`P4` work. Until it exists, invariant 4 is _specified and guarded against deletion_, not _demonstrated_.
+
+## 4. Decisions taken, and why
+
+| Decision                                                                                                        | Rationale                                                                                                                                                                                                                                                                                                                                                                                       | Source                      |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **One role per user** (`User.roleId`, a single FK)                                                              | `PLT-101` names `role_id`; the ARC-01 entity list has no `UserRole`. Inventing a join table would be a fifteenth entity. **Open question 1 below.**                                                                                                                                                                                                                                             | `PLT-101`                   |
+| **`Role.school_id` is NOT NULL** — a **deviation from the corpus**                                              | `PLT-201` says _"school_id nullable for system roles"_. That describes a role belonging to no school, which cannot happen when one database is one school — and a nullable column inside `@@unique([schoolId, name])` does not constrain, because PostgreSQL treats NULLs as distinct. System roles are marked `isSystemRole` instead. Flagged per `AGENTS.md` §2 rather than silently applied. | `ADR-003`, `PLT-201`        |
+| `email` and `username` are **both NOT NULL**                                                                    | Same NULL-in-unique trap. A nullable-unique column constrains nothing, so two accounts could silently collide. Both are unique within the school.                                                                                                                                                                                                                                               | `PLT-101`                   |
+| **No `School` table**; `school_id` is a plain column                                                            | A `School` table would be a second tenancy concept, and the isolation is already physical. `AGENTS.md` §6 names parallel concepts as the main way this codebase drifts.                                                                                                                                                                                                                         | `ADR-003`                   |
+| **No money column anywhere in Platform Core**                                                                   | The money invariants are the three _settings_ plus the gate that no `Float`/`Decimal` can be added. Nothing in these fourteen tables is an amount.                                                                                                                                                                                                                                              | `ADR-002`                   |
+| `License.edition` is a **`String`, not an enum**                                                                | `ADR-009` forbids hard-coding an edition name in a guard; an enum would put the same four names in a compile-time constant in the database and make a fifth edition a migration.                                                                                                                                                                                                                | `ADR-009`                   |
+| `LicenseStatus` distinguishes `EXPIRED` / `INVALID` / `GRACE`                                                   | Three different administrative states with three different remedies, which must never collapse into one error.                                                                                                                                                                                                                                                                                  | `ADR-009`, `PLT-305`        |
+| `install_id`, **not** a MAC address                                                                             | A container gets a new MAC on every restart, so a MAC-bound licence breaks on a routine infrastructure restart.                                                                                                                                                                                                                                                                                 | `ADR-011`                   |
+| `passwordHash` + `passwordAlgorithm`, both nullable                                                             | Nullable for an `INVITED` user and milestone-2 OTP; the algorithm label is what makes `ADR-007`'s verify-and-rehash migration possible without a second column.                                                                                                                                                                                                                                 | `ADR-007`                   |
+| `RefreshToken.familyId` is **not** a relation to anything, and `replacedByTokenId` is **not** a Prisma relation | A rotation chain is a **DAG**. Declaring it one-to-one forces a `@unique` that describes a modelling artefact rather than a rule, and many-to-one implies a token can be replaced twice. The successor is one indexed lookup by primary key.                                                                                                                                                    | `ADR-008`                   |
+| `AuditRecord` has **no foreign key to `users`**                                                                 | An FK would either block a user deletion or cascade the audit row away. Both destroy evidence. The actor is recorded **by value** — `actorId` _and_ `actorRole`, the role held at the time, which is what an auditor asks about.                                                                                                                                                                | `AGENTS.md` §2.7            |
+| `ErrorLog` likewise has no FK to `users`                                                                        | A log must not fail a write because an account was deleted, and logs outlive any one user's retention.                                                                                                                                                                                                                                                                                          | `AGENTS.md` §2.15           |
+| **`ModuleRegistry` has no `active` column**                                                                     | The resolved state is licence entitlement **and** the admin toggle. Storing the result would create a second source of truth that disagrees with the certificate the moment a licence is renewed. Compute it.                                                                                                                                                                                   | `PLT-601`                   |
+| **No money on `NotificationDelivery`**                                                                          | SMS and WhatsApp are per-message billed, but the bill is a financial transaction and every financial transaction posts through `ILedgerPostingRule`. A cost column here would be a second unbudgeted place for money, denominated in the school's currency when the vendor bills in its own — the FX question `ADR-002` puts out of scope.                                                      | `AGENTS.md` §2.6, `ADR-002` |
+| `StoredFile.sizeBytes` is `Int`, not `BigInt`                                                                   | A deliberate 2 GB per-file ceiling, well under which `PLT-802`'s per-scope max size already rejects. It is a byte count, not money, so `ADR-002` does not apply — and `BigInt` brings a JSON-serialisation edge that `ADR-002:48` says must be designed rather than discovered.                                                                                                                 | `PLT-802`                   |
+| Table names are **written out**, not pluralised by a rule                                                       | `Person → people` is why guessed plurals go wrong, and the table name is the one the `REVOKE` statement and every `GRANT` refer to. `snake()` was tried first and silently produced `audit_record`, which would have made the hardening SQL a lie.                                                                                                                                              | —                           |
+| Column `@map` is **derived**, not hand-written                                                                  | Hand-written `@map` was tried first and three were forgotten in one draft. The renderer now derives it, and Prisma forbids it on relation fields.                                                                                                                                                                                                                                               | —                           |
+
+## 5. Open questions — these are not answered, they are flagged
+
+1. **Does a user need more than one role?** `User.roleId` is single, from `PLT-101`'s literal `role_id` and the ARC-01 entity list. A teacher who is also a parent cannot be expressed. If multi-role is required, a `UserRole` join table is needed — a **fifteenth** entity, so it is a decision for the owner before `PLT-201`, not something to add silently.
+2. **`SchoolSettings.updatedBy` is nullable with `onDelete: SetNull`.** A settings row must survive its last editor. If the audit trail is considered sufficient to answer "who changed this", fine; if not, the FK should be `Restrict`. Not decided here.
+3. **The concurrent-refresh race** (`ADR-008`'s mandatory test) needs a detection strategy that is _not_ in the schema. A `usedAt` that comes back looks identical to a replay, and treating the loser's rejection as reuse revokes a legitimate session on a flaky network. Resolved in `PLT-102`; the schema does not pretend to have solved it.
+4. **`stored_files` has no parent-entity reference.** `ADR-015` says a file's access follows its parent entity, and no such entity exists in Platform Core. The owning module adds its own link when it ships. Inventing a polymorphic `parent_type`/`parent_id` here would be guessing at Academic's shape.
+5. **The `bigint` → JSON boundary** is still open (⚑G, proposed `ADR-024`). It is `ARC-06`'s deliverable; `ADR-002:48` says it must be designed there, not discovered later. This schema has no money column, so it does not force the question — it defers it.
+6. **`PC-004` admission is still open** (`SSOT.md` §5.2). Nothing in Platform Core depends on it, so it is not blocked by this work and is not answered by it.
+7. **No migration has been generated.** `prisma migrate` is a P4 deliverable per `SSOT.md`; this task produced the schema and the hardening SQL, not `migrations/`.
+
+## 6. How this was verified
+
+| Stage          | Result                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| RED, round 1   | **16/16 failed** — `schema.prisma defines no models at all: expected [] to deeply equal [...14]` |
+| GREEN, round 1 | **17/17 passed**, including a real `prisma validate` subprocess                                  |
+| RED, round 2   | **4 failed** — the hardening SQL did not exist, and the diagram drew only 2 of 13 edges          |
+| GREEN, round 2 | **9/9 passed**                                                                                   |
+| Combined       | **26/26 passed**                                                                                 |
+
+Four findings came out of the cycle rather than being designed in, and each is now prevented by a test:
+
+- `prisma validate` reports on **stderr**; a gate that reads stdout sees an empty report and a non-zero status with no explanation.
+- Node cannot `spawnSync` a `.cmd` shim on Windows without a shell, and a shell that fails to launch returns `status: null` — a red gate that says nothing.
+- **Four prohibition tests passed vacuously** against the empty schema. `expect(SCHEMA).not.toMatch(/SUPER_ADMIN/i)` is green precisely because there is nothing to prohibit. Every test now asserts the fourteen models exist _first_; a prohibition is only evidence once there is something it could have prohibited.
+- The prohibition tests also tripped on the header's own **explanation** that there is no super admin. Checks now run against the schema with comment lines stripped — a rule nobody can satisfy gets deleted, and the protection goes with it.
+
+The diagram was drawn, screenshotted and iterated **four times**:
+
+| Pass | What the screenshot showed                                                                                                                                                                                                            |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Arrows crossed boxes; titles clipped; header off-canvas; no legend                                                                                                                                                                    |
+| 2    | Bound arrows re-routed through unrelated boxes — 11 of 13 crossed something. Replaced with authored orthogonal waypoints through column gaps, and re-laid-out so every relation is a single channel hop.                              |
+| 3    | `lines * LINE_H` on an **array** is `NaN`, which serialises to `null`; the server rejected every text element. The apparent text clipping was a **downscaling artefact of the screenshot** — a 1:1 capture showed every label intact. |
+| 4    | Header moved clear of the canvas toolbar; legend moved below the content, where it had been overlapping column C.                                                                                                                     |
+
+Two process notes, for the record:
+
+- **The excalidraw MCP could not be used.** It pins its canvas server to `127.0.0.1:3000`, which is held by a Next.js dev server for a _different_ project (`H:\AI-Dev\MyProjects\REMS\rems`, PID 29496, started 12:11). Killing another process's dev server was not an acceptable price, so the same excalidraw toolchain was driven through its own CLI on port 3111, and screenshots were taken with headless Chrome. The output file is a standard `.excalidraw` and nothing about the artefact depends on which entry point was used.
+- **The Chrome DevTools MCP was also unavailable** — its profile is held by an existing instance. Same cause, same fallback.
+
+## 7. What was deliberately not done
+
+- **`docs/work/WORKLOG.md` and `docs/work/TODO.md` are not updated.** `AGENTS.md` §9 requires it in the same commit as the change, and this change is real — but another agent owns the git index in this repository, so writing those shared files risks clobbering concurrent edits. **This entry still needs to be made.**
+- No migration, no seed, no `@RequirePermission` CI check, no `Money` value object. Those are `P3`/`P4`/`ARC-06`.
+- No git command of any kind was run.

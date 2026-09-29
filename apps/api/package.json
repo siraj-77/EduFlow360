@@ -14,10 +14,10 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:e2e": "echo \"e2e (Playwright) is P3 â€” not yet configured\" && exit 0",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true});require('node:fs').rmSync('coverage',{recursive:true,force:true})\"",
     "migration:generate": "prisma migrate dev --name",
-    "migration:run": "prisma migrate deploy"
+    "migration:run": "prisma migrate deploy",
+    "generate:schema": "node prisma/generate.mjs"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"
