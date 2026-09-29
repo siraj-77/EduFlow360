@@ -20,7 +20,7 @@ async function bootstrap(): Promise<void> {
   // The API is a separate service. It serves JSON only; the web app is UI
   // (AGENTS.md 3.1). CORS is scoped to the local web origin until a
   // deployment-specific origin is configured.
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000' });
+  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:3500' });
 
   app.enableShutdownHooks();
   await app.listen(loaded.config.PORT);

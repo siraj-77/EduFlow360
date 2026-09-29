@@ -32,7 +32,7 @@ pnpm dev
 
 | App | URL |
 |---|---|
-| Web | http://localhost:3000 — and `/en` `/ta` `/si` `/ar` for each locale |
+| Web | http://localhost:3500 — and `/en` `/ta` `/si` `/ar` for each locale |
 | API | http://localhost:3001 |
 | MinIO console *(with Docker)* | http://localhost:9001 |
 | Mailpit *(with Docker)* | http://localhost:8025 |

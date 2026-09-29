@@ -14,6 +14,14 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.spec.{ts,tsx}', 'tests/**/*.spec.{ts,tsx}'],
+    /**
+     * `tests/e2e/**` is Playwright, not Vitest. Both runners match `*.spec.ts`,
+     * so without this the unit gate loads a Playwright file and dies with
+     * "Playwright Test did not expect test.describe() to be called here" —
+     * which reads as a broken test rather than a mis-scoped one.
+     * `pnpm test:e2e` owns that directory.
+     */
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
