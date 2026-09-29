@@ -218,9 +218,12 @@ test.describe('touch targets and reduced-motion degradation', () => {
   test('every interactive element is at least 44px tall', async ({ page }) => {
     await page.goto('/en');
 
-    const small = await page.evaluate(() => {
+    const result = await page.evaluate(() => {
       const MIN = 44;
-      return [...document.querySelectorAll('a[href], button')]
+      // `summary` is here because the locale picker's trigger is one, and
+      // `AGENTS.md` 3.2.1 bans raw <button> so a selector of `a, button` alone
+      // would have quietly stopped covering the header's main control.
+      const measured = [...document.querySelectorAll('a[href], button, summary')]
         .map((el) => {
           const r = el.getBoundingClientRect();
           return {
@@ -229,13 +232,32 @@ test.describe('touch targets and reduced-motion degradation', () => {
             width: Math.round(r.width),
           };
         })
-        .filter((el) => el.height < MIN || el.width < MIN);
+        // Skip anything with no box at all. A picker's options live in a
+        // collapsed <details>, so they are `display: none` and measure 0x0 —
+        // not tappable, so not a touch-target violation. The previous version
+        // reported them as `"EnglishEN" 0x0`, a failure caused by the control
+        // being correctly hidden.
+        .filter((el) => el.width > 0 || el.height > 0);
+
+      return { measured, small: measured.filter((el) => el.height < MIN || el.width < MIN) };
     });
 
+    // Guard against the sweep passing vacuously by measuring nothing. Asserting
+    // on a bare count was the wrong shape: it says "some number of controls"
+    // without saying which, so a page that lost its footer links entirely would
+    // still satisfy it. Assert the two header controls by name instead.
+    expect(result.measured.length, 'no interactive element was measurable').toBeGreaterThan(0);
     expect(
-      small,
+      // `includes`, not `===`: the trigger's text content also carries the
+      // screen-reader-only "Language: " prefix, so it is not a bare "English".
+      result.measured.some((el) => el.text.includes('English')),
+      'the language trigger was not measured — a selector of `a, button` alone no longer covers it',
+    ).toBe(true);
+
+    expect(
+      result.small,
       `these are below the ${44}px touch-target floor in AGENTS.md 3.2.2: ` +
-        small.map((s) => `"${s.text}" ${s.width}x${s.height}`).join(', '),
+        result.small.map((s) => `"${s.text}" ${s.width}x${s.height}`).join(', '),
     ).toEqual([]);
   });
 
@@ -370,20 +392,34 @@ test.describe('responsive layout', () => {
     const nav = await page.evaluate(() => {
       const el = document.querySelector('.landing-topnav');
       if (!el) throw new Error('.landing-topnav is missing');
-      const links = [...el.querySelectorAll('a')] as HTMLElement[];
+      // The picker's options live in a collapsed `<details>` inside this nav, so
+      // they are `display: none` until the trigger opens them. They are not
+      // tappable while closed, so measuring them reported 0x0 and called it a
+      // touch-target failure. The trigger stands in for them, and the options
+      // have their own case in the language-picker describe block.
+      const controls = [
+        ...el.querySelectorAll<HTMLElement>('a'),
+        el.querySelector<HTMLElement>('.landing-lang-trigger'),
+      ].filter((c): c is HTMLElement => c instanceof HTMLElement);
+
+      const rendered = controls
+        .map((c) => ({ label: (c.textContent ?? '').trim().slice(0, 20), height: Math.round(c.getBoundingClientRect().height) }))
+        .filter((c) => c.height > 0);
+
       return {
         wraps: el.getBoundingClientRect().height > 60,
-        linkCount: links.length,
-        minHeight: links.length ? Math.min(...links.map((a) => a.getBoundingClientRect().height)) : 0,
+        linkCount: rendered.length,
+        minHeight: rendered.length ? Math.min(...rendered.map((c) => c.height)) : 0,
+        offender: rendered.reduce((w, c) => (c.height < (w?.height ?? Infinity) ? c : w), rendered[0]),
       };
     });
 
     // It is allowed to wrap rather than overflow, but it must not collapse the
     // targets to fit.
-    expect(nav.linkCount, 'the topnav lost its links at 320px').toBeGreaterThan(0);
+    expect(nav.linkCount, 'the topnav lost its controls at 320px').toBeGreaterThan(0);
     expect(
       nav.minHeight,
-      `a topnav link is ${nav.minHeight}px tall at 320px, under the 44px floor`,
+      `a topnav control (${nav.offender?.label}) is ${nav.minHeight}px tall at 320px, under the 44px floor`,
     ).toBeGreaterThanOrEqual(44);
   });
 
@@ -398,6 +434,105 @@ test.describe('responsive layout', () => {
     });
 
     expect(columns, `the feature grid is still ${columns} columns wide at 375px`).toBe(1);
+  });
+});
+
+test.describe('language picker', () => {
+  /**
+   * A dropdown, not a row of four links.
+   *
+   * Built on `<details>`/`<summary>` rather than a `<button>` + a popover, and
+   * that is the whole reason it is possible today: `AGENTS.md` 3.2.1 bans raw
+   * `<button>` and the shadcn primitives that would replace one do not exist
+   * yet (`FIX-11`). `<summary>` is not a button element, so a disclosure widget
+   * satisfies 3.2.1 rather than circumventing it — and it opens, closes and
+   * takes keyboard focus with no JavaScript at all, which is a better degraded
+   * state than a menu that needs hydration to appear.
+   */
+  test('is a collapsed disclosure that names the current locale', async ({ page }) => {
+    await page.goto('/en');
+
+    const trigger = page.locator('.landing-lang > summary');
+    await expect(
+      trigger,
+      'the language control is not a disclosure trigger',
+    ).toBeVisible();
+
+    await expect(trigger, 'the trigger does not name the active locale').toContainText('English');
+
+    const menu = page.locator('.landing-lang-menu');
+
+    // Collapsed on arrival: a picker that dumps four options across the header
+    // is the layout this replaced.
+    //
+    // Asserted as a computed `display`, not as `toBeHidden()`. `toBeHidden()`
+    // passed while a second Chromium build was painting the open list over the
+    // hero, because that engine's `::details-content` suppression is what hid
+    // it. Checking the computed value tests OUR rule instead of the browser's.
+    const display = await menu.evaluate((el) => getComputedStyle(el).display);
+    expect(display, 'the open menu is laid out while the picker is closed').toBe('none');
+  });
+
+  test('offers the four locales as links in English, Sinhala, Tamil, Arabic order', async ({ page }) => {
+    await page.goto('/en');
+    await page.locator('.landing-lang > summary').click();
+
+    // Assert the menu is genuinely open, not merely present in the DOM.
+    // Reading `href` off a closed menu returns the right answers anyway, so an
+    // order assertion alone would pass against a picker that never opens — which
+    // is the gap this catches.
+    const menu = page.locator('.landing-lang-menu');
+    await expect(menu, 'clicking the trigger did not open the menu').toBeVisible();
+
+    const options = page.locator('[data-testid="lang-option"]');
+    await expect(options, 'the menu has no options').toHaveCount(4);
+
+    // The href is the contract, not the label: the labels are translated and
+    // would make this test fail for a translator doing their job.
+    const hrefs = await options.evaluateAll((els) => els.map((e) => (e as HTMLAnchorElement).getAttribute('href')));
+
+    expect(hrefs, 'the picker order is wrong').toEqual(['/en', '/si', '/ta', '/ar']);
+  });
+
+  test('marks the active locale and marks only it', async ({ page }) => {
+    await page.goto('/ta');
+    await page.locator('.landing-lang > summary').click();
+
+    const current = page.locator('[data-testid="lang-option"][aria-current="page"]');
+
+    await expect(
+      current,
+      'the active locale is not marked in the menu',
+    ).toHaveCount(1);
+    await expect(current).toHaveAttribute('href', '/ta');
+
+    // The trigger follows the route, not a stored preference.
+    await expect(page.locator('.landing-lang > summary')).toContainText('தமிழ்');
+  });
+
+  test('choosing a locale navigates to it', async ({ page }) => {
+    await page.goto('/en');
+    await page.locator('.landing-lang > summary').click();
+    await page.locator('[data-testid="lang-option"][href="/si"]').click();
+
+    await page.waitForURL('**/si');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'si');
+  });
+
+  test('every option meets the 44px touch-target floor', async ({ page }) => {
+    await page.goto('/en');
+    await page.locator('.landing-lang > summary').click();
+    await expect(page.locator('.landing-lang-menu'), 'the menu never opened').toBeVisible();
+
+    const heights = await page
+      .locator('[data-testid="lang-option"]')
+      .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+
+    expect(heights.some((h) => h === 0), 'an option was measured while collapsed').toBe(false);
+
+    for (const h of heights) {
+      expect(h, `a language option is ${h}px tall, under the 44px floor`).toBeGreaterThanOrEqual(44);
+    }
   });
 });
 

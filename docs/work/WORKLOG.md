@@ -1516,3 +1516,130 @@ Each was caught by a gate, not by review — which is the argument for having th
 ---
 
 _Newest first. Format per `AGENTS.md` §9._
+
+## 2026-09-30 — Language picker becomes a dropdown; hero accent phrase moves to its own line
+
+**Date:** 2026-09-30 · **Phase:** G1-2 landing page · **Agent:** builder (OpenCode) · **Status:** Complete
+
+### Activity
+
+Requested: replace the four inline language links with a dropdown, defaulting to
+English, ordered English / Sinhala / Tamil / Arabic. Also asked for "one connected
+platform" to sit on the second line of the headline.
+
+1. **Display order as its own contract, RED first.** Added four cases to
+   `packages/shared-types/src/index.spec.ts` for `LOCALE_DISPLAY_ORDER`, then
+   watched them fail (4 failed / 3 passed) before writing the constant.
+2. **Reordered nothing that matters.** `SUPPORTED_LOCALES` is what
+   `generateStaticParams`, the i18n router and the middleware iterate, so it was
+   deliberately left alone; a new `LOCALE_DISPLAY_ORDER` carries the visual order.
+   Two of the new cases assert the two lists cover the same set, so an option can
+   never become unreachable, and one asserts the first entry is `DEFAULT_LOCALE`.
+3. **Built the picker on `<details>`/`<summary>`,** with the trigger naming the
+   ACTIVE locale and `aria-current` on exactly one option.
+4. **`display: block` on the hero accent span,** matching the template's
+   `Run your entire school on<br><span class="grad">…</span>`.
+5. **Five new e2e cases, then a sixth for the one it found** (below).
+
+### Findings
+
+**A closed `<details>` was not hiding the menu in a real browser, and the e2e
+suite could not see it.** With `.landing-lang-menu` on `position: absolute`, one
+Chromium build laid it out at 176x178 with the disclosure closed — painting the
+open list over the hero. Hiding the non-summary children of a `<details>` is a
+`::details-content` rendering suppression, and it is not dependable once a child
+is taken out of normal flow.
+
+Playwright's engine *did* hide it, so `await expect(menu).toBeHidden()` passed
+against a browser that showed the bug. The assertion was weaker than it looked:
+it was testing the browser's behaviour, not ours. Fixed with one explicit
+`.landing-lang:not([open]) .landing-lang-menu { display: none }` so the behaviour
+belongs to this codebase in every engine, and the test now asserts a computed
+`display` of `none` rather than Playwright's visibility heuristic.
+
+**Three other tests were passing for the wrong reason.** The order test and the
+`aria-current` test both read attributes off the options, which return the right
+answers whether or not the menu ever opened. A picker that never opens would have
+passed them. Both now assert the menu is actually visible after clicking the
+trigger, and the touch-target case additionally asserts no option was measured at
+0px.
+
+**Two sweeps conflated "hidden" with "too small".** `every interactive element is
+at least 44px tall` and the 320px topnav case both reported the collapsed options
+as `"EnglishEN" 0x0`. A `display: none` element is not tappable, so it is not a
+touch-target violation; both now skip zero-area boxes. The 320px case measures the
+trigger in their place, since that is the control a user actually hits at 320px.
+
+**The global sweep had silently stopped covering the header's main control.**
+Its selector was `a[href], button`, and `AGENTS.md` 3.2.1 bans raw `<button>`, so
+the trigger — a `<summary>` — was never measured at all. Added `summary` to the
+selector, and replaced a bare count assertion with one that checks the trigger
+was among the measured controls: a count says "some number of controls" without
+saying which, so a page that lost its footer links would still satisfy it.
+
+**Raising `navigationTimeout` was the wrong lever.** `/ar` and `/ar/sign-in`
+failed cold-compiling. The web server deletes `.next` on every run (a fix from the
+previous commit), so every route compiles from source on every run and the
+expensive routes go last. The failure was Playwright's 30s **per-test** budget,
+which `navigationTimeout` cannot extend; `timeout: 90_000` at the config root is
+what fixed it. The first attempt looked like it should have worked and did not.
+
+### Decisions Made
+
+- **`<details>`/`<summary>`, not a `<button>` and a scripted popover.** 3.2.1 bans
+  raw `<button>` and shadcn does not exist yet (`FIX-11`). `<summary>` is not a
+  button element, so the rule is satisfied rather than circumvented — and the
+  control opens, closes, takes keyboard focus and is announced as a disclosure
+  with **no JavaScript at all**, which is a better degraded state than a menu that
+  needs hydration to appear. Known limitation, stated in the component: it does
+  not close on an outside click. For four language options the cost is one extra
+  click on the trigger.
+- **`LOCALE_DISPLAY_ORDER` in `@eduflow/shared-types` rather than in the web app.**
+  Mobile is milestone 2 and will need the same order; a display constant that
+  cannot drift between platforms belongs with the locale contract.
+- **The break between the two headline fragments is CSS, not markup.** A `<br>` in
+  a translation string is HTML in a translation, which is exactly what splitting
+  `heroTitleLine1` / `heroTitleLine2` avoids. `display: block` keeps the copy
+  translatable and the line break a layout decision.
+- **The trigger names the active locale, not the first option.** English leads the
+  list and English is also the default, so the two agree on first load — but the
+  control has to tell you where you *are*, which is the one thing a language
+  switcher is for.
+
+### Files Changed
+
+- `packages/shared-types/src/index.ts` — `LOCALE_DISPLAY_ORDER` + its type.
+- `packages/shared-types/src/index.spec.ts` — 4 cases, RED before GREEN.
+- `apps/web/src/features/landing/components/hero.tsx` — `LanguagePicker` extracted
+  from `TopNav`; the four inline links removed.
+- `apps/web/src/features/landing/landing.css` — disclosure trigger/menu styling,
+  the explicit `:not([open])` hide, `display: block` on the accent span.
+- `apps/web/playwright.config.ts` — `timeout: 90_000`, `navigationTimeout`,
+  `actionTimeout`, each with the reason.
+- `apps/web/tests/e2e/shell.spec.ts` — `language picker` describe block; three
+  existing touch-target cases corrected.
+- `packages/i18n-resources/src/locales/{en,ta,si,ar}.json` — unchanged; the
+  `language.*` keys the picker reads already existed and the order is data, not
+  copy.
+
+### Next Steps
+
+- `FIX-11` (shadcn) should replace the `<details>` disclosure with a real
+  `DropdownMenu`; the accessible name, `aria-current` and the `:not([open])` hide
+  all carry over as behaviour to preserve.
+- A theme toggle stays `FIX-10` for the same reason this picker avoided a button.
+
+### Quality
+
+- `pnpm test:e2e` → **37 passed** (was 32; +5 picker cases, and 3 existing cases
+  corrected). `pnpm test` → 110 (shared-types 3 → 7). `typecheck`, `lint`,
+  `test:coverage`, `build`, `test:integration`, `docs:verify` → all exit 0.
+- Verified in a second browser, which is what surfaced the `<details>` bug:
+  closed → `display: none`, 0px; open → 178px; all four options exactly 44px;
+  order `['/en','/si','/ta','ar']`; exactly one `aria-current`; trigger 44px;
+  headline splits into two lines.
+- Arabic (`/ar`): `dir="rtl"`, `lang="ar"`, menu flush to the trigger's inline-end
+  (`alignLeft: 0`), inside the viewport, no page overflow, trigger's accessible
+  name reads "اللغة: العربية".
+- `pnpm format:check` still exits 2 — pre-existing `FIX-05`, untouched.
+

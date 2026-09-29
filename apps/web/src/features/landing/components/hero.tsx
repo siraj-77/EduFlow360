@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { SUPPORTED_LOCALES } from '@eduflow/shared-types';
+import { LOCALE_DISPLAY_ORDER, type SupportedLocale } from '@eduflow/shared-types';
 
 /**
  * The hero.
@@ -89,8 +89,6 @@ export async function Hero() {
  *     served correctly; they simply cannot flip it from this page yet.
  */
 export async function TopNav({ locale }: { locale: string }) {
-  const t = await getTranslations('language');
-  const langLabel = t('label');
   // `getTranslations('auth')` returns a translator FUNCTION, not the messages
   // object. Calling `.signIn` on it is a type error, and because the page
   // fails to compile the whole route 500s — which is what happened the first
@@ -109,20 +107,73 @@ export async function TopNav({ locale }: { locale: string }) {
         <a href={`/${locale}/sign-in`} className="landing-btn landing-btn-ghost">
           {signInLabel}
         </a>
-        <div className="landing-lang" aria-label={langLabel}>
-          {SUPPORTED_LOCALES.map((code) => (
-            <a
-              key={code}
-              href={`/${code}`}
-              hrefLang={code}
-              lang={code}
-              aria-current={code === locale}
-            >
-              {t(code)}
-            </a>
-          ))}
-        </div>
+        <LanguagePicker locale={locale as SupportedLocale} />
       </div>
     </nav>
+  );
+}
+
+/**
+ * The locale picker: a disclosure, not a popover.
+ *
+ * `<details>`/`<summary>` rather than a `<button>` and a scripted menu, and that
+ * choice is the reason this control exists today at all. `AGENTS.md` 3.2.1 bans
+ * raw `<button>`, and the shadcn `DropdownMenu` that would replace one does not
+ * exist (`FIX-11`). `<summary>` is not a button element, so this satisfies the
+ * rule rather than working around it — and it opens, closes, takes keyboard
+ * focus and is announced as a disclosure by the browser, with **no JavaScript
+ * at all**. A menu that needs hydration to appear is a worse degraded state than
+ * one that is already there.
+ *
+ * What it does not do is close on an outside click. That is native behaviour,
+ * and for a four-item language menu the cost is a second click on the trigger.
+ *
+ * Order comes from `LOCALE_DISPLAY_ORDER` in `@eduflow/shared-types` — English,
+ * Sinhala, Tamil, Arabic — and deliberately not from `SUPPORTED_LOCALES`, which
+ * is what the router and `generateStaticParams` iterate. Reordering that one for
+ * a visual preference would change route generation everywhere.
+ *
+ * The trigger names the ACTIVE locale, not the first option, so the control
+ * always tells you where you are. English leads the list and English is also
+ * the default, which makes the two agree on first load without a special case.
+ */
+async function LanguagePicker({ locale }: { locale: SupportedLocale }) {
+  const t = await getTranslations('language');
+  const langLabel = t('label');
+
+  const current = LOCALE_DISPLAY_ORDER.includes(locale as never) ? locale : 'en';
+
+  return (
+    <details className="landing-lang">
+      <summary className="landing-lang-trigger">
+        <span aria-hidden="true">🌐</span>
+        {/* The visible label alone would make the trigger's accessible name
+            "English", which does not say what the control does. The label
+            prefix is for assistive tech only. */}
+        <span className="sr-only">{langLabel}: </span>
+        <span>{t(current)}</span>
+      </summary>
+
+      <div className="landing-lang-menu">
+        <ul>
+          {LOCALE_DISPLAY_ORDER.map((code) => (
+            <li key={code}>
+              <a
+                data-testid="lang-option"
+                href={`/${code}`}
+                hrefLang={code}
+                lang={code}
+                aria-current={code === current ? 'page' : undefined}
+              >
+                <span>{t(code)}</span>
+                <span className="code" aria-hidden="true">
+                  {code.toUpperCase()}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }

@@ -187,45 +187,133 @@
   }
 
   /*
-   * The language switcher. `<a>` elements, not the template's `<button>`s:
-   * AGENTS.md 3.2.1 bans raw <button> and the shadcn primitives that would
-   * replace one do not exist yet (FIX-11). A switcher that navigates is a set of
-   * links, so this needs no button and the ban is satisfied rather than
-   * circumvented. The current locale carries aria-current, not a link.
+   * The locale picker. A `<details>` disclosure, so the trigger is a
+   * `<summary>` — not a `<button>`, which `AGENTS.md` 3.2.1 bans until shadcn
+   * lands (FIX-11).
    *
-   * `min-height: var(--touch-target-min)` rather than padding: AGENTS.md 3.2.2
-   * puts the floor at 44px and these shipped at 32px. Padding would have fixed
-   * the number without recording why 44 is the number, and the e2e suite
-   * measures the rendered box either way.
+   * The default disclosure marker is a triangle the browser draws; the design
+   * wants a caret that follows the direction of writing, so the marker is
+   * suppressed and a `::after` glyph takes its place. Both vendor prefixes are
+   * needed: `::-webkit-details-marker` for Chromium and Safari,
+   * `::marker` for Firefox.
    */
   .landing-lang {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.125rem;
-    font-size: 0.8125rem;
+    position: relative;
   }
 
-  .landing-lang a {
+  .landing-lang-trigger {
     display: flex;
     align-items: center;
+    gap: 0.5rem;
     min-height: var(--touch-target-min);
-    padding-inline: 0.625rem;
+    padding-inline: 0.75rem;
+    border: 1px solid var(--border);
     border-radius: var(--radius-control);
-    color: var(--muted);
-    font-weight: 600;
-    text-decoration: none;
-    transition: color var(--motion-fast) var(--motion-ease);
-  }
-
-  .landing-lang a:hover {
+    background: transparent;
     color: var(--text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    transition: border-color var(--motion-fast) var(--motion-ease);
   }
 
-  .landing-lang a[aria-current='true'] {
+  .landing-lang-trigger::-webkit-details-marker {
+    display: none;
+  }
+
+  .landing-lang-trigger::marker {
+    content: '';
+  }
+
+  .landing-lang-trigger::after {
+    content: '▾';
+    color: var(--muted);
+    font-size: 0.6875rem;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  /* The caret flips when open, so the control states its own state without
+     needing an icon swap. */
+  .landing-lang[open] .landing-lang-trigger::after {
+    transform: rotate(180deg);
+  }
+
+  .landing-lang-trigger:hover {
+    border-color: var(--brand);
+  }
+
+  .landing-lang-trigger:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /*
+   * Hide the menu explicitly rather than relying on the user agent.
+   *
+   * A closed `<details>` is supposed to render nothing but its `<summary>`, and
+   * in Chromium and Safari it does — but that is a `::details-content` rendering
+   * suppression, and it is not dependable once the child is taken out of normal
+   * flow. With `position: absolute` on `.landing-lang-menu`, a second Chromium
+   * build laid the menu out at 176x178 with the disclosure closed, painting the
+   * open list over the hero.
+   *
+   * Playwright's engine happened to hide it, so the original `toBeHidden()`
+   * assertion passed while a real browser showed the bug. This one line makes
+   * the behaviour ours instead of the browser's, in every engine.
+   */
+  .landing-lang:not([open]) .landing-lang-menu {
+    display: none;
+  }
+
+  .landing-lang-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    inset-inline-end: 0;
+    z-index: 30;
+    min-width: 11rem;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .landing-lang-menu ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .landing-lang-menu a {
+    display: flex;
+    min-height: var(--touch-target-min);
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-inline: 0.875rem;
+    color: var(--text);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: background var(--motion-fast) var(--motion-ease);
+  }
+
+  .landing-lang-menu a:hover {
+    background: var(--bg);
+  }
+
+  .landing-lang-menu a[aria-current='page'] {
     color: var(--brand);
     font-weight: 700;
+  }
+
+  /* The locale code, right-aligned. Decorative — the name is the label, so it
+     is hidden from assistive tech rather than read as "English EN". */
+  .landing-lang-menu .code {
+    color: var(--muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
   }
 
   /* ---- Hero ---- */
@@ -367,8 +455,17 @@
    * background-position is the sheen. It cannot be a utility class because the
    * animated property is background-position on a background-clip:text element,
    * and it was the effect a plain rebuild lost.
+   *
+   * `display: block` puts the phrase on its own line, which is where the
+   * template put it — it wrote `'Run your entire school on<br><span
+   * class="grad">…</span>'`. The break is expressed here rather than as markup
+   * between the two translation keys, so the copy stays translatable and the
+   * line break stays a layout decision. A `<br>` in the string would be HTML in
+   * a translation again, which is the thing the split keys exist to avoid.
    */
   .landing-hero h1 .grad {
+    display: block;
+    margin-top: 0.1em;
     background: linear-gradient(120deg, var(--brand), var(--accent) 55%, var(--brand-2));
     background-size: 200% auto;
     -webkit-background-clip: text;

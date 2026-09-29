@@ -49,9 +49,33 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
+  /**
+   * Per-TEST budget, not per-navigation. Raising `navigationTimeout` alone did
+   * not help: the failure was Playwright's 30s test timeout expiring while
+   * `/ar` cold-compiled, which the navigation budget cannot extend. Same root
+   * cause as the note on `use.navigationTimeout` below.
+   */
+  timeout: 90_000,
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',
+    /**
+     * Navigation needs more than the 30s default, and the reason is structural
+     * rather than a slow machine.
+     *
+     * The web server above deliberately deletes `.next` on every run, so each
+     * suite starts with no build cache and compiles every route from source.
+     * The Arabic routes are last to be requested, so `/ar` and `/ar/sign-in`
+     * routinely exceeded 30s of cold compile and failed as
+     * `page.goto: Test timeout of 30000ms exceeded` — a failure that has
+     * nothing to do with the assertions under test. Two extra locales' worth of
+     * compile time is a fixed cost of the stale-cache fix, so the budget is
+     * raised rather than the cache left dirty.
+     */
+    navigationTimeout: 90_000,
+    // Locators on this page wait on `next dev` streaming a route, so the action
+    // budget needs the same headroom for the same reason.
+    actionTimeout: 30_000,
   },
   // Self-contained: `pnpm test:e2e` must not require a dev server started by
   // hand, or the suite silently tests whatever happens to be listening.

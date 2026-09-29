@@ -13,6 +13,21 @@
 export const SUPPORTED_LOCALES = ['en', 'ta', 'si', 'ar'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
+/**
+ * The order a locale PICKER shows, which is not the order the locales are
+ * declared in.
+ *
+ * Kept separate on purpose. `SUPPORTED_LOCALES` is what `generateStaticParams`,
+ * the i18n router and the middleware iterate, so reordering it for a visual
+ * preference would silently change route generation across the app. A dropdown
+ * is a presentation concern; this is the presentation concern, named.
+ *
+ * English leads, because English is `DEFAULT_LOCALE` and a picker whose first
+ * option is not the active one is a small lie about where you are.
+ */
+export const LOCALE_DISPLAY_ORDER = ['en', 'si', 'ta', 'ar'] as const;
+export type LocaleDisplayOrder = (typeof LOCALE_DISPLAY_ORDER)[number];
+
 /** English is the default. AGENTS.md section 1. */
 export const DEFAULT_LOCALE: SupportedLocale = 'en';
 
