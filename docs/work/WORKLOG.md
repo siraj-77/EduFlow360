@@ -6,6 +6,89 @@
 
 ---
 
+## 2026-09-29 — FIX-22: the build-script allow-list that never worked
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-09-29 (fourth session) |
+| **Phase** | Prompt Pack **P2 remediation** · EPIC-00, run early because it blocks every dependency change |
+| **Task** | Close FIX-22 — `pnpm add` exits 1, so no dependency can be added through the normal path |
+| **Agent** | opencode · `test-driven-development`, `tdd-workflow` |
+| **Status** | ✅ **Complete.** `pnpm add` exits 0. My first fix was wrong and the behavioural check caught it |
+
+### Activity
+
+1. Wrote `apps/api/src/config/workspace-config.spec.ts` — 5 cases asserting the allow-list is machine-interpretable.
+2. **RED:** 2 failed / 2 passed, naming `pnpm-workspace.yaml:6` and the literal placeholder string.
+3. **First GREEN attempt was wrong.** I removed the malformed `allowBuilds` block, keeping `onlyBuiltDependencies`, on the reasoning that it was the key pnpm reads. The tests went green.
+4. **Then I ran the actual command the defect is about** — `pnpm add` — and it *still* exited 1 with `ERR_PNPM_IGNORED_BUILDS`.
+5. Tested three configurations empirically. Only `allowBuilds` with booleans works.
+6. **Strengthened the test** so the inert key is a failure, then verified the strengthened test bites.
+
+### The wrong fix, and what proved it wrong
+
+| Configuration | `pnpm install` | `pnpm add` | Postinstalls |
+|---|---|---|---|
+| `allowBuilds` with `set this to true or false` + `onlyBuiltDependencies` | exit 0 *(satisfied tree only)* | **exit 1** | **blocked** |
+| `onlyBuiltDependencies` alone | **exit 1** | — | **blocked** — 4 packages incl. `esbuild` |
+| `allowBuilds` with real booleans | **exit 0** | **exit 0** | **run** — `@prisma/client postinstall: Done` |
+
+**`onlyBuiltDependencies` is completely inert in pnpm 11.22.0.** It is parsed — `pnpm config get onlyBuiltDependencies` reads the array back correctly — but pnpm never acts on it. **A key that reads back correctly and does nothing is worse than a key that is absent, because it is indistinguishable from a working one by inspection.** The audit had read the file, seen a correct list, and rated it S3 on the placeholder alone. Reading it was not enough; only running it was.
+
+`esbuild` was in the never-working list, so vitest's transform pipeline has been relying on a binary this allow-list never granted. It works — but by luck, not by policy.
+
+### TDD evidence
+
+**RED** — `npx vitest run src/config/workspace-config.spec.ts`, 2 failed / 2 passed:
+
+```
+x every allowBuilds value is a boolean literal
+  -> pnpm-workspace.yaml:6 - allowBuilds["@prisma/client"] is the string
+     "set this to true or false", not a boolean. pnpm cannot interpret it,
+     so the whole allow-list is rejected and every build script is blocked.
+x declares no build-script allow-list entry with a placeholder value
+  -> pnpm-workspace.yaml:6 - allowBuilds["@prisma/client"] is still a placeholder
+```
+
+**GREEN** — same command: `5 passed (5)`.
+
+**Regression probe** — replacing the file with the inert key only:
+
+```
+x declares the allow-list with allowBuilds, not the inert onlyBuiltDependencies
+  -> pnpm-workspace.yaml declares no allowBuilds entries, so every dependency
+     postinstall is blocked and pnpm exits 1
+  Tests  2 failed | 3 passed (5)
+```
+
+The strengthened test bites. This mattered: the *original* version of that case passed happily with `onlyBuiltDependencies` alone — the inert option — because it only checked for disagreement between two lists, not whether either list worked. A test that cannot fail on the actual defect is decoration.
+
+### Files Changed
+
+**Created:** `apps/api/src/config/workspace-config.spec.ts`
+**Modified:** `pnpm-workspace.yaml` · `docs/core/SSOT.md` · `docs/work/TODO.md` · `docs/work/WORKLOG.md` · `docs/analysis/CODE_AUDIT_2026-09-29.md`
+
+### Quality
+
+| Check | Result |
+|---|---|
+| `pnpm add` | ✅ **exit 0** — was exit 1 |
+| `pnpm install` | ✅ exit 0, postinstalls run |
+| `pnpm test` | ✅ 8/8, **67 tests** (63 → 67) |
+| `pnpm typecheck` | ✅ 8/8, 0 errors |
+| `pnpm lint` | ✅ 8/8, 0 errors |
+| `pnpm test:coverage` | ✅ 8/8, exit 0 |
+| `pnpm docs:verify` | ✅ 179 references |
+| `pnpm test:e2e` | ❌ **still exit 1** — FIX-02 |
+| `pnpm format:check` | ❌ **still exit 2** — FIX-05 |
+
+### Next Steps
+
+1. 🔴 **FIX-02** — `pnpm test:e2e` exits 1 on an empty `testDir`. This now unblocks properly, since adding Playwright browsers or a spec will not hit FIX-22.
+2. Then FIX-03 (compose YAML), FIX-04 (`proxy.ts`), FIX-11 (shadcn/ui, blocks P3).
+
+---
+
 ## 2026-09-29 — FIX-01: make the coverage gate runnable
 
 | Field | Entry |

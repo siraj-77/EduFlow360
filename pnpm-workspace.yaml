@@ -2,24 +2,37 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-allowBuilds:
-  '@prisma/client': set this to true or false
-  '@prisma/engines': set this to true or false
-  esbuild: set this to true or false
-  prisma: set this to true or false
-  unrs-resolver: set this to true or false
-
-# Explicit allow-list, not a blanket `pnpm approve-builds`. These five
-# need a postinstall step to place a platform-native binary; every other
-# dependency stays blocked, so a supply-chain postinstall cannot run
-# unapproved.
+# Build-script allow-list. `allowBuilds` is the ONLY key pnpm 11 honours
+# here; it is the object form, `true` = run the postinstall.
 #
 #   esbuild            - vitest's transform pipeline
 #   @prisma/*, prisma  - query engine binary (from P4)
 #   unrs-resolver      - eslint-plugin-import-x resolver
-onlyBuiltDependencies:
-  - esbuild
-  - '@prisma/client'
-  - '@prisma/engines'
-  - prisma
-  - unrs-resolver
+#
+# Everything not listed stays blocked, so a supply-chain postinstall
+# cannot run unapproved. That blocking is deliberate and is the point of
+# this file; it is not a defect to be worked around with
+# `pnpm approve-builds`.
+#
+# DO NOT reintroduce `onlyBuiltDependencies` as an alternative. It is
+# INERT in pnpm 11.22.0: `pnpm config get onlyBuiltDependencies` reads the
+# array back correctly, so it looks configured, but pnpm never acts on it.
+# Verified 2026-09-29 - with that key alone, pnpm reported
+# ERR_PNPM_IGNORED_BUILDS for four packages (esbuild, @prisma/client,
+# @prisma/engines, prisma) and exited 1; with the equivalent allowBuilds
+# block it exits 0 and the postinstalls run. A key that reads back
+# correctly and does nothing is worse than a key that is absent, because
+# it is indistinguishable from a working one.
+#
+# This file previously carried an `allowBuilds` block whose values were
+# the literal string "set this to true or false" - never filled in. pnpm
+# could not interpret it, so `pnpm add` exited 1 while `pnpm install` on
+# an already-satisfied tree exited 0 and hid the breakage.
+#
+# Regression test: apps/api/src/config/workspace-config.spec.ts
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  esbuild: true
+  prisma: true
+  unrs-resolver: true

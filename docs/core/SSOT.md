@@ -40,7 +40,7 @@ Every row below was **executed**, not inferred. The previous version of this tab
 | **`pnpm test:e2e`** | ❌ **FAIL, exit 1** | `Error: No tests found`. `playwright.config.ts:12` points at `apps/web/tests/e2e`, which exists and is empty → FIX-02 |
 | **`pnpm format:check`** | ❌ **FAIL, exit 2** | 60 files unformatted, including `AGENTS.md` itself → FIX-05 |
 | `pnpm test` | ✅ **PASS** | **63 tests** (was 51) — FIX-01 added a 12-case coverage-gate invariant suite |
-| `pnpm add` | ❌ **exit 1** | `[ERR_PNPM_IGNORED_BUILDS]` — the `allowBuilds` placeholders are a malformed allow-list. **`pnpm install` on a clean tree exits 0**, so this is invisible until a dependency is added → FIX-22 |
+| `pnpm add` | ✅ **exit 0** *(fixed 2026-09-29, FIX-22)* | The build-script allow-list did not work. `onlyBuiltDependencies` is **inert in pnpm 11.22.0** — it reads back via `pnpm config get` but pnpm never acts on it, blocking 4 packages. The working key is `allowBuilds` with booleans. `pnpm install` on a satisfied tree exited 0 either way, hiding it |
 | `pnpm test:integration` | ⚠️ **PASS but vacuous** | `No test files found, exiting with code 0` — a green gate that tests nothing |
 | API boots with **no `.env`** | ✅ PASS | prints the `PERSISTENCE DISABLED` banner, starts, listens on 3001 (D23, `ADR-019`) |
 | Web serves all four locales | ✅ PASS | `/en` `dir=ltr` · `/ar` **`dir=rtl`** · `/ta` · `/si`, all 200, `data-theme` present |

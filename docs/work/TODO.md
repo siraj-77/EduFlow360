@@ -25,7 +25,7 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 - [ ] **FIX-09** ⚠️ `src/modules/modules/` → `src/modules/registry/`; anchor the ESLint globs
 - [ ] **FIX-10** ⚠️ `ThemeToggle` (the i18n keys already exist and are unused) + `loading.tsx` / `error.tsx` / `not-found.tsx`
 - [ ] **FIX-11** 🔴 Initialise shadcn/ui. **Must precede P3** — that gate needs a raw `<button>` to fail *and* a compliant `<Button>` to pass
-- [ ] **FIX-22** ⚠️ ⚠️ **raised S3 → S2** — `pnpm add` **exits 1** (`ERR_PNPM_IGNORED_BUILDS`). The `allowBuilds` placeholders are a malformed allow-list. `pnpm install` on a clean tree exits 0, so this is invisible until a dependency is added — which is when it blocks work
+- [x] **FIX-22** ✅ **DONE 2026-09-29** — was S2, `pnpm add` exited 1. `onlyBuiltDependencies` is **inert in pnpm 11.22.0**; `allowBuilds` with booleans is the key that works. `pnpm add` now exits 0 and prisma/esbuild postinstalls actually run
 - [ ] **FIX-25** ⚠️ `docs-verify.mjs` cannot resolve `path:line` references. **Third reactive patch to the same tool for the same class of problem**
 - [ ] **FIX-26** ⚠️ The §4 coverage tiers match **zero** instrumented files. `main.ts`, `app.module.ts`, `layout.tsx`, `page.tsx`, `theme-script.tsx` are at 0% with **no threshold at all**
 
@@ -223,7 +223,7 @@ Blocking the items marked ⚑.
 - ❌ **Do not start `PLT-101`** before the entry conditions in `PLATFORM_CORE_PLAN.md` §2 are met — chiefly the **test harness** and the **ERD**. The test runner now exists (D27) and all 51 tests pass, but the harness is **not yet trustworthy**: `test:coverage` cannot run (FIX-01), `test:e2e` has no tests (FIX-02), and nothing runs in CI (FIX-12)
 - ❌ **Do not merge while any §4 gate is red.** Two are (`test:e2e`, `format:check`). P0a exists for this
 - ❌ **Do not treat a config file existing as a gate passing**, and equally **do not treat a green coverage gate as enforced coverage.** FIX-01 closed while the tiers still matched 0 files — `AGENTS.md §4.1`'s "a test count is not evidence of coverage" applies to a passing gate too
-- ❌ **Do not use `pnpm add` expecting exit 0** until FIX-22 is fixed — it exits 1 on `ERR_PNPM_IGNORED_BUILDS` even when the install succeeds. Read the lockfile, not the exit code
+- ❌ **Do not reintroduce `onlyBuiltDependencies` as an alternative to `allowBuilds` in `pnpm-workspace.yaml`.** It is **inert in pnpm 11.22.0** — it reads back correctly via `pnpm config get`, so it looks configured, but pnpm never acts on it and every postinstall is blocked. A key that reads back correctly and does nothing is worse than one that is absent (FIX-22)
 - ❌ **Do not port any legacy code** until `LEGACY_REUSE_INVENTORY.md` names the file with a reason (`AGENTS.md` §5.2)
 - ❌ **Do not build tenancy machinery.** See `ARCHITECTURE.md` §5 for the worked counter-example of exactly why
 - ❌ **Do not hard-code user-facing strings.** The four-locale skeleton must exist before the first UI story, not after
