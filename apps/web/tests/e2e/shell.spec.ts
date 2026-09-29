@@ -207,6 +207,200 @@ test.describe('landing page motion', () => {
   });
 });
 
+test.describe('touch targets and reduced-motion degradation', () => {
+  /**
+   * AGENTS.md 3.2.2: "Touch targets >= 44px." `--touch-target-min` is defined in
+   * `packages/ui-kit/src/styles.css` and nothing measured it, so the language
+   * links shipped at 32px and every gate was green.
+   *
+   * The token existing is not the guarantee. This measures the rendered box.
+   */
+  test('every interactive element is at least 44px tall', async ({ page }) => {
+    await page.goto('/en');
+
+    const small = await page.evaluate(() => {
+      const MIN = 44;
+      return [...document.querySelectorAll('a[href], button')]
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            text: (el.textContent ?? '').trim().slice(0, 24),
+            height: Math.round(r.height),
+            width: Math.round(r.width),
+          };
+        })
+        .filter((el) => el.height < MIN || el.width < MIN);
+    });
+
+    expect(
+      small,
+      `these are below the ${44}px touch-target floor in AGENTS.md 3.2.2: ` +
+        small.map((s) => `"${s.text}" ${s.width}x${s.height}`).join(', '),
+    ).toEqual([]);
+  });
+
+  /**
+   * A frozen marquee reads as a broken one.
+   *
+   * The strip is `width: max-content` inside an `overflow: hidden` holder, so
+   * when `prefers-reduced-motion` cancels the animation the visitor is left
+   * looking at a row of words with the first and last sliced off at the
+   * viewport edges. That looks like a layout fault rather than a considered
+   * degradation, and it is what a visitor with the OS setting on actually sees.
+   *
+   * So under reduced motion the track must become an ordinary wrapping row: no
+   * overflow, no clipping, everything fully legible.
+   */
+  test('under reduced motion the module list is fully legible, not a clipped strip', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/en');
+    await page.waitForLoadState('networkidle');
+
+    const { clipped, overflowing, items } = await page.evaluate(() => {
+      const holder = document.querySelector('.landing-marquee') as HTMLElement;
+      const track = document.querySelector('.landing-marquee-track') as HTMLElement;
+      const holderBox = holder.getBoundingClientRect();
+      const nodes = [...track.querySelectorAll('[data-testid="marquee-item"]')] as HTMLElement[];
+
+      return {
+        clipped: getComputedStyle(holder).overflowX === 'hidden' && nodes.some(
+          (n) => {
+            const r = n.getBoundingClientRect();
+            return r.left < holderBox.left - 0.5 || r.right > holderBox.right + 0.5;
+          },
+        ),
+        overflowing: track.scrollWidth > holder.clientWidth + 1,
+        items: nodes.length,
+      };
+    });
+
+    expect(items, 'the marquee lost its items').toBeGreaterThan(0);
+    expect(
+      clipped,
+      'with motion cancelled the marquee is still a clipped strip, so it reads as a rendering fault',
+    ).toBe(false);
+    expect(overflowing, 'the track still runs off the edge of its holder').toBe(false);
+  });
+});
+
+test.describe('sign-in route', () => {
+  /**
+   * The landing page needs a "Log in" link — the template's topnav has one, and
+   * a page with no way to sign in is a dead end for anyone who already has an
+   * account.
+   *
+   * But sign-in is `PLT-101`, and nothing in this milestone renders a real form.
+   * A link to a route that does not exist is a 404, so the route exists and
+   * says so plainly. The point of this test is that the link is not a dead end:
+   * it resolves, and it resolves to something honest.
+   */
+  test('the landing page offers a link to sign in', async ({ page }) => {
+    await page.goto('/en');
+
+    const signIn = page.getByRole('link', { name: /sign in/i }).first();
+    await expect(
+      signIn,
+      'the landing page has no visible "Sign in" link, so a returning user has no way in',
+    ).toBeVisible();
+  });
+
+  test('following the sign-in link resolves rather than 404s', async ({ page }) => {
+    await page.goto('/en');
+
+    // The response promise is armed BEFORE the click. Arming it afterwards
+    // races the navigation: on a cached route the document response has already
+    // arrived by the time the listener is attached, and the wait times out on a
+    // link that worked.
+    const documentResponse = page.waitForResponse((r) => r.request().resourceType() === 'document');
+
+    await page.getByRole('link', { name: /sign in/i }).first().click();
+    await documentResponse;
+
+    expect(
+      new URL(page.url()).pathname,
+      'the sign-in link does not lead to a sign-in route',
+    ).toMatch(/\/(en|ta|si|ar)\/sign-in$/);
+
+    await expect(
+      page.getByRole('heading', { level: 1 }),
+      'the sign-in route rendered no heading, so it is a blank page',
+    ).toBeVisible();
+  });
+
+  test('every locale has a translated sign-in route, not an English fallback', async ({ page }) => {
+    for (const locale of ['ta', 'si', 'ar']) {
+      await page.goto(`/${locale}/sign-in`);
+      const heading = await page.getByRole('heading', { level: 1 }).innerText();
+      expect(heading, `/${locale}/sign-in rendered an empty heading`).not.toBe('');
+    }
+  });
+});
+
+test.describe('responsive layout', () => {
+  /**
+   * AGENTS.md 3.2.2 requires touch targets >= 44px. On a phone that floor is
+   * not a nicety, it is the difference between a usable link and a mis-tap, and
+   * it is the width where the topnav is most likely to overflow: four language
+   * links plus a brand plus a sign-in link, in a 320px viewport.
+   */
+  const WIDTHS = [320, 375, 414, 768, 1024, 1440] as const;
+
+  for (const width of WIDTHS) {
+    test(`no horizontal overflow at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('/en');
+      await page.waitForLoadState('networkidle');
+
+      const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      }));
+
+      expect(
+        scrollWidth,
+        `the page is ${scrollWidth - clientWidth}px wider than the ${width}px viewport`,
+      ).toBeLessThanOrEqual(clientWidth);
+    });
+  }
+
+  test('the topnav stays usable at 320px', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto('/en');
+
+    const nav = await page.evaluate(() => {
+      const el = document.querySelector('.landing-topnav');
+      if (!el) throw new Error('.landing-topnav is missing');
+      const links = [...el.querySelectorAll('a')] as HTMLElement[];
+      return {
+        wraps: el.getBoundingClientRect().height > 60,
+        linkCount: links.length,
+        minHeight: links.length ? Math.min(...links.map((a) => a.getBoundingClientRect().height)) : 0,
+      };
+    });
+
+    // It is allowed to wrap rather than overflow, but it must not collapse the
+    // targets to fit.
+    expect(nav.linkCount, 'the topnav lost its links at 320px').toBeGreaterThan(0);
+    expect(
+      nav.minHeight,
+      `a topnav link is ${nav.minHeight}px tall at 320px, under the 44px floor`,
+    ).toBeGreaterThanOrEqual(44);
+  });
+
+  test('the feature grid reflows to one column on a phone', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto('/en');
+
+    const columns = await page.evaluate(() => {
+      const el = document.querySelector('.landing-features');
+      if (!el) throw new Error('.landing-features is missing');
+      return getComputedStyle(el).gridTemplateColumns.split(' ').length;
+    });
+
+    expect(columns, `the feature grid is still ${columns} columns wide at 375px`).toBe(1);
+  });
+});
+
 test.describe('locale shell', () => {
   for (const { code, dir } of LOCALES) {
     test(`/${code} renders with dir="${dir}" and lang="${code}"`, async ({ page }) => {

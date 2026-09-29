@@ -57,12 +57,25 @@ export default defineConfig({
   // hand, or the suite silently tests whatever happens to be listening.
   //
   // `dev`, not `start`: `next start` serves a production build, and on this
-  // scaffold a stale `.next` build fails at runtime with Next 15's "Page
-  // changed from static to dynamic at runtime" — a build artefact problem
-  // masquerading as a test failure. The dev server compiles from source, so
-  // the suite cannot be broken by a build left over from an earlier commit.
+  // scaffold a stale `.next` fails at runtime with Next 15's "Page changed from
+  // static to dynamic at runtime" — a build artefact problem masquerading as a
+  // test failure. The dev server compiles from source, so the suite cannot be
+  // broken by a production build left over from an earlier commit.
+  //
+  // AND `.next` IS CLEARED FIRST, which the comment above used to claim was
+  // unnecessary. It is not. `next dev` writes to the same `.next` an interactive
+  // `pnpm dev` session uses, so a suite started after someone has been looking
+  // at the app inherits their half-written webpack cache. Twice on 2026-09-30
+  // that produced `ENOENT ... 0.pack.gz_` cache errors and a cascade of 500s
+  // across all four locales — sixteen failing tests, none of which mentioned a
+  // stale build. The suite was not testing the application; it was testing
+  // someone's leftover editor state.
+  //
+  // `node -e ... rmSync` rather than `rm -rf`, for the same reason as
+  // `AGENTS.md` §8 records: this is a Windows workstation.
   webServer: {
-    command: 'npm run dev',
+    command:
+      'node -e "require(\'node:fs\').rmSync(\'.next\',{recursive:true,force:true})" && npm run dev',
     url: `${BASE_URL}${PROBE_PATH}`,
     reuseExistingServer: false,
     timeout: 120_000,

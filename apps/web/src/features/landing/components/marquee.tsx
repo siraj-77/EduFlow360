@@ -15,8 +15,21 @@ import { getTranslations } from 'next-intl/server';
  *
  * Under `dir="rtl"` the animation direction is reversed — the single
  * `[dir="rtl"]` rule in `landing.css`, and the only one that could not be
- * avoided. `translateX` is physical; a right-to-left reading order runs the
- * other way.
+ * avoided. `translateX` is a physical transform; a right-to-left reading order
+ * runs the other way.
+ *
+ * TWO HALVES, EXPLICITLY WRAPPED rather than flattened with
+ * `display: contents`. `display: contents` made each half disappear as a box,
+ * which meant the reduced-motion fallback in `landing.css` had nothing to hide.
+ * A cancelled animation left a `width: max-content` strip inside an
+ * `overflow: hidden` holder — a row of words with the first and last sliced off
+ * at the viewport edges, which reads as a layout fault rather than as a
+ * considered degradation. The halves need to be addressable boxes so the
+ * fallback can drop the duplicate and let the rest wrap.
+ *
+ * The animated track is `aria-hidden`, and the list is repeated once in an
+ * `sr-only` element for assistive tech. A screen reader hears the six modules
+ * once, not twelve times, and not while they slide past.
  */
 export async function Marquee() {
   const t = await getTranslations('nav');
@@ -29,7 +42,7 @@ export async function Marquee() {
 
       <div data-testid="marquee-track" className="landing-marquee-track" aria-hidden="true">
         {[0, 1].map((half) => (
-          <div key={half} style={{ display: 'contents' }}>
+          <div key={half} className="landing-marquee-half" data-half={half}>
             {modules.map((key) => (
               <span key={`${half}-${key}`} data-testid="marquee-item">
                 {t(key)}
@@ -39,9 +52,6 @@ export async function Marquee() {
         ))}
       </div>
 
-      {/* The track is decorative and hidden from assistive tech, so the list is
-          repeated once as readable text. A screen reader should hear the module
-          list once, not twelve times, nor nothing at all. */}
       <ul className="sr-only">
         {modules.map((key) => (
           <li key={key}>{t(key)}</li>

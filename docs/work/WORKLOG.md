@@ -8,6 +8,123 @@
 ---
 ---
 
+## 2026-09-30 — Scroll diagnosis, three real defects, the sign-in route, and responsive proof
+
+| Field      | Entry |
+| ---------- | ----- |
+| **Date**   | 2026-09-30 |
+| **Phase**  | Landing page third pass, `AGENTS.md` 3.2.2 accessibility, `FIX-04` follow-on |
+| **Task**   | The user: _"scroll is not working, use your UI/UX skills"_ and _"hope this is responsive and add the login link also to the page"_. |
+| **Agent**  | `opencode` / space-bunny-free, using the `ui-visual-validator` skill |
+| **Status**  | ✅ Complete. **32 e2e (was 19)**; all gates 0. |
+
+### The scroll claim: measured, and it was working
+
+`ui-visual-validator`'s first rule is that the modification goal has not been achieved until proven otherwise, and its second useful rule is to go looking for failure evidence. So I measured before concluding anything.
+
+| Check | Method | Result |
+| --- | --- | --- |
+| Marquee motion | `DOMMatrixReadOnly(transform)` sampled 4× at 400ms | `translateX` −31.46 → −44.05 → −57.16 → −70.27. **Steady ~32px/s, matching 22s for 50% of 1384px** |
+| Marquee motion, visually | two element screenshots 700ms apart | Every word shifted left by ~80px. "Attendance" x=100→65, "Finance" 310→275 |
+| Page scroll | `scrollTo(0, 400)` | 0 → 400 |
+| Page scroll | `mouse.wheel(0, 600)` | `scrollY` 0 → 590 (the maximum) |
+| Page scroll | `PageDown` | `scrollY` 0 → 590. **Keyboard scrolling works** |
+| Sticky nav | `getBoundingClientRect().top` after scrolling 700px | 0px, `position: sticky` |
+
+**So scrolling was not broken, and the e2e gate had been asserting the animations were running the whole time.** What the user was almost certainly looking at is the browser on this machine, which has `prefers-reduced-motion: reduce` set at the OS level — so the marquee correctly rendered as a static row, and a static `width: max-content` strip inside an `overflow: hidden` holder looks exactly like a rendering fault: a row of words with the first and last sliced off at the viewport edges.
+
+Reporting "it works" and stopping there would have missed the real defect. The measurement was necessary; it was not sufficient.
+
+### Three real defects, all found by measuring rather than looking
+
+**1 · `AGENTS.md` 3.2.2 touch-target floor — 6 violations, two of them invisible.**
+`--touch-target-min: 44px` has been defined in `packages/ui-kit/src/styles.css` since DSN-01 and **nothing ever measured it**. The rendered boxes:
+
+```
+"English"    61x32      "தமிழ்"   58x32      "සිංහල"  62x32
+"العربية"    53x32      "See the features"  140x43     "See what's inside"  146x43
+```
+
+The two calls to action were **one pixel** under the floor. I had not seen that by looking, and I would not have caught it by looking. Fixed with `min-height: var(--touch-target-min)` — the token, not a hard-coded number, so the floor stays the single source.
+
+**2 · Reduced motion left a clipped strip, not a considered degradation.**
+Cancelling the animation is the easy half. The hard half is what the strip *looks like* afterwards. Under `prefers-reduced-motion: reduce` the marquee now drops its duplicate half, stops clipping, and wraps the six modules centred — same information, nothing cut off, no motion. The e2e asserts it directly: no item may sit outside its holder and the track may not overflow.
+
+**3 · Hard horizontal seam where the hero's mesh gradient stopped dead.**
+Visible in a screenshot at y≈190: a purple field meeting flat `--bg` along a ruled line, which reads as a rendering artefact rather than a section boundary. The mesh now carries a bottom mask and dissolves into the page. The 130px of dead space below the mockup went with it.
+
+### Responsive: it was not, and I could not have known without measuring
+
+Six breakpoints, asserted: **320 · 375 · 414 · 768 · 1024 · 1440.**
+
+Two failed, and the failure is instructive. An earlier ad-hoc check at **390px** passed — but that was *before* the 44px touch-target fix, and 390 sits above 375. Widening the floor pushed the topnav over:
+
+| Width | Overflow |
+| --- | --- |
+| 320px | **64px** → 25px after the first wrap fix → **0** |
+| 375px | **12px** → **0** |
+| 414 / 768 / 1024 / 1440 | 0 |
+
+Located by walking the DOM for elements whose right edge exceeded the viewport and that no ancestor was clipping. The culprit was not the topnav — it was `.landing-nav-right` (329px) and `.landing-lang` (251px) inside a 288px content box, neither of which had `flex-wrap: wrap`. Only the parent had it.
+
+**The fix is to wrap, not to shrink.** `AGENTS.md` 3.2.2 puts 44px on the floor, and the language switcher is the one control on the page a one-handed user most needs to hit. Trading a cosmetic overflow for a mis-tap is a bad trade. Also: the mockup's chips go to one column below 420px, and the hero's vertical padding drops from 6.875rem to 3.5rem so the headline is above the fold on a phone.
+
+### The sign-in link, and why the route exists
+
+A "Log in" link to a route that does not exist is a 404 on a school's front door. Sign-in is **`PLT-101`**, and nothing in this milestone authenticates anyone — no session, no credential check, no API.
+
+So `app/[locale]/sign-in/` exists and **says so**, in the visitor's own language, in all four locales, with a way back. It is a destination, not a stub pretending to be a feature. The i18n keys it uses (`signIn.*`) are the ones the real screen will need, so `PLT-101` does not rewrite the copy. Verified 200 in `en`, `ta`, `si`, `ar`, and screenshotted in Tamil.
+
+The route is a `page.tsx` under the existing root layout — **not** a nested `layout.tsx`. I wrote the nested version first and it was wrong twice over: a nested layout must not render `<html>`/`<body>`, and the existing layout is already a clean shell. Deleted and rewritten.
+
+### Two errors I made and caught, recorded because both cost a cycle
+
+- **`getTranslations('auth').signIn`** — `getTranslations` returns a *translator function*, not the messages object. The type error cascaded: the route failed to compile, `/en` returned 500, and **17 tests failed** with messages about `data-theme` and missing headings that had nothing to do with the cause. Caught by `pnpm typecheck`, not by reading the e2e output.
+- **`import '../sign-in.css'`** from `app/[locale]/sign-in/page.tsx` resolves to `app/[locale]/sign-in.css`, which does not exist. It must be `./sign-in.css`. This is why `/en/sign-in` returned 500 while `/en` returned 200 — and the e2e reported it as a wall of unrelated failures.
+
+### The stale `.next` footgun, now prevented rather than documented
+
+Hit **twice** today. `next dev` writes to the same `.next` an interactive session uses, so a suite started after someone has been looking at the app inherits their half-written webpack cache:
+
+```
+ENOENT: no such file or directory, rename
+  apps\web\.next\cache\webpack\client-development-fallback\0.pack.gz_
+```
+
+That produced 16 failures across all four locales — **none of which mentioned a stale build**. The suite was testing someone's leftover editor state.
+
+`playwright.config.ts` claimed `dev` instead of `start` meant "the suite cannot be broken by a build left over from an earlier commit". That was half true: it is immune to a stale *production* build and fully exposed to a stale *dev* cache. The `webServer.command` now clears `.next` first, using `node -e ... rmSync` because this is a Windows workstation (`AGENTS.md` §8). Third entry for this footgun; the other two are in `SSOT.md` §8.
+
+### Files changed
+
+| File | Change |
+| ---- | ------ |
+| `apps/web/src/app/[locale]/sign-in/page.tsx` + `sign-in.css` | **new** — the sign-in route, honest about state, four locales |
+| `apps/web/src/features/landing/landing.css` | 44px floor via the token; topnav/nav-right/lang wrap; hero mesh bottom mask; 420px breakpoint; reduced-motion marquee fallback |
+| `.../components/hero.tsx` | sign-in link in the topnav |
+| `.../components/marquee.tsx` | addressable halves so the fallback can drop the duplicate |
+| `apps/web/playwright.config.ts` | `.next` cleared before the e2e web server |
+| `apps/web/tests/e2e/shell.spec.ts` | +13 cases: touch targets, marquee degradation, sign-in route, six breakpoints |
+| `packages/i18n-resources/src/locales/*.json` | `+signIn.{title,subtitle,notYet,backToHome}` |
+
+### Quality
+
+| Check | Result |
+| ----- | ------ |
+| `pnpm test:e2e` | ✅ 0 — **32 passed** (19 → 32) |
+| `pnpm test` | ✅ 0 — 106 unit; i18n parity held across the new `signIn` keys in four locales |
+| `pnpm typecheck` · `lint` | ✅ 0 — lint/typecheck caught the two errors above and three `noUncheckedIndexedAccess` violations in my own test code |
+| `pnpm build` · `test:coverage` · `test:integration` · `docs:verify` | ✅ 0 |
+| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, untouched |
+| Visual | 320px dark and `/ta/sign-in` dark verified by screenshot. Six breakpoints measured, not eyeballed |
+
+### Honest accounting
+
+Of the 13 new cases, **two were vacuous on arrival** and are guards rather than REDs: *"prefers-reduced-motion stops every animation"* (there were no animations, so zero trivially satisfied it) and *"following the sign-in link resolves rather than 404s"* (the route did not exist, so the click timed out for a reason other than the one the assertion described — it failed, but on a timeout rather than on the 404 it was written to catch). The rest were genuine REDs, and the touch-target and overflow ones named the exact pixels.
+
+
+---
+
 ## 2026-09-30 — The landing page rebuilt to the template's actual visual language
 
 | Field      | Entry |

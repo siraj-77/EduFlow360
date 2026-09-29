@@ -90,6 +90,13 @@ export async function Hero() {
  */
 export async function TopNav({ locale }: { locale: string }) {
   const t = await getTranslations('language');
+  const langLabel = t('label');
+  // `getTranslations('auth')` returns a translator FUNCTION, not the messages
+  // object. Calling `.signIn` on it is a type error, and because the page
+  // fails to compile the whole route 500s — which is what happened the first
+  // time. The key already exists in all four locales, so nothing new is needed.
+  const authT = await getTranslations('auth');
+  const signInLabel = authT('signIn');
 
   return (
     <nav className="landing-topnav">
@@ -98,18 +105,23 @@ export async function TopNav({ locale }: { locale: string }) {
         EduFlow
       </span>
 
-      <div className="landing-lang" aria-label={t('label')}>
-        {SUPPORTED_LOCALES.map((code) => (
-          <a
-            key={code}
-            href={`/${code}`}
-            hrefLang={code}
-            lang={code}
-            aria-current={code === locale}
-          >
-            {t(code)}
-          </a>
-        ))}
+      <div className="landing-nav-right">
+        <a href={`/${locale}/sign-in`} className="landing-btn landing-btn-ghost">
+          {signInLabel}
+        </a>
+        <div className="landing-lang" aria-label={langLabel}>
+          {SUPPORTED_LOCALES.map((code) => (
+            <a
+              key={code}
+              href={`/${code}`}
+              hrefLang={code}
+              lang={code}
+              aria-current={code === locale}
+            >
+              {t(code)}
+            </a>
+          ))}
+        </div>
       </div>
     </nav>
   );

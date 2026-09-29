@@ -135,7 +135,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    /*
+     * Wraps rather than overflows.
+     *
+     * A brand plus four 44px language targets plus a sign-in link is about
+     * 400px of content, and a 320px viewport offers 288px after the 5vw gutters.
+     * Before this, the row ran 64px off the right edge — measured, not eyeballed.
+     * Wrapping is the honest answer at that width: the alternative is shrinking
+     * the touch targets below the `AGENTS.md` 3.2.2 floor, which trades a
+     * cosmetic overflow for a mis-tap.
+     */
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
     padding: 1rem 5vw;
     padding-top: calc(1rem + env(safe-area-inset-top, 0px));
     border-bottom: 1px solid var(--border);
@@ -160,21 +171,47 @@
   }
 
   /*
+   * Wraps at every level. Measured: the sign-in link plus four 44px language
+   * targets is 329px, and a 320px viewport offers 288px after the gutters, so
+   * the row ran 25px off the edge. The fix is to wrap, not to shrink the
+   * targets — `AGENTS.md` 3.2.2 puts 44px on the floor and that is not
+   * negotiable for a language switcher, which is the one control on the page a
+   * one-handed user most needs to hit.
+   */
+  .landing-nav-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem 0.75rem;
+  }
+
+  /*
    * The language switcher. `<a>` elements, not the template's `<button>`s:
    * AGENTS.md 3.2.1 bans raw <button> and the shadcn primitives that would
    * replace one do not exist yet (FIX-11). A switcher that navigates is a set of
    * links, so this needs no button and the ban is satisfied rather than
    * circumvented. The current locale carries aria-current, not a link.
+   *
+   * `min-height: var(--touch-target-min)` rather than padding: AGENTS.md 3.2.2
+   * puts the floor at 44px and these shipped at 32px. Padding would have fixed
+   * the number without recording why 44 is the number, and the e2e suite
+   * measures the rendered box either way.
    */
   .landing-lang {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem;
+    justify-content: flex-end;
+    gap: 0.125rem;
     font-size: 0.8125rem;
   }
 
   .landing-lang a {
-    padding: 0.4rem 0.55rem;
+    display: flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+    padding-inline: 0.625rem;
     border-radius: var(--radius-control);
     color: var(--muted);
     font-weight: 600;
@@ -196,11 +233,19 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    padding: 6.875rem 5vw 4.375rem;
+    padding: 6.875rem 5vw 3rem;
     text-align: center;
   }
 
-  /* Three offset radial gradients that slowly shift hue. */
+  /*
+   * Three offset radial gradients that slowly shift hue.
+   *
+   * The bottom mask is not decoration. Un-masked, the mesh stops dead at the
+   * hero's edge and leaves a hard horizontal seam across the page where a
+   * purple field meets flat `--bg` — which reads as a rendering fault rather
+   * than as a section boundary. Fading the last 30% into the background makes
+   * the hero dissolve into the page instead of ending on a line.
+   */
   .landing-hero-bg {
     position: absolute;
     inset: 0;
@@ -209,6 +254,8 @@
       radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand) 30%, transparent), transparent 55%),
       radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 50%),
       radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--brand-2) 22%, transparent), transparent 55%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     animation: meshShift 14s ease-in-out infinite alternate;
   }
 
@@ -348,9 +395,13 @@
   }
 
   .landing-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--touch-target-min);
     border: 1px solid transparent;
     border-radius: var(--radius-control);
-    padding: 0.625rem 1.125rem;
+    padding-inline: 1.125rem;
     font-size: 0.875rem;
     font-weight: 600;
     text-decoration: none;
@@ -440,7 +491,6 @@
   /* ---- Marquee ---- */
   .landing-marquee {
     overflow: hidden;
-    margin-top: 3.75rem;
     padding: 1.625rem 0;
     border-block: 1px solid var(--border);
   }
@@ -463,6 +513,15 @@
     font-weight: 700;
     opacity: 0.7;
     animation: scroll 22s linear infinite;
+  }
+
+  /*
+   * Each half collapses into the track's flex row while the animation runs, so
+   * the -50% translate lands exactly on the seam. It is still a real box, which
+   * is what lets the reduced-motion fallback below address it.
+   */
+  .landing-marquee-half {
+    display: contents;
   }
 
   /*
@@ -547,6 +606,21 @@
   }
 }
 
+/* Phone widths. Two columns of chips in a 288px content box leaves ~116px per
+   chip after padding, which is tight enough that the longest translated label
+   wraps to three lines. One column is calmer. */
+@media (max-width: 420px) {
+  .landing .landing-preview .body {
+    grid-template-columns: 1fr;
+  }
+
+  /* The hero's vertical padding is sized for a desktop viewport; on a phone it
+     pushes the headline below the fold for no benefit. */
+  .landing .landing-hero {
+    padding-block: 3.5rem 2rem;
+  }
+}
+
 /*
  * AGENTS.md 3.2.7. The six ambient loops above run 1.8s to 22s, which is
  * decorative motion rather than interaction feedback — a vestibular trigger is
@@ -563,5 +637,50 @@
   .landing *::after {
     animation: none !important;
     transition: none !important;
+  }
+
+  /*
+   * AND THEN FIX WHAT THE CANCELLATION EXPOSED.
+   *
+   * Stopping the scroll is the easy half. The hard half is what the strip looks
+   * like once it has stopped: `width: max-content` inside an `overflow: hidden`
+   * holder, so the first and last words hang sliced off at the viewport edges. A
+   * visitor with the OS setting on sees a row of clipped words and concludes
+   * the page is broken — which is a worse outcome than the animation it
+   * replaced.
+   *
+   * So the marquee stops being a marquee. The duplicate half is dropped, the
+   * holder stops clipping, and the remaining six modules wrap and centre as an
+   * ordinary row. Same information, nothing cut off, no motion.
+   */
+  .landing .landing-marquee {
+    overflow: visible;
+  }
+
+  .landing .landing-marquee-track {
+    width: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 2.5rem;
+    padding-inline: 1.25rem;
+  }
+
+  .landing .landing-marquee-half {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 2.5rem;
+  }
+
+  /* The second copy exists only to make the loop seamless. With no loop, it is
+     a duplicate the visitor can read twice. */
+  .landing .landing-marquee-half[data-half='1'] {
+    display: none;
+  }
+
+  /* The duplicate list for assistive tech is now redundant: the visible row
+     carries the same six words, in order, and is no longer moving. */
+  .landing .landing-marquee .sr-only {
+    display: none;
   }
 }
