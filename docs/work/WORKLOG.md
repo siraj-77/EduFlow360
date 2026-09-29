@@ -6,6 +6,105 @@
 
 ---
 
+## 2026-09-29 — FIX-01: make the coverage gate runnable
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-09-29 (third session) |
+| **Phase** | Prompt Pack **P2 remediation** · EPIC-00, story 1 of 11 |
+| **Task** | Close FIX-01 — `pnpm test:coverage` exits 1 on a missing dependency, so the `AGENTS.md` §4 coverage gate enforces nothing |
+| **Agent** | opencode · `test-driven-development`, `tdd-workflow` |
+| **Status** | ✅ **Complete, with one finding left open.** `pnpm test:coverage` exits 0 and was proved able to exit 1. ⚠️ But the §4 tiers match **zero** instrumented files → **FIX-26** |
+
+### Activity
+
+1. Read `apps/api/vitest.config.ts` and `package.json` to find the actual defect. The config is **correct** — `provider: 'v8'` and the §4 tiers, matching to the number. Only the provider package was missing.
+2. Wrote `apps/api/src/config/coverage-gate.spec.ts` — 12 cases asserting the invariant "a package that runs `vitest run --coverage` must declare *and* be able to resolve its coverage provider".
+3. **First RED attempt was invalid and was thrown away.** It failed with *"has no vitest config"* for `packages/{shared-types,ui-kit,i18n-resources}`, which is **broken test setup on my side** — those three packages genuinely have no config file and rely on Vitest's default. Per `tdd-workflow`, a failure caused by test setup is not a RED gate. Rewrote `providerFor()` to fall back to Vitest's documented default (`'v8'`) when no config exists.
+4. Second RED was valid — 10 failed / 2 passed, naming the defect.
+5. GREEN: added `@vitest/coverage-v8@^2.1.8` to five packages; 2.1.9 resolved.
+6. Proved the gate can **fail**, then reverted the probe.
+
+### TDD evidence
+
+**RED** — `npx vitest run src/config/coverage-gate.spec.ts`, 10 failed / 2 passed:
+
+```
+× '@eduflow/api' > declares its coverage provider as a devDependency
+  → @eduflow/api runs "vitest run --coverage" (provider "v8") but does not declare
+    @vitest/coverage-v8. The gate will exit 1 with MISSING DEPENDENCY before a single
+    test runs, and no coverage threshold is ever enforced.
+× '@eduflow/api' > can actually resolve its coverage provider from its own node_modules
+  → expected [Function] to not throw but 'Error: Cannot find module \'@vitest/c\…\'' was thrown
+```
+
+…identical for `@eduflow/web`, `@eduflow/shared-types`, `@eduflow/ui-kit`, `@eduflow/i18n-resources`. The 2 passing cases are the guard-on-the-guard and the thresholds-need-a-provider check.
+
+**GREEN** — same command: `✓ 12 tests (12)`, `Test Files 1 passed (1)`.
+
+**The gate runs** — `pnpm test:coverage`: was `MISSING DEPENDENCY`, exit 1 → now **`Tasks: 8 successful, 8 total`, exit 0**.
+
+**The gate can fail** — a temporary probe threshold on `src/main.ts` (0% covered):
+
+```
+ERROR: Coverage for lines (0%) does not meet "src/main.ts" threshold (100%)
+===EXIT=1===
+```
+
+Probe reverted; `git diff` on `apps/api/vitest.config.ts` is empty. **A gate that only passes is not a gate**, so this half mattered as much as the dependency.
+
+### What is still wrong — FIX-26, honestly
+
+`pnpm test:coverage` exits 0 while **enforcing nothing**. Measured:
+
+| | |
+|---|---|
+| `env.ts` | 97.84% lines |
+| `main.ts` · `app.module.ts` | **0%** |
+| `layout.tsx` · `page.tsx` · `theme-script.tsx` | **0%** |
+| API thresholds `src/**/domain/**`, `src/**/use-cases/**`, `src/**/*.controller.ts` | **match 0 files** — no such code exists |
+| Web thresholds `src/**/hooks/**`, `src/lib/**` | **match 0 instrumented files** — `src/lib/` holds only a spec |
+
+**This is mostly the gate working as designed against code that does not exist yet** — the domain tiers will bite the moment P4 creates a `domain/` folder. The genuine gap is narrower and is not self-resolving: **real 0%-covered source carries no threshold at all**, so it can fall to zero without failing anything. Recorded as FIX-26 rather than fixed here, because a test asserting the *absence* of a `domain/` directory would test the absence of code, not a defect. `AGENTS.md §4.1` — *"a test count is not evidence of coverage"* — applies to a passing gate exactly as much as to a count.
+
+### Second finding — FIX-22 raised S3 → S2
+
+`pnpm add` **exits 1**:
+
+```
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @prisma/client@6.19.3, prisma@6.19.3
+```
+
+The install **succeeded** — lockfile written, 2.1.9 resolved, all five `package.json` files updated — but pnpm exited non-zero because `pnpm-workspace.yaml:5-10` carries literal placeholder strings in `allowBuilds` (`'@prisma/client': set this to true or false`) alongside a correct `onlyBuiltDependencies` list. `pnpm install` on an up-to-date tree exits 0, so **the failure is invisible until a dependency is added, which is exactly when it blocks work.** This is the first time FIX-22's consequence was actually observed rather than inferred from reading the file.
+
+### Files Changed
+
+**Created:** `apps/api/src/config/coverage-gate.spec.ts`
+**Modified:** `apps/{api,web}/package.json` · `packages/{shared-types,ui-kit,i18n-resources}/package.json` · `pnpm-lock.yaml` · `docs/core/SSOT.md` · `docs/work/TODO.md` · `docs/work/WORKLOG.md` · `docs/analysis/CODE_AUDIT_2026-09-29.md`
+**Not changed:** `apps/api/vitest.config.ts` — the thresholds were already correct, and the probe was reverted
+
+### Quality
+
+| Check | Result |
+|---|---|
+| `pnpm test` | ✅ **8/8 tasks, 63 tests** (51 → 63; api 26 → 38) |
+| `pnpm typecheck` | ✅ 8/8, 0 errors |
+| `pnpm lint` | ✅ 8/8, 0 errors |
+| **`pnpm test:coverage`** | ✅ **8/8, exit 0** — was exit 1 |
+| Gate proven able to fail | ✅ probe → `ERROR: Coverage for lines (0%) does not meet "src/main.ts" threshold (100%)`, exit 1, then reverted |
+| `pnpm test:e2e` | ❌ **still exit 1** — FIX-02 |
+| `pnpm format:check` | ❌ **still exit 2** — FIX-05 |
+| `pnpm docs:verify` | ✅ 179 references |
+
+### Next Steps
+
+1. 🔴 **FIX-02** — `pnpm test:e2e` exits 1 on an empty `testDir`.
+2. Then FIX-03 (compose YAML), FIX-04 (`proxy.ts`), FIX-11 (shadcn/ui, blocks P3).
+3. FIX-22 should move early now that it is known to break `pnpm add` — every remaining dependency change will hit it.
+4. FIX-26 once the P4 walking skeleton creates real source to gate.
+
+---
+
 ## 2026-09-29 — Post-scaffold audit: 32 findings, six decisions, a broken baseline
 
 | Field | Entry |

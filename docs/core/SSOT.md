@@ -11,11 +11,11 @@
 | | |
 |---|---|
 | **Phase** | SRS Part E **Phase 0**. Prompt Pack **P0–P2 complete; P3 not started.** |
-| **Application code** | **Scaffold only.** Infrastructure, no business logic. 6 workspace packages, 51 passing tests. **~350 lines of real source**; 147 of 262 tracked files are `.gitkeep`. |
+| **Application code** | **Scaffold only.** Infrastructure, no business logic. 6 workspace packages, **63 passing tests**. **~350 lines of real source**; 147 of 262 tracked files are `.gitkeep`. |
 | **Toolchain** | ✅ **Working.** pnpm 11 workspace + Turborepo, TS strict, ESLint 9 flat config, Prettier, **Vitest** (`ADR-020`), Playwright configured. |
 | **Version control** | ✅ **Git, on `main`, pushed to the private remote `siraj-77/EduFlow`.** 8 commits, working tree clean. |
 | **Repository contents** | `AGENTS.md` · `CLAUDE.md` · `README.md` · `apps/{api,web}` · `packages/{config,shared-types,ui-kit,i18n-resources}` · `infra/docker` · `docs` · `scripts` |
-| **Quality gates** | ⚠️ **3 of 7 §4 gates FAIL.** See §1a. ❌ **Not in CI** — P3. |
+| **Quality gates** | ⚠️ **2 of 7 §4 gates FAIL** (FIX-02 `test:e2e`, FIX-05 `format:check`). `test:coverage` fixed 2026-09-29. See §1a. ❌ **Not in CI** — P3. |
 | **CI** | ❌ **None.** No `.github/`, no `.husky/`. Branch protection also unavailable (needs a paid plan for private repos). |
 | **ERD** | ❌ **Not written** — owner deferred (D22). `apps/api/prisma/schema.prisma` is deliberately empty. |
 | **Phase 0 exit criteria** | SRS ✅ · MVP scope ✅ · **ERD ❌** — so Phase 0 has **not** exited. |
@@ -33,18 +33,22 @@ Every row below was **executed**, not inferred. The previous version of this tab
 |---|---|---|
 | `pnpm typecheck` | ✅ **PASS** | 8/8 tasks, exit 0 |
 | `pnpm lint` | ✅ **PASS** | 8/8 tasks, 0 errors, exit 0 |
-| `pnpm test` | ✅ **PASS** | **51 tests**, 5 files, 0 failures |
+| `pnpm test` | ✅ **PASS** | **51 tests → 63**, 6 files |
 | `pnpm build` | ✅ **PASS** | web prerenders `/en /ta /si /ar` as static HTML |
-| `pnpm docs:verify` | ✅ **PASS** | **155 references** across 8 documents resolve |
-| **`pnpm test:coverage`** | ❌ **FAIL, exit 1** | `MISSING DEPENDENCY — @vitest/coverage-v8`. Declared in **no** `package.json`. **The §4 tiered coverage gate is not enforced anywhere.** → FIX-01 |
+| `pnpm docs:verify` | ✅ **PASS** | **179 references** across 8 documents resolve |
+| **`pnpm test:coverage`** | ✅ **PASS** *(fixed 2026-09-29, FIX-01)* | `@vitest/coverage-v8@2.1.9` now declared and installed in all 5 test-bearing packages. Was `MISSING DEPENDENCY`, exit 1. ⚠️ **exits 0 while enforcing nothing — the §4 globs match 0 instrumented files (FIX-26).** The gate was *proved* able to fail with a temporary probe threshold |
 | **`pnpm test:e2e`** | ❌ **FAIL, exit 1** | `Error: No tests found`. `playwright.config.ts:12` points at `apps/web/tests/e2e`, which exists and is empty → FIX-02 |
 | **`pnpm format:check`** | ❌ **FAIL, exit 2** | 60 files unformatted, including `AGENTS.md` itself → FIX-05 |
+| `pnpm test` | ✅ **PASS** | **63 tests** (was 51) — FIX-01 added a 12-case coverage-gate invariant suite |
+| `pnpm add` | ❌ **exit 1** | `[ERR_PNPM_IGNORED_BUILDS]` — the `allowBuilds` placeholders are a malformed allow-list. **`pnpm install` on a clean tree exits 0**, so this is invisible until a dependency is added → FIX-22 |
 | `pnpm test:integration` | ⚠️ **PASS but vacuous** | `No test files found, exiting with code 0` — a green gate that tests nothing |
 | API boots with **no `.env`** | ✅ PASS | prints the `PERSISTENCE DISABLED` banner, starts, listens on 3001 (D23, `ADR-019`) |
 | Web serves all four locales | ✅ PASS | `/en` `dir=ltr` · `/ar` **`dir=rtl`** · `/ta` · `/si`, all 200, `data-theme` present |
 | Docker | ❌ not installed | by owner decision, `ADR-019` |
 
-**3 of the 7 `AGENTS.md` §4 gates fail, plus `format:check`.** `AGENTS.md §4` states *"No production code is merged without all of these green"* — so that rule is currently unmeetable. The fix is EPIC-00, ~21 points, tracked in `docs/work/REMEDIATION_PLAN_2026-09-29.md`.
+**2 of the 7 `AGENTS.md` §4 gates still fail, plus `format:check`.** FIX-01 closed `test:coverage` on 2026-09-29. `AGENTS.md §4` states *"No production code is merged without all of these green"* — so that rule remains unmeetable. The rest of EPIC-00 is ~19 points, tracked in `docs/work/REMEDIATION_PLAN_2026-09-29.md`.
+
+**A green coverage gate is not the same as enforced coverage.** `pnpm test:coverage` now exits 0 and **was proved able to exit 1** (a temporary probe threshold on `src/main.ts` produced `ERROR: Coverage for lines (0%) does not meet "src/main.ts" threshold (100%)`, exit 1). But the §4 tiers match **zero** instrumented files, so the gate currently enforces nothing — FIX-26. `AGENTS.md §4.1`'s *"a test count is not evidence of coverage"* applies to a passing gate just as much as to a test count.
 
 **Five defects shared one cause: each was invisible to the gate set that actually ran.** The coverage gate that would have caught the coverage problem *was* the broken one. The compose file has no gate at all. `proxy.ts` is dead but the build passes because `generateStaticParams` hard-codes the four locales. A gate marked "done" on the strength of a config file existing, rather than the gate running.
 
@@ -237,7 +241,7 @@ In the Prompt Pack §7 story table, the `M1`/`M2` column means **milestone** —
 
 | ID | Blocker | State |
 |---|---|---|
-| **FIX-01** | `test:coverage` cannot run — `@vitest/coverage-v8` in no `package.json` | 🔴 Open. **The §4 coverage gate is not enforced anywhere** |
+| **FIX-01** | ~~`test:coverage` cannot run~~ | ✅ **Closed 2026-09-29.** `@vitest/coverage-v8@2.1.9` declared in all 5 test-bearing packages; `pnpm test:coverage` exits 0 and was proved able to exit 1. ⚠️ but the tiers match 0 instrumented files → FIX-26 |
 | **FIX-02** | `test:e2e` fails — empty `testDir` | 🔴 Open |
 | **FIX-03** | `docker-compose.yml` is invalid YAML — line 1 is a `/**` comment | 🔴 Open. The `AGENTS.md` §14 command cannot run |
 | **FIX-04** | `proxy.ts` is dead code on Next 15 — zero middleware compiled, no locale negotiation | 🔴 Open |
@@ -311,7 +315,7 @@ The directory was created empty by design. A fabricated business rule — a plau
 
 **Re-ordered 2026-09-29.** The previous list led with CI while the repository reported three of its seven gates green. The first fact is now the false reporting itself.
 
-1. **Three of the seven `AGENTS.md` §4 gates fail, and the record said they were green.** `pnpm test:coverage` exits 1 on a missing dependency. `pnpm test:e2e` exits 1 with no tests. `pnpm format:check` exits 2 on 60 files. `WORKLOG.md:17` read *"✅ Complete. All gates green"* and its table listed only **six** gates — omitting precisely the two that fail. `AGENTS.md §4`'s pre-merge rule is therefore unmeetable *and* unenforced. **EPIC-00, ~21 points.**
+1. **Two of the seven `AGENTS.md` §4 gates still fail, and the record had said they were green.** `pnpm test:e2e` exits 1 with no tests (FIX-02) and `pnpm format:check` exits 2 on 60 files (FIX-05). `WORKLOG.md` read *"✅ Complete. All gates green"* and its table listed only **six** of seven — omitting precisely the ones that fail. `test:coverage` was a third and is now fixed (FIX-01), though the tiers still enforce nothing (FIX-26). **EPIC-00, ~19 points remaining.**
 2. **Every gate is enforced only for the developer who runs it.** No `.github/`, no `.husky/`, and `check-route-guards` does not exist — so `AGENTS.md` §2.3's *"CI must fail on a missing `@RequirePermission`"* is prose. Per `ARCHITECTURE.md:307`, a rule that is not mechanically enforced is a suggestion. **Prompt Pack P3 is the single highest-value engineering step**, and FIX-11 must land before its human gate.
 3. **The two highest-authority documents were both false, in the same direction.** `AGENTS.md` §6 tabulated five invented corpus figures over five zero-row stubs, and `AGENTS.md:8,17` declared a scaffolded repository to be un-scaffolded. Every session opens by reading documents that misdescribe the project. D28 removes the figures; the status lines are **blocked pending ⚑B**.
 4. **The ERD does not exist** (deferred, D22). It is `PLT-EPIC-01`'s Definition of Ready and the SRS Phase 0 exit gate. It needs no code and no Docker — but until it exists, no Platform Core story can start, and it is the longest pole in the plan.

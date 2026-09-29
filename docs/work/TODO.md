@@ -12,9 +12,9 @@
 >
 > Five defects shared one cause: **each was invisible to the gate set that was actually run.** A gate marked `[x]` on the strength of a config file existing, rather than the gate running.
 
-Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-09-29.md` EPIC-00 (**21 pts**).
+Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-09-29.md` EPIC-00 (**21 pts**; 1 of 11 done).
 
-- [ ] **FIX-01** 🔴 Add `@vitest/coverage-v8` to all 5 test-bearing packages; prove an inflated threshold makes the gate **fail**
+- [x] **FIX-01** 🔴 ~~Add `@vitest/coverage-v8` to all 5 test-bearing packages~~ **DONE 2026-09-29** — `pnpm test:coverage` exits 0, and was *proved* able to exit 1 with a temporary probe threshold. 12-case invariant suite added. ⚠️ but the §4 globs still match 0 instrumented files → **FIX-26**
 - [ ] **FIX-02** 🔴 One real e2e spec — 4 locales render, `/ar` has `dir="rtl"`, tokens applied
 - [ ] **FIX-03** 🔴 `docker-compose.yml` — `#` comments, pinned images, bucket bootstrap. **The file does not parse today**
 - [ ] **FIX-04** 🔴 `proxy.ts` → `middleware.ts` + locale negotiation. **It compiles to zero middleware today**
@@ -25,6 +25,9 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 - [ ] **FIX-09** ⚠️ `src/modules/modules/` → `src/modules/registry/`; anchor the ESLint globs
 - [ ] **FIX-10** ⚠️ `ThemeToggle` (the i18n keys already exist and are unused) + `loading.tsx` / `error.tsx` / `not-found.tsx`
 - [ ] **FIX-11** 🔴 Initialise shadcn/ui. **Must precede P3** — that gate needs a raw `<button>` to fail *and* a compliant `<Button>` to pass
+- [ ] **FIX-22** ⚠️ ⚠️ **raised S3 → S2** — `pnpm add` **exits 1** (`ERR_PNPM_IGNORED_BUILDS`). The `allowBuilds` placeholders are a malformed allow-list. `pnpm install` on a clean tree exits 0, so this is invisible until a dependency is added — which is when it blocks work
+- [ ] **FIX-25** ⚠️ `docs-verify.mjs` cannot resolve `path:line` references. **Third reactive patch to the same tool for the same class of problem**
+- [ ] **FIX-26** ⚠️ The §4 coverage tiers match **zero** instrumented files. `main.ts`, `app.module.ts`, `layout.tsx`, `page.tsx`, `theme-script.tsx` are at 0% with **no threshold at all**
 
 **Exit criterion:** all 7 §4 gates exit 0, **plus** `format:check` and `docs:verify` — each verified by running it, not by reading the config.
 
@@ -32,7 +35,7 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 
 ## P0 — Do These First
 
-> **State 2026-09-29:** P2 (scaffold) is DONE, but **three gates are broken — see P0a above.** Read `docs/core/SSOT.md` §1a for the measured results.
+> **State 2026-09-29:** P2 (scaffold) is DONE, but **two gates are still broken — see P0a above.** `test:coverage` was fixed (FIX-01). Read `docs/core/SSOT.md` §1a for the measured results.
 > The ERD is deferred by owner decision (D22). Once P0a is green, the top engineering priority is **P3 — CI**.
 
 ### 1. Rotate the exposed credential — ⚠️ **ACCEPTED RISK, NOT BLOCKING** *(decided 2026-09-28, D16)*
@@ -128,7 +131,7 @@ Five loud stubs exist; **zero data rows.** The Prompt Pack §4.2 greps `fr-index
 - [ ] `DSN-06` CI enforcement: no literal user-facing string in JSX/TSX. *The no-hard-coded-hex half is done and firing; the string half is P3 — a heuristic produces false positives, which is worse than no check. `ARCHITECTURE.md:346` currently overstates this.*
 - [x] `OPS-01` `infra/docker/docker-compose.yml` — **services defined 2026-09-29**: Postgres, Redis, MinIO, Mailpit. ⚠️ **the file does not parse — FIX-03**
 - [ ] `OPS-02` CI pipeline — **P3, the top priority after P0a**
-- [ ] `OPS-03` coverage gate — thresholds written into all three vitest configs and they **match `AGENTS.md` §4 exactly** (90/85 domain + use-cases, 70 controllers, 80 frontend hooks). ⚠️ **the command cannot run — FIX-01**
+- [ ] `OPS-03` coverage gate — ✅ **the command now runs** (FIX-01) and thresholds match `AGENTS.md` §4 exactly (90/85 domain + use-cases, 70 controllers, 80 frontend hooks), and the gate was proved able to fail. ⚠️ **but the globs match 0 instrumented files, so it enforces nothing today — FIX-26**
 - [ ] `OPS-04` security scanning — dependency, OWASP ZAP, **secret scanning**, log-content scan (P3)
 - [x] `OPS-05` `docs:verify` — **done 2026-09-29**: **155** references across 8 documents resolve
 - [ ] `OPS-07` backup & restore **drill** — a restore actually performed and verified
@@ -218,8 +221,9 @@ Blocking the items marked ⚑.
 ## Do Not
 
 - ❌ **Do not start `PLT-101`** before the entry conditions in `PLATFORM_CORE_PLAN.md` §2 are met — chiefly the **test harness** and the **ERD**. The test runner now exists (D27) and all 51 tests pass, but the harness is **not yet trustworthy**: `test:coverage` cannot run (FIX-01), `test:e2e` has no tests (FIX-02), and nothing runs in CI (FIX-12)
-- ❌ **Do not merge while any §4 gate is red.** Three are. P0a exists for this
-- ❌ **Do not treat a config file existing as a gate passing.** Five defects got through that way
+- ❌ **Do not merge while any §4 gate is red.** Two are (`test:e2e`, `format:check`). P0a exists for this
+- ❌ **Do not treat a config file existing as a gate passing**, and equally **do not treat a green coverage gate as enforced coverage.** FIX-01 closed while the tiers still matched 0 files — `AGENTS.md §4.1`'s "a test count is not evidence of coverage" applies to a passing gate too
+- ❌ **Do not use `pnpm add` expecting exit 0** until FIX-22 is fixed — it exits 1 on `ERR_PNPM_IGNORED_BUILDS` even when the install succeeds. Read the lockfile, not the exit code
 - ❌ **Do not port any legacy code** until `LEGACY_REUSE_INVENTORY.md` names the file with a reason (`AGENTS.md` §5.2)
 - ❌ **Do not build tenancy machinery.** See `ARCHITECTURE.md` §5 for the worked counter-example of exactly why
 - ❌ **Do not hard-code user-facing strings.** The four-locale skeleton must exist before the first UI story, not after
