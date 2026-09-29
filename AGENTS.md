@@ -326,17 +326,27 @@ Inventory and per-file judgements: `docs/analysis/LEGACY_REUSE_INVENTORY.md`.
 
 ## 6. Requirements baseline
 
-The authoritative requirements are in `docs/idea-bank/`, extracted from the archived planning corpus:
+> ⚠️ **The `docs/idea-bank/` extraction has NOT been performed. The directory contains five loud, empty stubs.** Corrected 2026-09-29 by **D28**.
+>
+> This section previously tabulated **139 modules / 20 domains · 257 rules · 35 entities · 15 risks / 40 boundary tests / 41 failure modes · 73 FRs + 9 NFRs** as the contents of those five files. **None of those figures has a source in this repository.** The files are 43–62 lines of header, column schema, acceptance criteria and trap list, totalling **16,124 bytes** — physically incapable of holding that content. Each declares `**Status:** Placeholder. Zero …rows.`
+>
+> The figures are **removed, not replaced.** Independently enumerating `SRS` §3 yields **87 unique FR IDs** — so even the FR count was wrong — but substituting 87 without running the extraction would be a *second* invention, which is the exact failure `docs/idea-bank/README.md` exists to prevent. Only the **9 NFR** figure was correct (`SRS` §5, `NFR-01`…`NFR-09`).
+>
+> **Do not size work from any figure in this section.** Run the extraction first (`REQ-01`…`REQ-05`).
 
-| File | Contents |
+| File | Status |
 |---|---|
-| `module-inventory.md` | 139 modules across 20 domains, with priority and required entities |
-| `business-rules.md` | 257 rules with source citations and edge cases |
-| `domain-entities.md` | 35 entities, field definitions, constraints, `schoolId`/money flags |
-| `edge-cases-and-risks.md` | 15 risks, 40 boundary tests, 41 failure modes, test standards, known gaps |
-| `fr-index.md` | 73 FRs + 9 NFRs, MVP in/out, traceability |
+| `module-inventory.md` | 🔴 **Empty stub.** Will carry modules with priority, required entities, licence gate and engine dependencies |
+| `business-rules.md` | 🔴 **Empty stub.** Will carry rules with a **source citation and a test target** |
+| `domain-entities.md` | 🔴 **Empty stub.** Will carry entities with field definitions, constraints, `schoolId`/money flags |
+| `edge-cases-and-risks.md` | 🔴 **Empty stub.** Will carry risks, boundary tests, failure modes and test standards |
+| `fr-index.md` | 🔴 **Empty stub.** Will carry FR/NMR traceability from `SRS` to epic → story → test |
 
-**Read the relevant idea-bank section before implementing any module.** **Before creating any entity, enum, interface or engine, check `docs/core/SSOT.md`, the idea-bank and §2.9 for an existing equivalent** — creating a parallel concept under a new name is the most common way this codebase drifts.
+**Where the requirements actually are today:** the archived corpus in `docs/core/` — `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (the FR and NFR source of record, **87 FRs + 9 NFRs**), `EduFlow_Project_Master_Plan_v5.2.md` (the module tree, §5) and `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (9 epics · 33 stories · 199 points). The `docs/archive/corpus/` path named in §12 **does not exist** — see `SSOT.md` §7 ⚑2.
+
+**Read the relevant `docs/core/` section before implementing any module.** **Before creating any entity, enum, interface or engine, check `docs/core/SSOT.md`, `docs/core/ARCHITECTURE.md` and §2.9 for an existing equivalent** — creating a parallel concept under a new name is the most common way this codebase drifts.
+
+**A gap in the corpus is recorded as `GAP — needs design (PC-xxx)`. Never invent a threshold, a formula or a schedule to fill a table.** A missing rule is visible; a fabricated one is not.
 
 ### 6.1 Known requirements gaps — resolve before building these
 
@@ -477,9 +487,9 @@ STORAGE_ENDPOINT="<s3-compatible endpoint>"
 | What are we building, and why this way? | `docs/adr/ADR-003-*` |
 | What is the current state of the project? | `docs/core/SSOT.md` |
 | How is it architected? | `docs/core/ARCHITECTURE.md`, Master Plan v5.2 §5 |
-| What are the exact business rules? | `docs/idea-bank/business-rules.md` |
-| What entities and fields exist? | `docs/idea-bank/domain-entities.md` |
-| What is in the MVP? | `docs/idea-bank/fr-index.md`, SRS v1.2 Part D |
+| What are the exact business rules? | 🔴 **`docs/idea-bank/business-rules.md` is an empty stub — see §6.** Until `REQ-03` runs: SRS v1.2, then Master Plan v5.2 |
+| What entities and fields exist? | 🔴 **`docs/idea-bank/domain-entities.md` is an empty stub.** Until `REQ-02` runs: `SSOT.md` §4 decisions, `ADR-002`, and the ERD once it exists |
+| What is in the MVP? | **`docs/core/EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` Part D §19** — not the idea-bank, which is a stub |
 | BookShop / Canteen / Hall / newer requirements? | Master Plan v5.2 §17; SRS v1.2 FR-RET / FR-CAN / FR-BKS / FR-FAC / FR-WAL |
 | What are we building first? | `docs/work/PLATFORM_CORE_PLAN.md` |
 | How do I write epics/stories? | `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` |

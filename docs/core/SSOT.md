@@ -1,58 +1,79 @@
 # SSOT — Single Source of Truth
 
 **Purpose:** The answer to "what is the current state of this project?"
-**Last updated:** 2026-09-28
+**Last updated:** 2026-09-29
 **Precedence:** `AGENTS.md` and `ADR-003` > this file > all other documents. This file records *state and decisions*. It does not restate the rules — see `ARCHITECTURE.md` for those.
 
 ---
 
-## 1. Current State — 2026-09-28
+## 1. Current State — 2026-09-29
 
 | | |
 |---|---|
-| **Phase** | Pre-scaffold. SRS Part E **Phase 0**, but **P2 (Prompt Pack scaffold) is complete.** |
-| **Application code** | **Scaffold only.** Infrastructure, no business logic. 6 workspace packages, 51 passing tests. |
-| **Toolchain** | ✅ **Working.** pnpm 11 workspace + Turborepo, TS strict, ESLint 9 flat config, Prettier, Jest/Vitest, Playwright configured. |
-| **Version control** | ✅ **Git, on `main`, pushed to the private remote `siraj-77/EduFlow`.** Working tree clean. |
+| **Phase** | SRS Part E **Phase 0**. Prompt Pack **P0–P2 complete; P3 not started.** |
+| **Application code** | **Scaffold only.** Infrastructure, no business logic. 6 workspace packages, 51 passing tests. **~350 lines of real source**; 147 of 262 tracked files are `.gitkeep`. |
+| **Toolchain** | ✅ **Working.** pnpm 11 workspace + Turborepo, TS strict, ESLint 9 flat config, Prettier, **Vitest** (`ADR-020`), Playwright configured. |
+| **Version control** | ✅ **Git, on `main`, pushed to the private remote `siraj-77/EduFlow`.** 8 commits, working tree clean. |
 | **Repository contents** | `AGENTS.md` · `CLAUDE.md` · `README.md` · `apps/{api,web}` · `packages/{config,shared-types,ui-kit,i18n-resources}` · `infra/docker` · `docs` · `scripts` |
-| **Quality gates** | ✅ **All green locally**: typecheck · lint · test (51) · build · docs:verify · test:integration. ❌ **Not yet in CI** — P3. |
-| **CI** | ❌ **None yet.** Branch protection also unavailable (needs a paid plan for private repos). |
-| **ERD** | ❌ **Not written** — owner deferred. `apps/api/prisma/schema.prisma` is deliberately empty. |
+| **Quality gates** | ⚠️ **3 of 7 §4 gates FAIL.** See §1a. ❌ **Not in CI** — P3. |
+| **CI** | ❌ **None.** No `.github/`, no `.husky/`. Branch protection also unavailable (needs a paid plan for private repos). |
+| **ERD** | ❌ **Not written** — owner deferred (D22). `apps/api/prisma/schema.prisma` is deliberately empty. |
 | **Phase 0 exit criteria** | SRS ✅ · MVP scope ✅ · **ERD ❌** — so Phase 0 has **not** exited. |
 | **Stories completed** | 0 of 33 Platform Core stories. The P0–P2 prompts are infrastructure, not stories. |
 
-**Do not describe this project as "in development".** The correct description is *"scaffolded and gate-enforced; no feature code yet"*.
+**Do not describe this project as "in development".** The correct description is *"scaffolded; three quality gates broken; no feature code yet."*
 
 ---
 
-## 1a. Verified working (2026-09-29)
+## 1a. Verified working — re-measured 2026-09-29
 
-These were observed, not assumed:
+Every row below was **executed**, not inferred. The previous version of this table listed six gates and omitted the two that fail. Full evidence: `docs/analysis/CODE_AUDIT_2026-09-29.md` §2.
 
-| Check | Result |
-|---|---|
-| `pnpm typecheck` | ✅ 8/8 tasks, 6 packages |
-| `pnpm lint` | ✅ 8/8 tasks, 0 errors |
-| `pnpm test` | ✅ **51 tests passing** — shared-types 3 · i18n-resources 10 · ui-kit 8 · api 26 · web 4 |
-| `pnpm build` | ✅ web prerenders **/en /ta /si /ar** as static HTML |
-| `pnpm test:integration` | ✅ runnable, empty by design until P4 |
-| `pnpm docs:verify` | ✅ **147 references across 8 documents resolve** |
-| API boots with **no `.env`** | ✅ prints `PERSISTENCE DISABLED` banner, starts, listens on 3001 |
-| Web serves all four locales | ✅ `/en` `dir=ltr` · `/ar` **`dir=rtl`** · `/ta` `dir=ltr` · `/si` `dir=ltr`, all HTTP 200, `data-theme` present |
-| Docker | ❌ **Not installed** — by owner decision, `ADR-019` |
+| Gate | Result | Note |
+|---|---|---|
+| `pnpm typecheck` | ✅ **PASS** | 8/8 tasks, exit 0 |
+| `pnpm lint` | ✅ **PASS** | 8/8 tasks, 0 errors, exit 0 |
+| `pnpm test` | ✅ **PASS** | **51 tests**, 5 files, 0 failures |
+| `pnpm build` | ✅ **PASS** | web prerenders `/en /ta /si /ar` as static HTML |
+| `pnpm docs:verify` | ✅ **PASS** | **155 references** across 8 documents resolve |
+| **`pnpm test:coverage`** | ❌ **FAIL, exit 1** | `MISSING DEPENDENCY — @vitest/coverage-v8`. Declared in **no** `package.json`. **The §4 tiered coverage gate is not enforced anywhere.** → FIX-01 |
+| **`pnpm test:e2e`** | ❌ **FAIL, exit 1** | `Error: No tests found`. `playwright.config.ts:12` points at `apps/web/tests/e2e`, which exists and is empty → FIX-02 |
+| **`pnpm format:check`** | ❌ **FAIL, exit 2** | 60 files unformatted, including `AGENTS.md` itself → FIX-05 |
+| `pnpm test:integration` | ⚠️ **PASS but vacuous** | `No test files found, exiting with code 0` — a green gate that tests nothing |
+| API boots with **no `.env`** | ✅ PASS | prints the `PERSISTENCE DISABLED` banner, starts, listens on 3001 (D23, `ADR-019`) |
+| Web serves all four locales | ✅ PASS | `/en` `dir=ltr` · `/ar` **`dir=rtl`** · `/ta` · `/si`, all 200, `data-theme` present |
+| Docker | ❌ not installed | by owner decision, `ADR-019` |
 
-**Enforced rules, each with a test that watches it fire:**
+**3 of the 7 `AGENTS.md` §4 gates fail, plus `format:check`.** `AGENTS.md §4` states *"No production code is merged without all of these green"* — so that rule is currently unmeetable. The fix is EPIC-00, ~21 points, tracked in `docs/work/REMEDIATION_PLAN_2026-09-29.md`.
+
+**Five defects shared one cause: each was invisible to the gate set that actually ran.** The coverage gate that would have caught the coverage problem *was* the broken one. The compose file has no gate at all. `proxy.ts` is dead but the build passes because `generateStaticParams` hard-codes the four locales. A gate marked "done" on the strength of a config file existing, rather than the gate running.
+
+### Enforced rules, each with a test that watches it fire
+
+These are real and verified:
 
 | Rule | Mechanism |
 |---|---|
-| `domain/` + `use-cases/` import no framework, ORM, queue or vendor SDK | ESLint `no-restricted-imports` |
-| `domain/` + `use-cases/` call no `Date.now()` / `new Date()` / `Math.random()` | ESLint `no-restricted-syntax` |
-| No `@ts-ignore`, `@ts-expect-error`, bare `any`, empty `catch` | ESLint |
-| No raw `<button>` `<input>` `<select>` `<textarea>` `<table>` `<dialog>` | ESLint |
+| `domain/` + `use-cases/` import no framework, ORM, queue or vendor SDK | ESLint `no-restricted-imports` — 6 cases |
+| `domain/` + `use-cases/` call no `Date.now()` / `new Date()` / `Math.random()` | ESLint `no-restricted-syntax` — 5 cases |
+| No `@ts-ignore`, `@ts-expect-error`, bare `any`, empty `catch` | ESLint — 3 cases |
+| No raw `<button>` `<input>` `<select>` `<textarea>` `<table>` `<dialog>` | ESLint — ⚠️ **bans what does not yet exist** (FIX-11) |
 | No hard-coded colour in a component | ESLint |
-| All four locales have identical key sets | vitest |
-| Every token defined in light **and** dark | vitest |
-| Environment validated; every invalid variable named at once | vitest |
+| All four locales have identical key sets; none empty; none a copy of English | vitest — 10 cases |
+| Every token defined in light **and** dark, at the exact §3.2.5 values | vitest — 8 cases |
+| Environment validated before boot; every invalid variable named at once | vitest — 12 cases |
+| `dir` correct for all four locales | vitest — 4 cases |
+
+### Claimed but not enforced
+
+| Claim | Reality |
+|---|---|
+| `ARCHITECTURE.md:346` — "No user-facing literal in JSX/TSX \| ESLint" | **No such rule exists.** P3 |
+| `ARCHITECTURE.md:351` — "Jest `coverageThreshold`" | Wrong tool (`ADR-020`) **and** unenforced (FIX-01) |
+| `ARCHITECTURE.md:343` — money by "Type system + review" | `Money` is advisory. Nothing forbids a `number` |
+| `AGENTS.md:81,498` — *"CI must fail"* on a missing `@RequirePermission` | **No CI, and no `check-route-guards` exists** (FIX-12, FIX-13) |
+
+Per `ARCHITECTURE.md:307` — *"A rule that is not mechanically enforced is a suggestion"* — this table is the honest measure of what `AGENTS.md` §2 currently guarantees.
 
 ---
 
@@ -67,26 +88,59 @@ These were observed, not assumed:
 | `docs/core/EduFlow_Project_Master_Plan_v5.2.md` | 79.4 KB | Complete. Most detailed artefact in the repo |
 | `docs/core/EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` | 39.5 KB | Complete. Parts A–E |
 | `docs/core/EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` | 35.0 KB | Complete. 9 epics / 33 stories / 199 pts |
-| `docs/core/EduFlow_School_Setup_Workflow_v1.md` | 80.3 KB | Complete but **orphaned** — not referenced by `AGENTS.md` |
+| `docs/core/EduFlow_School_Setup_Workflow_v1.md` | 80.3 KB | Complete. **Referenced by `AGENTS.md:19`** — the earlier "orphaned" note was closed by `8105a27` and was stale here |
 | `docs/core/ARCHITECTURE.md` | — | **Written 2026-09-28** (was 0 bytes) |
 | `docs/core/SSOT.md` | — | This file (was 0 bytes) |
 | `docs/template/EduFlow — Frontend Template.html` | 34.4 KB | Token + RTL-pattern donor only. See `docs/design/FRONTEND_TEMPLATE.md` |
 | `docs/work/PLATFORM_CORE_PLAN.md` | — | **Written 2026-09-28** (was missing) |
 | `docs/adr/`, `docs/analysis/`, `docs/design/`, `docs/idea-bank/README.md` | — | **Created 2026-09-28** |
+| `docs/analysis/CODE_AUDIT_2026-09-29.md` | — | **Written 2026-09-29** — 32 findings, evidence for the remediation plan |
+| `docs/work/REMEDIATION_PLAN_2026-09-29.md` | — | **Written 2026-09-29** — EPIC-00/DOC/ADR; the successor to `GAP_ANALYSIS_2026-09-28` |
+| `docs/adr/ADR-020`, `ADR-021` | — | **Written 2026-09-29** — test runner; web i18n library |
 
 ---
 
 ## 3. What Does Not Exist
 
-Nothing has been built. The following are **specified but absent**, and are the subject of the action plan in `docs/work/GAP_ANALYSIS_2026-09-28.md`:
+Rewritten 2026-09-29. The previous version of this section opened *"Nothing has been built"* and claimed all source, all infrastructure and all tooling were absent. That was true on 2026-09-28 and false from `951acec` onward, and it contradicted §1 of this same file. The audit is `docs/analysis/CODE_AUDIT_2026-09-29.md`.
 
-- All source: `apps/api`, `apps/web`, `packages/*`
-- All infrastructure: `infra/docker`, `infra/ci`, `infra/terraform`
-- All process: `directives/`
-- All tooling: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.json`, `.env.example`, `README.md`
-- The **ERD / data model** — the single largest missing engineering artefact
-- `docs/idea-bank/*` (the "authoritative requirements" layer `AGENTS.md` §6 depends on) — directory now created with a README defining the extraction; **contents not written, by design** (see §6)
-- `docs/archive/corpus/` — status unknown, see Open Questions
+### Present, and easy to mistake for absent
+
+| Exists | Detail |
+|---|---|
+| `apps/api` | NestJS skeleton. 12 module folders × 12 directories, all `.gitkeep`. Real source is `src/config/env.ts` (168 lines) and `src/main.ts` (29 lines) |
+| `apps/web` | Next.js 15 skeleton. 7 source files: `layout.tsx`, `page.tsx`, `globals.css`, `theme-script.tsx`, `i18n/{routing,request}.ts` |
+| `packages/*` | 4 packages. `shared-types` (contracts), `ui-kit` (**tokens only — zero components**), `i18n-resources` (4 locales, 38 keys), `config` (the enforcement layer) |
+| `infra/docker` | 4 services with healthchecks. ⚠️ **the file is currently invalid YAML — FIX-03** |
+| `package.json`, `turbo.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `.env.example`, `README.md` | All present and working |
+| `scripts/docs-verify.mjs` | Working. 155 references across 8 documents resolve |
+
+**147 of the 262 tracked files are `.gitkeep`.** The scaffold is wide and shallow by design — it establishes the tree `AGENTS.md` §3 requires, not behaviour.
+
+### Genuinely absent
+
+| Absent | Consequence | Tracked as |
+|---|---|---|
+| **The ERD / data model** | `schema.prisma` is **deliberately empty**. No models, no `migrations/`, no `seed.ts`. Blocks `PLT-EPIC-01` and the SRS Phase 0 exit gate | D22, GAP-05 |
+| **Requirements content** | `docs/idea-bank/*` is 5 loud stubs, **zero data rows**. The Prompt Pack greps these before **every** story | GAP-04, `REQ-01…05` |
+| **CI and pre-commit** | No `.github/`, no `.husky/`, no gitleaks or lint-staged. Every rule is enforced only for the developer who ran it locally | GAP-09, P3 |
+| **`check-route-guards`** | §2.3's fail-closed guarantee is prose only. `lint-rules.spec.ts:18-19` says so explicitly | FIX-13, P3 |
+| **shadcn/ui components** | No `components.json`; `ui-kit` has zero components — **while `eslint/next.js:22-38` bans raw `<button>`, `<input>`, `<dialog>` and four others.** The first interactive screen cannot be written | FIX-11 |
+| **Locale negotiation** | `proxy.ts` is dead code on Next 15; the build compiles **zero** middleware | FIX-04 |
+| `directives/` | §10 Layer-1 SOPs | ARC-08 |
+| `infra/ci/`, `infra/terraform/` | — | OPS-02, OPS-06 |
+| `apps/mobile` | ✅ **correctly absent** — milestone 2 (D5, ADR-005) | — |
+| `keys/` | Licence public key | OPS-06 |
+| `docs/archive/corpus/` | The extraction's cited source | ⚑2 |
+| Any Prisma model | See ERD above | D22 |
+
+### Knowingly incomplete
+
+| Item | State |
+|---|---|
+| **Money as integer minor units** | `Money{amountMinor: bigint}` is declared in `shared-types` with a passing test, but **no rule prevents a `number`**, and the `bigint` → JSON boundary is undesigned (ADR-002:48; ⚑G) | 
+| **User-facing-string ban** | `ARCHITECTURE.md:346` claims ESLint enforces it. **It does not** — P3 |
+| **Per-school deployment topology** | `AGENTS.md` §2.1 requires *"migrations applied per school database"*. **No document owns this.** OPS-06 |
 
 ---
 
@@ -117,9 +171,22 @@ Nothing has been built. The following are **specified but absent**, and are the 
 | **D21** | **GitHub push protection could not be enabled** (HTTP 422). | `security_and_analysis` requires GitHub Advanced Security, which is paid-only for private repositories. Reported, not worked around. The compensating control is the `gitleaks` job in Prompt Pack P3.6. | 2026-09-28 |
 | **D22** | **The ERD is deferred by owner decision.** `apps/api/prisma/schema.prisma` ships **empty** with a comment explaining why. | 2026-09-29. A plausible-but-invented schema is worse than none: entity shapes are the thing `AGENTS.md` §6 warns causes drift, and a guessed `Student`/`Class` would have to be reconciled against the real ERD later. Prisma base migration remains a **P4** deliverable, so P2 was never blocked by it. |
 | **D23** | **Docker is optional; the API has an explicit `persistence: 'disabled'` boot state** (`ADR-019`). | 2026-09-29, owner: *"no docker installed on my windows PC, we should be able to run the project by `npm run dev`"*. A third state — not a default, not a failure — so `AGENTS.md` §11 ("no silent defaults") is **satisfied rather than relaxed**. `DATABASE_URL` becomes **required at P4**, where the branch is deleted. |
-| **D24** | **Tailwind v4, Jest, Node ≥ 22, Prisma, NestJS/Next.js latest stable.** | 2026-09-29, owner accepted the recommended defaults. Tailwind v4 because migrating off it later is the painful direction. Node floor pinned **below** the local 26 so CI and laptops agree, and because `argon2` (ADR-007) is a native module most likely to fail on a bleeding-edge Node. |
+| **D24** | **Tailwind v4, Node ≥ 22, Prisma, NestJS/Next.js latest stable.** *(The original also said "Jest"; superseded by D27.)* | 2026-09-29, owner accepted the recommended defaults. Tailwind v4 because migrating off it later is the painful direction. Node floor pinned **below** the local 26 so CI and laptops agree, and because `argon2` (ADR-007) is a native module most likely to fail on a bleeding-edge Node. |
 | **D25** | **`eslint-config-next` is not used.** | It patches ESLint internals and fails against ESLint 9.39 ("calling module was not recognized"). The two rules that matter for `AGENTS.md` §3.2 are implemented directly and verified to fire. React-hooks rules return in **P3** when there are hooks to check. |
 | **D26** | **The token test asserts only what `AGENTS.md` §3.2.5 actually specifies.** | An early version required every token to be overridden in dark mode. `AGENTS.md` mandates **five** surface overrides and leaves the five brand tokens theme-independent. Asserting the stricter rule meant the only way to satisfy it was to change the design tokens — a test that can only be passed by editing the thing it is supposed to protect. |
+
+### Added 2026-09-29 — the post-scaffold audit
+
+Six conflicts were put to the owner; all six answered with the agent's recommended option. **These are agent recommendations ratified by the owner in one conversation, not independently-weighed owner decisions. All are flagged for later review** — see `WORKLOG.md` 2026-09-29.
+
+| ID | Decision | Rationale |
+|---|---|---|
+| **D27** | **The test runner is Vitest, not Jest.** `ADR-020`. | The repository already ships Vitest: 51 passing tests, three `vitest.config.ts` files, coverage tiers already written in Vitest's own syntax and matching `AGENTS.md` §4 exactly. Five documents said Jest. Amending the documents costs nothing; migrating the repository would be pure cost. **The `AGENTS.md` §3.1 amendment is BLOCKED** — §3.1 is inside §3, which this session is directed not to touch. See ⚑A |
+| **D28** | **`AGENTS.md` §6's five invented corpus figures are deleted, not replaced.** | §6 claimed 139 modules / 257 rules / 35 entities / 73 FRs. All five `idea-bank` files are zero-row stubs totalling 16 KB — physically incapable of holding that content. Independently enumerating `SRS` §3 yields **87** FRs, not 73 (the 9 NFR figure is correct). Substituting 87 without performing the extraction would be a *second* invention — the exact failure `docs/idea-bank/README.md` exists to prevent. The figures are removed and the stubs are described as empty |
+| **D29** | **`next-intl` is ratified as the web i18n library.** `ADR-021`. | `AGENTS.md:214` says *"confirm before adding"* and named `next-intl` first. It was added without a recorded confirmation — a procedural defect, not a technical one. Swapping to `react-i18next` would discard a working, parity-tested setup to correct a filing omission |
+| **D30** | **The broken gates are fixed now, not folded into P3.** | `AGENTS.md §4` says no production code merges without all gates green. FIX-01 and FIX-04 are a `package.json` line and a spec file. Leaving them red means every future CI run inherits a red baseline and learns to ignore it |
+| **D31** | **`proxy.ts` is renamed to `middleware.ts` on Next 15.** Not upgraded to 16. | Next 15.5.26 is the installed, tested version, and `next/dist/lib/constants.js:265` defines `MIDDLEWARE_FILENAME = 'middleware'`. A framework major upgrade deserves its own decision and its own verification. The rename is one file |
+| **D32** | **The `ADR-019` third state stays. The `??` default in `main.ts` goes.** | `persistence: 'disabled'` is a *third state* — not a default, not a failure — so `AGENTS.md` §11 is satisfied, not relaxed. But `main.ts:23`'s `?? 'http://localhost:3000'` is an **unargued silent default** with no such justification. Different thing, so it gets a different answer |
 
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
@@ -163,9 +230,20 @@ In the Prompt Pack §7 story table, the `M1`/`M2` column means **milestone** —
 | **GAP-02** | Not a git repository | — | ✅ **Closed 2026-09-28.** `main` → `siraj-77/EduFlow` (private), 4 commits, working tree clean. |
 | **GAP-03** | No toolchain, therefore no test runner | — | ✅ **Closed 2026-09-29.** pnpm + Turborepo + TS strict + ESLint + Vitest + Playwright. 51 tests green. `GAP-09` (no CI) remains open. |
 | **GAP-04** | `docs/idea-bank/` has no content | — | 🔴 **Open.** README + 5 loud stubs exist; the **extraction** (`REQ-01…05`) has not been performed. Highest-leverage work available. |
-| **GAP-05** | No ERD / data model | — | 🔴 **Open, deferred by owner (D22).** `schema.prisma` is deliberately empty. Blocks `PLT-EPIC-01` and the SRS Phase 0 exit gate. |
-| **GAP-09** | No CI, no environments | — | 🔴 **Open. Now the top engineering priority** — Prompt Pack P3. Branch protection also unavailable (paid plan). |
-| **GAP-05** | No ERD | **Longest pole.** Blocks `PLT-EPIC-01` and SRS Phase 0 exit |
+| **GAP-05** | No ERD / data model | — | 🔴 **Open, deferred by owner (D22). Longest pole.** `schema.prisma` is deliberately empty. Blocks `PLT-EPIC-01` and the SRS Phase 0 exit gate |
+| **GAP-09** | No CI, no environments | — | 🔴 **Open. The top engineering priority** — Prompt Pack P3. Branch protection also unavailable (paid plan) |
+
+**Added 2026-09-29 — the EPIC-00 blockers.** Not in the original `GAP_ANALYSIS` register, because that analysis predated the scaffold. Full evidence in `docs/analysis/CODE_AUDIT_2026-09-29.md`.
+
+| ID | Blocker | State |
+|---|---|---|
+| **FIX-01** | `test:coverage` cannot run — `@vitest/coverage-v8` in no `package.json` | 🔴 Open. **The §4 coverage gate is not enforced anywhere** |
+| **FIX-02** | `test:e2e` fails — empty `testDir` | 🔴 Open |
+| **FIX-03** | `docker-compose.yml` is invalid YAML — line 1 is a `/**` comment | 🔴 Open. The `AGENTS.md` §14 command cannot run |
+| **FIX-04** | `proxy.ts` is dead code on Next 15 — zero middleware compiled, no locale negotiation | 🔴 Open |
+| **FIX-11** | shadcn/ui never initialised, yet raw elements are banned | 🔴 Open. **Blocks the first interactive screen** |
+| **FIX-12** | No CI, no pre-commit hook | 🔴 Open — same defect as GAP-09 |
+| **FIX-13** | `check-route-guards` does not exist | 🔴 Open. §2.3 is prose only |
 
 ### 5.2 Known-unresolved requirement gaps (`AGENTS.md` §6.1)
 
@@ -187,11 +265,23 @@ These domains **cannot be built** until designed. They are recorded here so they
 
 ## 6. Why `docs/idea-bank/` Has a README But No Content
 
-`AGENTS.md` §6 calls `docs/idea-bank/` "the authoritative requirements" and instructs reading the relevant section before implementing any module. The directory did not exist.
+**Measured 2026-09-29** (`docs/analysis/CODE_AUDIT_2026-09-29.md` DOC-01). All five files are 43–62 lines of header, column schema, acceptance criteria and trap list, totalling **16,124 bytes**, each declaring `**Status:** Placeholder. Zero …rows.`
 
-It has been created with a README that **specifies the extraction** but does not contain it, deliberately. A fabricated business rule — a plausible attendance threshold, a leave accrual formula, a fee schedule — would be indistinguishable from a real one once written down, and would be trusted by every downstream story. A missing rule is visible; an invented one is not. The extraction is tracked as `REQ-01`…`REQ-05`.
+**`AGENTS.md` §6 tabulated five figures for this directory that no document in the repository supports:**
 
-**Open dependency:** the extraction needs a verifiable source. `AGENTS.md` §12 points at `docs/archive/corpus/`, which does not exist. Until that is resolved, the extraction is prose-summarisation of Master Plan + SRS rather than extraction from a source corpus — which is workable but weaker. See Open Questions.
+| `AGENTS.md §6` claimed | Actually in the file |
+|---|---|
+| 139 modules across 20 domains | **0** |
+| 257 business rules | **0** |
+| 35 domain entities | **0** |
+| 15 risks, 40 boundary tests, 41 failure modes | **0 / 0 / 0** |
+| 73 FRs + 9 NFRs | **0** FRs. The **9 NFR figure is correct** — `SRS §5` has `NFR-01`…`NFR-09` |
+
+Independently enumerating `SRS §3` yields **87 unique FR IDs**, not 73. The false numbers propagated to `GAP_ANALYSIS:285` and `WORKLOG.md:308`.
+
+**Why this was dangerous rather than merely untidy:** the stub files are honest and loud — line 3 of `fr-index.md` reads `> 🔴 **NOT YET EXTRACTED.**` and `docs/idea-bank/README.md` reads `**Status:** 🔴 **STUBS ONLY. The extraction has not been performed.**` But `AGENTS.md` is read first, in full, and instructed the reader to treat the directory as *"the authoritative requirements"*. An agent that trusted §6, grepped `business-rules.md` for a lockout threshold, got nothing, and had no signal that the file was a stub. **D28 removes the figures.** They are deleted rather than replaced, because substituting a different unverified number would be a second invention.
+
+The directory was created empty by design. A fabricated business rule — a plausible attendance threshold, a leave accrual formula, a fee schedule — would be indistinguishable from a real one once written down, and would be trusted by every downstream story. **A missing rule is visible; an invented one is not.** The extraction is tracked as `REQ-01`…`REQ-05`, and `docs/archive/corpus/` — the cited source — does not exist (⚑2).
 
 ---
 
@@ -205,16 +295,27 @@ It has been created with a README that **specifies the extraction** but does not
 | 4 | Confirm the planning-horizon precedence table in §4 | Scheduling |
 | 5 | Required report-card layouts for the initial customer set | Master Plan §30 flags this as needed **before Phase 5**; drives the Document/Print Engine abstraction |
 | 6 | Font stack for Tamil / Sinhala / Arabic, on screen and in PDF | `DSN-04`; `AGENTS.md` §3.2.7 requires owner confirmation |
-| 7 | Activation server: in scope for this repo, or a separate service? Where do the licence keypairs live? | `PLT-301`, `PLT-303` |
+| 7 | Activation server: in scope for this repo, or a separate service? Where do the licence keypairs live? | `PLT-301`, `PLT-303` — **answered by `ADR-010`: external vendor service** |
 | 8 | Design `PC-000`…`PC-006` now, or formally defer with owners and milestones? | `REQ-07` |
+| **9** | ⚑**A** — **Approve a one-line change to `AGENTS.md` §3.1** (`Jest` → `Vitest`). D27 decided the runner; the contract still says otherwise. §3.1 is inside §3, which this session is directed not to touch | **The contract contradicts the code** |
+| **10** | ⚑**B** — **Approve the `AGENTS.md:8,17` status correction.** Both lines still say *"pre-scaffold / no application code exists yet"*. They sit in the preamble and §1, **not** §2/§3/§13, so this is D14 rather than the standing restriction | An agent reads a false state before opening a file |
+| **11** | ⚑**C** — **`SRS` §19 vs `AGENTS.md` §7 on mobile.** `SRS` puts a Parent mobile portal in the MVP; `AGENTS.md` (D5) and `ADR-005` make mobile milestone 2; Master Plan §24 carries a full mobile architecture. Three documents, two positions | MVP scope · **Recommended: option C**, parent read-only web portal |
+| **12** | ⚑**D** — **`SRS` §24 Gate M2 vs the P0–P14 order.** Gate M2 requires license enforcement at end of Phase 1; P8 sits after P4/P4W/P5/P6/P7. The reorder relabels "Foundation Complete" — it does not move the gate. `SRS §24` was never amended | Phase 0 exit |
+| **13** | ⚑**E** — **Approve `PLT-107`** (first-admin bootstrap). Workflow §6.5 requires it; **no existing story covers it**, so a fresh deployment cannot create its first administrator | Epic 01 |
+| **14** | ⚑**F** — **Node floor.** `.nvmrc` says 22; the local runtime is 26.7.0 | CI reproducibility |
+| **15** | ⚑**G** — **`Money` wire format.** `ADR-002:48` says the serialisation boundary *"must be designed in `ARC-06`, not discovered later"*, yet `Money{amountMinor: bigint}` already ships in `packages/shared-types` with a passing test. Proposed as `ADR-024` | `ARC-06`, `PLT-301` |
 
 ---
 
-## 8. The Three Most Important Facts
+## 8. The Most Important Facts
 
-1. **CI does not exist yet, so the gates are green only on this machine.** `pnpm typecheck`, `lint`, `test`, `build` and `docs:verify` all pass locally, but nothing enforces them for anyone else. **Prompt Pack P3 is the single highest-value remaining step** — it is what turns `AGENTS.md` from prose into something that fails a build. Its human gate is the best one in the whole sequence: a dummy PR containing an unguarded route, a `new Date()` in a use-case, a raw `<button>` and a missing i18n key, each of which must fail CI and then pass.
-2. **The ERD does not exist** (deferred, D22). It is `PLT-EPIC-01`'s Definition of Ready and the SRS Phase 0 exit gate. It needs no code and no Docker, so it can be written whenever — but until it exists, no Platform Core story can start.
-3. **The requirements layer does not exist.** `docs/idea-bank/` has five loud stubs and zero data rows. Every story author is reconstructing requirements from ~3,000 lines of prose, and the Prompt Pack greps those files before *every* story. `REQ-01…05` is the highest-leverage work available and is pure documentation.
+**Re-ordered 2026-09-29.** The previous list led with CI while the repository reported three of its seven gates green. The first fact is now the false reporting itself.
+
+1. **Three of the seven `AGENTS.md` §4 gates fail, and the record said they were green.** `pnpm test:coverage` exits 1 on a missing dependency. `pnpm test:e2e` exits 1 with no tests. `pnpm format:check` exits 2 on 60 files. `WORKLOG.md:17` read *"✅ Complete. All gates green"* and its table listed only **six** gates — omitting precisely the two that fail. `AGENTS.md §4`'s pre-merge rule is therefore unmeetable *and* unenforced. **EPIC-00, ~21 points.**
+2. **Every gate is enforced only for the developer who runs it.** No `.github/`, no `.husky/`, and `check-route-guards` does not exist — so `AGENTS.md` §2.3's *"CI must fail on a missing `@RequirePermission`"* is prose. Per `ARCHITECTURE.md:307`, a rule that is not mechanically enforced is a suggestion. **Prompt Pack P3 is the single highest-value engineering step**, and FIX-11 must land before its human gate.
+3. **The two highest-authority documents were both false, in the same direction.** `AGENTS.md` §6 tabulated five invented corpus figures over five zero-row stubs, and `AGENTS.md:8,17` declared a scaffolded repository to be un-scaffolded. Every session opens by reading documents that misdescribe the project. D28 removes the figures; the status lines are **blocked pending ⚑B**.
+4. **The ERD does not exist** (deferred, D22). It is `PLT-EPIC-01`'s Definition of Ready and the SRS Phase 0 exit gate. It needs no code and no Docker — but until it exists, no Platform Core story can start, and it is the longest pole in the plan.
+5. **The requirements layer does not exist.** Five loud stubs, zero data rows. Every story author is reconstructing requirements from ~3,000 lines of prose, and the Prompt Pack greps those files before *every* story. `REQ-01…05` is the highest-leverage pure-documentation work available.
 
 ### Deferred, not forgotten
 
@@ -226,11 +327,15 @@ Recorded so they are not reintroduced:
 
 | Footgun | Why it matters |
 |---|---|
+| **`/**` is not a YAML comment** | `infra/docker/docker-compose.yml` opens with one, so the file **does not parse** and the `AGENTS.md` §14 command cannot run. `WORKLOG.md` records that the same `/**` shape *did* land in a `package.json` string, where it is merely mojibake. The failure is silent in both cases — nothing type-checks a YAML comment (FIX-03, FIX-17) |
+| **`proxy.ts` compiles to nothing on Next 15** | `next-intl`'s plugin wrapper looks like a middleware entry and passes every gate, but `MIDDLEWARE_FILENAME = 'middleware'`, so **zero middleware is emitted**. Only the build manifest reveals it (FIX-04) |
+| A gate marked `[x]` on the strength of a **config file existing** | Five defects survived review this way. The gate table in `WORKLOG.md:32-39` listed 6 of 7 and omitted the two failing ones. **Verify by running the command, never by reading the config** (FIX-01, FIX-02) |
 | `incremental: true` + a `--noEmit` typecheck run | Writes a `.tsbuildinfo`, so a later real build concludes nothing changed and **emits nothing while exiting 0**. Fixed via `tsBuildInfoFile`; `typecheck` also passes `--incremental false` |
 | A `*/` sequence inside a JSDoc block comment | `**/domain/**` closes the comment early and the remainder is parsed as code. The layer globs are in `//` comments for this reason |
 | PowerShell `Set-Content -Encoding UTF8` | Writes a **BOM**, which breaks JSON parsing in Vite/PostCSS. Every file touched that way was stripped |
 | pnpm's isolated `node_modules` | A shared config package must declare what its config **imports**; consumers do not leak. `@eduflow/config` declares `@eslint/js` for this reason |
+| `turbo.json` `globalDependencies` naming a file that is not at the root | `tsconfig.base.json` lives in `packages/config/`, and `.env` is gitignored. Turbo never invalidates, so a stale typecheck result can be replayed (FIX-06) |
 
 ---
 
-*Companion documents: `ARCHITECTURE.md` (how it is architected) · `docs/work/GAP_ANALYSIS_2026-09-28.md` (full analysis + action plan) · `docs/work/PLATFORM_CORE_PLAN.md` (milestone-1 execution) · `docs/work/TODO.md` (next task) · `docs/work/WORKLOG.md` (activity log).*
+*Companion documents: `ARCHITECTURE.md` (how it is architected) · `docs/analysis/CODE_AUDIT_2026-09-29.md` (32 findings, evidence) · `docs/work/REMEDIATION_PLAN_2026-09-29.md` (the action plan) · `docs/work/GAP_ANALYSIS_2026-09-28.md` (pre-scaffold baseline) · `docs/work/PLATFORM_CORE_PLAN.md` (milestone-1 execution) · `docs/work/TODO.md` (next task) · `docs/work/WORKLOG.md` (activity log).*

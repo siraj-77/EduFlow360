@@ -27,8 +27,23 @@
 | [ADR-017](ADR-017-deviations-from-jira-sprint-order.md) | **Documented deviations from the Jira sprint order** (4 pull-forwards) | Prompt Pack §2.2 | 🟡 Proposed |
 | [ADR-018](ADR-018-public-route-escape-hatch.md) | `@Public('<reason>')` is the only route exemption, and it is allowlisted | Prompt Pack §P3.2/§P4.7 | 🟡 Proposed |
 | [ADR-019](ADR-019-docker-optional-persistence-disabled-state.md) | **Docker is optional: an explicit `persistence: 'disabled'` boot state** | Owner decision 2026-09-28 | 🟡 Proposed · **deviates from Prompt Pack §1.1** |
+| [ADR-020](ADR-020-test-runner-is-vitest.md) | **The test runner is Vitest, not Jest** | Audit FIX-14 (D27) | 🟡 Proposed · ⚠️ **`AGENTS.md` §3.1 amendment BLOCKED** |
+| [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md) | **`next-intl` is the web i18n library** | Audit DOC-05 (D29) | 🟡 Proposed |
 
-**19 ADRs. Numbering is contiguous 001–019 and must stay that way** — the Prompt Pack §6 P1 instruction is to "continue after the highest existing ADR".
+**21 ADRs. Numbering is contiguous 001–021 and must stay that way** — the Prompt Pack §6 P1 instruction is to "continue after the highest existing ADR".
+
+### The four decisions that had no ADR until 2026-09-29
+
+The 2026-09-29 audit (DOC-05) found four decisions that cleared the bar in §"When an ADR is required" below, were taken inside a commit, and were recorded only in `SSOT.md`/`WORKLOG.md`. Two are now written up:
+
+| Decision | Recorded as | State |
+|---|---|---|
+| Test runner is **Vitest**, not Jest | [ADR-020](ADR-020-test-runner-is-vitest.md) | ✅ Written · amendment **blocked**, see ⚑A |
+| **`next-intl`** for web i18n | [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md) | ✅ Written |
+| **`eslint-config-next` rejected** — patches ESLint internals, fails on ESLint 9.39 | `SSOT.md` D25 | ⬜ **ADR-022 not yet written** |
+| **Toolchain versions** — Tailwind v4, Node ≥ 22, Prisma, Nest, Next | `SSOT.md` D24 | ⬜ **ADR-023 not yet written** |
+
+A fifth, the **`Money` `bigint` → JSON wire format**, is a *live* open decision rather than a past one — `ADR-002:48` says it *"must be designed in `ARC-06`, not discovered later"*, yet `Money{amountMinor: bigint}` already ships in `packages/shared-types` with a passing test. **ADR-024 proposed, ⚑G undecided.**
 
 ---
 
@@ -49,7 +64,9 @@
 | ⚠️ **Reconstructed / Conflicting** | Recovered from another document, or contradicts one. Both need sign-off. |
 | 🔴 **Superseded** | Replaced by a later ADR |
 
-**No ADR is `Accepted`.** Nothing in this directory has been signed off. That is expected — these were written on one day, and the Prompt Pack §6 P1 prompt exists precisely to get them approved before code is written.
+**No ADR is `Accepted`.** Nothing in this directory has been signed off. `ADR-020` and `ADR-021` are the closest: both were decided by the owner on 2026-09-29 (D27, D29), but as **agent recommendations ratified in the same conversation** rather than as independently-weighed owner decisions, and both remain formally `Proposed` pending review.
+
+**Enforcement is the real status.** Until Prompt Pack **P3** lands there is no CI, so *nothing* mechanically verifies that any of these is complied with. Per `ARCHITECTURE.md:307` — *"A rule that is not mechanically enforced is a suggestion"* — that is the single largest risk in the repository, and it is why P3 outranks everything except the ERD.
 
 ---
 

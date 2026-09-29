@@ -3,45 +3,85 @@
 **Format:** [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · **Versioning:** [Semantic Versioning](https://semver.org/)
 **Scope:** User-visible change to the *product*. Documentation-only changes that do not alter a documented contract are recorded in `WORKLOG.md`, not here.
 
-> **No released version exists.** The repository is pre-scaffold (`SSOT.md` §1). The entry below marks the documentation baseline, not a product release.
+> **No released version exists.** The repository is scaffolded (`SSOT.md` §1); no feature code has been written. The `[0.1.0-scaffold]` entry below marks the scaffold commit, not a product release.
 
 ---
 
 ## [Unreleased]
 
-**P3 — quality gates and CI.** All gates pass locally; nothing enforces them for anyone else. The `AGENTS.md` rules are already machine-checked by ESLint and vitest, so P3 is mostly about making those gates *required checks*, plus `check-route-guards`, `check-i18n`, `check-worklog`, gitleaks, lint-staged and the commit-msg hook.
+### Fixed — documentation corrections (2026-09-29)
+
+**The `[0.1.0-scaffold]` entry overstated what shipped.** A post-scaffold audit found **3 of the 7 `AGENTS.md` §4 gates fail** and that the `WORKLOG.md` entry reporting them as green listed only six of the seven. Corrected across the governing documents; the code fixes are tracked as EPIC-00 and are **not** in this entry.
+
+| Correction | Where |
+|---|---|
+| `WORKLOG.md` "All gates green" → the measured results, with a correction banner on the scaffold entry | `WORKLOG.md` |
+| `SSOT.md §3` "Nothing has been built" → a real inventory separating *present but easy to mistake for absent* from *genuinely absent* | `SSOT.md` |
+| `SSOT.md:70` "School Setup Workflow is **orphaned**" → **referenced by `AGENTS.md:19`**; GAP C-06 closed at `8105a27` | `SSOT.md` |
+| `SSOT.md` `Last updated: 2026-09-28` → `2026-09-29`; **GAP-05 listed twice** in §5.1 → de-duplicated | `SSOT.md` |
+| `AGENTS.md §6`'s five invented corpus figures **deleted** (D28) | `AGENTS.md` |
+| `TODO.md`'s duplicated `### 4. Build the toolchain` / `### 5. Extract the requirements` blocks removed; three false *"the test runner does not"* claims struck | `TODO.md` |
+| `TODO.md` "docker-compose.yml ✅" and "shadcn/ui" → marked as delivered-but-defective with the finding IDs | `TODO.md` |
+| ⚑7 "✅ Resolved by reordering" → **reopened.** `SRS §24` Gate M2 is defined at *end of Phase 1*; the reorder relabels a step, it does not move a gate | `TODO.md` |
+| `GAP_ANALYSIS_2026-09-28.md`'s "Changed since" delta → a dated 2026-09-29 row set | `GAP_ANALYSIS` |
+| `adr/README.md` "**No ADR is `Accepted`**" → per-ADR status, plus the four decisions that had no ADR until now | `adr/README.md` |
+
+### Added
+
+- **`ADR-020` — the test runner is Vitest, not Jest** (D27). Five documents said Jest; the repository ships Vitest 2.1.8 with 51 passing tests and coverage tiers already in Vitest syntax. **The `AGENTS.md §3.1` amendment is blocked** — §3.1 is inside §3, which this session is directed not to touch. Now ⚑A
+- **`ADR-021` — `next-intl` is the web i18n library** (D29). Ratifies a decision taken without the confirmation `AGENTS.md:214` required. It is one of the two options that line names.
+- **`docs/analysis/CODE_AUDIT_2026-09-29.md`** — 32 findings (24 code, 8 documentation), each with executed-command evidence. 10 are S1.
+- **`docs/work/REMEDIATION_PLAN_2026-09-29.md`** — the action plan that supersedes `GAP_ANALYSIS_2026-09-28.md` for post-scaffold work. EPIC-00 (21 pts) · EPIC-DOC · EPIC-ADR · then P3, REQ, ARC, DSN, OPS.
+
+### Known issues — recorded, not fixed
+
+**No product behaviour changed in this release. These are defects in the `[0.1.0-scaffold]` commit itself.**
+
+| ID | Issue |
+|---|---|
+| **FIX-01** | `pnpm test:coverage` cannot run — `@vitest/coverage-v8` is in no `package.json`. The §4 coverage gate is unenforced |
+| **FIX-02** | `pnpm test:e2e` exits 1 — the `testDir` exists and is empty |
+| **FIX-03** | `infra/docker/docker-compose.yml` **does not parse** — line 1 is a `/** */` block comment in a YAML file |
+| **FIX-04** | `apps/web/proxy.ts` is the Next 16 convention in a Next 15 project, so the build emits **zero middleware**. There is no locale negotiation |
+| **FIX-11** | shadcn/ui was never initialised — no `components.json`, `ui-kit` has zero components — **while ESLint bans the raw elements that would replace them** |
+| **FIX-12** | No CI, no pre-commit hook. Every rule is enforced only for the developer who runs it |
+| **FIX-13** | `check-route-guards` does not exist, so `AGENTS.md §2.3`'s fail-closed guarantee is prose |
+
+**Root cause:** five of these survived review because **each was invisible to the gate set that actually ran**, and three were marked done on the strength of a *config file existing* rather than the gate running. The coverage gate that would have caught the coverage problem *was* the broken one. The lesson is now recorded in `SSOT.md` §8: *verify by running the command.*
 
 ---
 
 ## [0.1.0-scaffold] — 2026-09-29
 
+> ⚠️ **Partly inaccurate — see `[Unreleased]` above.** The items marked ❗ below were reported as delivered and are not.
+
 ### Added
 
 **Monorepo** — 6 packages, pnpm 11 + Turborepo (`ADR-001`)
-- `apps/api` — NestJS 11 + Prisma + Zod. **12 module folders × 9 subfolders = 108**, matching `AGENTS.md` §3 exactly: `controllers/ use-cases/ domain/{entities,repositories,services,ports}/ infrastructure/{postgres,adapters}/ dto/`
-- `apps/web` — Next.js 15 + React 19 + Tailwind v4 + shadcn/ui. **UI only** — no server actions (`AGENTS.md` §3.1)
+- `apps/api` — NestJS 11 + Prisma + Zod. **12 module folders × 12 directories**, matching `AGENTS.md` §3: `controllers/ use-cases/ domain/{entities,repositories,services,ports}/ infrastructure/{postgres,adapters}/ dto/`
+- `apps/web` — Next.js 15 + React 19 + Tailwind v4. **UI only** — no server actions (`AGENTS.md` §3.1). ❗ **shadcn/ui was NOT initialised** — no `components.json`, `packages/ui-kit/src/components/ui/` is empty, and `ui-kit` has no `react` dependency
 - `packages/config` — strict tsconfig, three ESLint flat configs, Prettier
 - `packages/shared-types` · `packages/ui-kit` · `packages/i18n-resources`
-- `infra/docker/docker-compose.yml` — Postgres, Redis, MinIO, Mailpit
+- `infra/docker/docker-compose.yml` — Postgres, Redis, MinIO, Mailpit ❗ **the file does not parse** (FIX-03); two images unpinned; no bucket bootstrap
 - `README.md` (incl. the no-Docker Windows path) · `CLAUDE.md` · `.env.example` · `.npmrc` · `.nvmrc` · `.editorconfig` · `.prettierrc.json`
 - `scripts/docs-verify.mjs` (`OPS-05`)
 - 147 `.gitkeep` files so the module structure is tracked
 
 **Configuration**
-- `apps/api/src/config/env.ts` — Zod-validated environment. Validated **before** the Nest app is constructed; every invalid variable named in one throw; cites `AGENTS.md` §11 in the message.
+- `apps/api/src/config/env.ts` — Zod-validated environment. Validated **before** the Nest app is constructed; every invalid variable named in one throw; cites `AGENTS.md` §11 in the message. ❗ `WEB_ORIGIN` and `NEXT_PUBLIC_API_URL` are in `.env.example` but **not in the schema**, and `main.ts:23` reads the raw ambient string with a `??` silent default (FIX-08, D32)
 - **Three states for `DATABASE_URL`, not two** (`ADR-019`): absent → `persistence: 'disabled'` with a loud banner and **no repository constructed**; present-but-invalid → throws; present-and-valid → enabled. Nothing is mocked, defaulted or substituted.
 
 **Design tokens** (`DSN-01`, `DSN-05`)
-- `packages/ui-kit/src/styles.css` — light and dark token sets, Tailwind v4 `@theme inline` mapping, `--motion-*` and `--touch-target-min`
+- `packages/ui-kit/src/styles.css` — light and dark token sets at the exact `AGENTS.md` §3.2.5 values, Tailwind v4 `@theme inline` mapping, `--motion-*` and `--touch-target-min`
 - **`prefers-reduced-motion` added** — the template had none (`AGENTS.md` §3.2.7)
 - Logical properties throughout; app-shell RTL built from scratch, not inherited
 
-**i18n** (`DSN-02`) — `en/ta/si/ar` resource files, **authored for the application**, with none of the template's 21 marketing keys. RTL driven by `dir` on `<html>` from the locale.
+**i18n** (`DSN-02`) — `en/ta/si/ar`, **38 keys**, authored for the application, with none of the template's 21 marketing keys. RTL driven by `dir` on `<html>` from the locale. `next-intl` (D29, `ADR-021`). ❗ **No locale negotiation** — `proxy.ts` is dead code on Next 15 (FIX-04)
 
 ### Changed
 
-- `AGENTS.md` §2.2 — the eight vendor SDKs that may not be imported from `domain/`/`use-cases/` are now named explicitly in the lint config
-- `docs/adr/README.md` — reindexed to 19 ADRs, contiguous 001–019
+- `packages/config/eslint/node.js` — the eight vendor SDKs that may not be imported from `domain/`/`use-cases/` are now named explicitly in the lint config. ❗ **This was originally recorded here as a change to `AGENTS.md` §2.2. `AGENTS.md` was not modified** — the last commit touching it is `8105a27`, before the scaffold
+- `docs/adr/README.md` — reindexed, then to 21 ADRs (001–021) on 2026-09-29
 
 ### Enforced, not just documented
 

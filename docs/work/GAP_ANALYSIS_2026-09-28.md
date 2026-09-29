@@ -15,16 +15,39 @@
 > | Was | Now |
 > |---|---|
 > | "Not a git repository" (§2.3) | ✅ `main` → private remote `siraj-77/EduFlow`, 3 commits, working tree clean |
-> | `GAP-01` live token = **S1, blocks all work** (§4) | ⚠️ **Accepted risk (D24)** — never committed, `.claude/` gitignored before `git init`; rotation deferred by owner |
+> | `GAP-01` live token = **S1, blocks all work** (§4) | ⚠️ **Accepted risk (D16)** — never committed, `.claude/` gitignored before `git init`; rotation deferred by owner |
 > | `GAP-02` not a git repo = **S1** (§4) | ✅ **Closed** |
-> | `GAP-03` no toolchain = **S1** (§4) | 🔴 Still open — and now the **#1 blocker** |
+> | `GAP-03` no toolchain = **S1** (§4) | ✅ **Closed 2026-09-29** — pnpm + Turborepo + TS strict + ESLint + Vitest + Playwright; 51 tests green. **The #1 blocker is now `GAP-09` (no CI)** |
 > | 18 documents written, 6 of them empty | ✅ All 6 filled; 23 markdown files total |
-> | `docs/adr/`, `docs/analysis/`, `docs/design/` absent | ✅ Created; `docs/adr/` has ADR-001…006 |
+> | `docs/adr/`, `docs/analysis/`, `docs/design/` absent | ✅ Created; `docs/adr/` has ADR-001…021 |
 > | `docs/idea-bank/` absent | 🟡 Directory + README + 5 stubs exist; **extraction still not done** (`GAP-04` open) |
 > | `PLATFORM_CORE_PLAN.md` absent | ✅ Created, then resequenced to the Prompt Pack's P0–P14 (D17) |
 > | — | 🆕 The **Agentic Prompt Pack** was added to `docs/core/` and is more granular than the sprint map in §6 |
+
+> ### 🔴 Delta 2026-09-29 — the scaffold landed, and it is defective
 >
-> **For current state, read `docs/core/SSOT.md`.** For the remaining plan, read `docs/work/TODO.md`.
+> Commit `951acec` scaffolded the monorepo (`GAP-03` closed). A second audit on 2026-09-29 examined that scaffold and found **32 issues**, of which **7 are S1 blockers that this document does not record** — because they could not exist before the scaffold did.
+>
+> | Was assumed on 2026-09-28 | Measured on 2026-09-29 |
+> |---|---|
+> | `GAP-03` no toolchain = the **#1 blocker** | ✅ Closed. `GAP-09` (no CI) is now #1 |
+> | 3 commits | **8 commits** |
+> | 23 markdown files | **44 markdown files**, 262 tracked files |
+> | `docs/adr/` has ADR-001…006 | **ADR-001…021** |
+> | — | ❌ **`pnpm test:coverage` and `pnpm test:e2e` both fail.** `WORKLOG.md` reported all gates green; its table listed 6 of the 7 |
+> | — | ❌ **`docker-compose.yml` does not parse** — line 1 is a `/** */` block comment |
+> | — | ❌ **`proxy.ts` is dead code on Next 15** — the build emits zero middleware |
+> | — | ❌ **shadcn/ui was never initialised**, while ESLint bans the raw elements it would supply |
+> | — | ❌ **`AGENTS.md §6` published five invented corpus figures** (139 modules / 257 rules / 35 entities / 73 FRs) over five zero-row stubs totalling 16 KB |
+> | — | ❌ **`AGENTS.md:8,17` still declare the repo un-scaffolded** |
+>
+> **⚠️ §4 `GAP-04` and §6 `GAP-05` remain open and unchanged.** So do the estimates in §0 and the sequencing in §7, except that **EPIC-00 now precedes everything** — including the `REQ` stories this document sequences first.
+>
+> **The 139 / 257 / 35 / 73 figures in this document are wrong and were never sourced.** See §4 `GAP-04` and `docs/analysis/CODE_AUDIT_2026-09-29.md` DOC-01. `SRS §3` actually contains **87** FRs. **Do not use them to size anything** (D28).
+>
+> **The action plan for all post-scaffold work is `docs/work/REMEDIATION_PLAN_2026-09-29.md`.** This document remains the record of what was true before the scaffold.
+
+> **For current state, read `docs/core/SSOT.md`.** For the current plan, read `docs/work/REMEDIATION_PLAN_2026-09-29.md`.
 
 
 > **Read this first:** `AGENTS.md` §1 already declares the repo pre-scaffold. This analysis confirms it and quantifies the delta. It also found **one live credential committed to disk** and **~30 broken document cross-references in `AGENTS.md`**. Both are tracked in §4.
@@ -282,7 +305,15 @@ Severity: **S1** = blocks all work · **S2** = blocks a milestone · **S3** = de
 | **GAP-01** | Live `thk_live_` token in `.claude/settings.json`; third-party `ANTHROPIC_BASE_URL` | **S1** | All — credential exposure + supply-chain risk | §2.4 |
 | **GAP-02** | Not a git repository | **S1** | TDD checkpoints, worklog discipline, conventional commits, secret protection | §2.3 |
 | **GAP-03** | No `package.json` / workspace / toolchain | **S1** | TDD (no test runner), all §4 quality gates, every epics story | §2.2 |
-| **GAP-04** | `docs/idea-bank/` absent — "the authoritative requirements" | **S1** | Every domain epic; forces re-derivation of 257 rules/35 entities/73 FRs from prose | §1.2, §3.2 |
+| **GAP-04** | `docs/idea-bank/` absent — "the authoritative requirements" | **S1** | Every domain epic; forces re-derivation of 257 rules/35 entities/73 FRs from prose ⚠️ **those three numbers are wrong and unsourced — see the note below** | §1.2, §3.2 |
+
+> ### ⚠️ GAP-04's stated impact used invented figures
+>
+> The figures **257 rules / 35 entities / 73 FRs** in the `GAP-04` row, and the **139 modules / 20 domains / 15 risks / 40 boundary tests / 41 failure modes** that `AGENTS.md` §6 attached to the same directory, **have no source in this repository**. They also appear in `AGENTS.md:331-337` and `WORKLOG.md:308`.
+>
+> Measured 2026-09-29 (`docs/analysis/CODE_AUDIT_2026-09-29.md` DOC-01): the five `docs/idea-bank/` files are **zero-row stubs totalling 16,124 bytes**, each declaring `**Status:** Placeholder. Zero …rows.` Independently enumerating `SRS §3` yields **87 unique FR IDs**, not 73 — so even the real FR count was wrong. The 9 NFR figure is the only correct one.
+>
+> **`GAP-04` itself is real and remains S1.** Only its sizing was fabricated. `AGENTS.md §6`'s table was removed by **D28** on 2026-09-29 rather than replaced — substituting 87 without performing the extraction would be a second invention. **Do not use any of these numbers to size the work.**
 | **GAP-05** | No ERD / data model in any form | **S1** | SRS Phase 0 exit; `PLT-EPIC-01` "Definition of Ready" | §1.3 |
 | **GAP-06** | `LEGACY_REUSE_INVENTORY.md` absent + raw-SQL count wrong (9 vs 149) | **S2** | All porting, per `AGENTS.md` §5.2 | §2.5 |
 | **GAP-07** | 6 documents exist at 0 bytes (`SSOT`, `ARCHITECTURE`, `WORKLOG`, `TODO`, `BACKLOG`, `CHANGELOG`) | **S2** | Onboarding, traceability, `AGENTS.md` §9 compliance | §3.1 |
