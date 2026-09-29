@@ -6,29 +6,29 @@
 
 ## Index
 
-| ADR | Title | Source | Status |
-|---|---|---|---|
-| [ADR-001](ADR-001-monorepo-toolchain.md) | Monorepo with pnpm workspaces and Turborepo | `SRS` §15/§17 | 🟡 Proposed |
-| [ADR-002](ADR-002-money-as-integer-minor-units.md) | Money as integer minor units, scale per school | `AGENTS.md` §2.5 | 🟡 Proposed |
-| **[ADR-003](ADR-003-new-app-single-tenant-selective-reuse.md)** | **New application, single-tenant, selective legacy reuse** | `AGENTS.md` §1, §2.1, §5 | ⚠️ **RECONSTRUCTED — needs sign-off** |
-| [ADR-004](ADR-004-time-via-injected-clock.md) | Time via an injected `IClock` | `AGENTS.md` §2.4 | 🟡 Proposed |
-| [ADR-005](ADR-005-mobile-is-milestone-2.md) | `apps/mobile` is milestone 2 | `AGENTS.md` §7 (D5) | ⚠️ **CONFLICTS with `SRS` §19** |
-| [ADR-006](ADR-006-licensing-ships-in-milestone-1.md) | Licensing ships in milestone 1 | `AGENTS.md` §7 (D4) | 🟡 Proposed |
-| [ADR-007](ADR-007-password-hashing-argon2id.md) | Password hashing: argon2id behind `IPasswordHasher` | Prompt Pack D-A | 🟡 Proposed |
-| [ADR-008](ADR-008-token-strategy-jwt-refresh-rotation.md) | Token strategy: short-lived access JWT, rotating refresh with family reuse detection | Prompt Pack D-B | 🟡 Proposed |
-| [ADR-009](ADR-009-licence-signature-ecdsa-canonical-json.md) | Licence signature: ECDSA P-256 over **canonical JSON** | Prompt Pack D-C | 🟡 Proposed |
-| [ADR-010](ADR-010-activation-server-external-boundary.md) | Activation server is an **external vendor service** | Prompt Pack D-D | 🟡 Proposed · **answers ⚑6** |
-| [ADR-011](ADR-011-instance-fingerprint-install-id.md) | Instance fingerprint: stable install ID, **not MAC** | Prompt Pack D-E | 🟡 Proposed |
-| [ADR-012](ADR-012-permission-catalogue-in-code.md) | Permission catalogue declared **in code** | Prompt Pack D-F | 🟡 Proposed |
-| [ADR-013](ADR-013-audit-durability-same-transaction.md) | **Audit durability: same-transaction write** | Prompt Pack D-G | 🟡 Proposed · **resolves conflict C1** |
-| [ADR-014](ADR-014-email-adapter-smtp.md) | Email behind `INotificationChannelAdapter` (SMTP, Mailpit in dev) | Prompt Pack D-H | 🟡 Proposed |
-| [ADR-015](ADR-015-object-storage-minio-s3.md) | Object storage: S3-compatible behind `IStorageAdapter`, MinIO in dev | Prompt Pack D-I | 🟡 Proposed |
-| [ADR-016](ADR-016-metrics-prometheus.md) | Metrics in Prometheus exposition format | Prompt Pack D-J | 🟡 Proposed |
-| [ADR-017](ADR-017-deviations-from-jira-sprint-order.md) | **Documented deviations from the Jira sprint order** (4 pull-forwards) | Prompt Pack §2.2 | 🟡 Proposed |
-| [ADR-018](ADR-018-public-route-escape-hatch.md) | `@Public('<reason>')` is the only route exemption, and it is allowlisted | Prompt Pack §P3.2/§P4.7 | 🟡 Proposed |
-| [ADR-019](ADR-019-docker-optional-persistence-disabled-state.md) | **Docker is optional: an explicit `persistence: 'disabled'` boot state** | Owner decision 2026-09-28 | 🟡 Proposed · **deviates from Prompt Pack §1.1** |
-| [ADR-020](ADR-020-test-runner-is-vitest.md) | **The test runner is Vitest, not Jest** | Audit FIX-14 (D27) | 🟡 Proposed · ⚠️ **`AGENTS.md` §3.1 amendment BLOCKED** |
-| [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md) | **`next-intl` is the web i18n library** | Audit DOC-05 (D29) | 🟡 Proposed |
+| ADR                                                              | Title                                                                                | Source                    | Status                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------------------- |
+| [ADR-001](ADR-001-monorepo-toolchain.md)                         | Monorepo with pnpm workspaces and Turborepo                                          | `SRS` §15/§17             | 🟡 Proposed                                             |
+| [ADR-002](ADR-002-money-as-integer-minor-units.md)               | Money as integer minor units, scale per school                                       | `AGENTS.md` §2.5          | 🟡 Proposed                                             |
+| **[ADR-003](ADR-003-new-app-single-tenant-selective-reuse.md)**  | **New application, single-tenant, selective legacy reuse**                           | `AGENTS.md` §1, §2.1, §5  | ⚠️ **RECONSTRUCTED — needs sign-off**                   |
+| [ADR-004](ADR-004-time-via-injected-clock.md)                    | Time via an injected `IClock`                                                        | `AGENTS.md` §2.4          | 🟡 Proposed                                             |
+| [ADR-005](ADR-005-mobile-is-milestone-2.md)                      | `apps/mobile` is milestone 2                                                         | `AGENTS.md` §7 (D5)       | ⚠️ **CONFLICTS with `SRS` §19**                         |
+| [ADR-006](ADR-006-licensing-ships-in-milestone-1.md)             | Licensing ships in milestone 1                                                       | `AGENTS.md` §7 (D4)       | 🟡 Proposed                                             |
+| [ADR-007](ADR-007-password-hashing-argon2id.md)                  | Password hashing: argon2id behind `IPasswordHasher`                                  | Prompt Pack D-A           | 🟡 Proposed                                             |
+| [ADR-008](ADR-008-token-strategy-jwt-refresh-rotation.md)        | Token strategy: short-lived access JWT, rotating refresh with family reuse detection | Prompt Pack D-B           | 🟡 Proposed                                             |
+| [ADR-009](ADR-009-licence-signature-ecdsa-canonical-json.md)     | Licence signature: ECDSA P-256 over **canonical JSON**                               | Prompt Pack D-C           | 🟡 Proposed                                             |
+| [ADR-010](ADR-010-activation-server-external-boundary.md)        | Activation server is an **external vendor service**                                  | Prompt Pack D-D           | 🟡 Proposed · **answers ⚑6**                            |
+| [ADR-011](ADR-011-instance-fingerprint-install-id.md)            | Instance fingerprint: stable install ID, **not MAC**                                 | Prompt Pack D-E           | 🟡 Proposed                                             |
+| [ADR-012](ADR-012-permission-catalogue-in-code.md)               | Permission catalogue declared **in code**                                            | Prompt Pack D-F           | 🟡 Proposed                                             |
+| [ADR-013](ADR-013-audit-durability-same-transaction.md)          | **Audit durability: same-transaction write**                                         | Prompt Pack D-G           | 🟡 Proposed · **resolves conflict C1**                  |
+| [ADR-014](ADR-014-email-adapter-smtp.md)                         | Email behind `INotificationChannelAdapter` (SMTP, Mailpit in dev)                    | Prompt Pack D-H           | 🟡 Proposed                                             |
+| [ADR-015](ADR-015-object-storage-minio-s3.md)                    | Object storage: S3-compatible behind `IStorageAdapter`, MinIO in dev                 | Prompt Pack D-I           | 🟡 Proposed                                             |
+| [ADR-016](ADR-016-metrics-prometheus.md)                         | Metrics in Prometheus exposition format                                              | Prompt Pack D-J           | 🟡 Proposed                                             |
+| [ADR-017](ADR-017-deviations-from-jira-sprint-order.md)          | **Documented deviations from the Jira sprint order** (4 pull-forwards)               | Prompt Pack §2.2          | 🟡 Proposed                                             |
+| [ADR-018](ADR-018-public-route-escape-hatch.md)                  | `@Public('<reason>')` is the only route exemption, and it is allowlisted             | Prompt Pack §P3.2/§P4.7   | 🟡 Proposed                                             |
+| [ADR-019](ADR-019-docker-optional-persistence-disabled-state.md) | **Docker is optional: an explicit `persistence: 'disabled'` boot state**             | Owner decision 2026-09-28 | 🟡 Proposed · **deviates from Prompt Pack §1.1**        |
+| [ADR-020](ADR-020-test-runner-is-vitest.md)                      | **The test runner is Vitest, not Jest**                                              | Audit FIX-14 (D27)        | 🟡 Proposed · ⚠️ **`AGENTS.md` §3.1 amendment BLOCKED** |
+| [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md)          | **`next-intl` is the web i18n library**                                              | Audit DOC-05 (D29)        | 🟡 Proposed                                             |
 
 **21 ADRs. Numbering is contiguous 001–021 and must stay that way** — the Prompt Pack §6 P1 instruction is to "continue after the highest existing ADR".
 
@@ -36,14 +36,14 @@
 
 The 2026-09-29 audit (DOC-05) found four decisions that cleared the bar in §"When an ADR is required" below, were taken inside a commit, and were recorded only in `SSOT.md`/`WORKLOG.md`. Two are now written up:
 
-| Decision | Recorded as | State |
-|---|---|---|
-| Test runner is **Vitest**, not Jest | [ADR-020](ADR-020-test-runner-is-vitest.md) | ✅ Written · amendment **blocked**, see ⚑A |
-| **`next-intl`** for web i18n | [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md) | ✅ Written |
-| **`eslint-config-next` rejected** — patches ESLint internals, fails on ESLint 9.39 | `SSOT.md` D25 | ⬜ **ADR-022 not yet written** |
-| **Toolchain versions** — Tailwind v4, Node ≥ 22, Prisma, Nest, Next | `SSOT.md` D24 | ⬜ **ADR-023 not yet written** |
+| Decision                                                                           | Recorded as                                             | State                                      |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------ |
+| Test runner is **Vitest**, not Jest                                                | [ADR-020](ADR-020-test-runner-is-vitest.md)             | ✅ Written · amendment **blocked**, see ⚑A |
+| **`next-intl`** for web i18n                                                       | [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md) | ✅ Written                                 |
+| **`eslint-config-next` rejected** — patches ESLint internals, fails on ESLint 9.39 | `SSOT.md` D25                                           | ⬜ **ADR-022 not yet written**             |
+| **Toolchain versions** — Tailwind v4, Node ≥ 22, Prisma, Nest, Next                | `SSOT.md` D24                                           | ⬜ **ADR-023 not yet written**             |
 
-A fifth, the **`Money` `bigint` → JSON wire format**, is a *live* open decision rather than a past one — `ADR-002:48` says it *"must be designed in `ARC-06`, not discovered later"*, yet `Money{amountMinor: bigint}` already ships in `packages/shared-types` with a passing test. **ADR-024 proposed, ⚑G undecided.**
+A fifth, the **`Money` `bigint` → JSON wire format**, is a _live_ open decision rather than a past one — `ADR-002:48` says it _"must be designed in `ARC-06`, not discovered later"_, yet `Money{amountMinor: bigint}` already ships in `packages/shared-types` with a passing test. **ADR-024 proposed, ⚑G undecided.**
 
 ---
 
@@ -57,16 +57,23 @@ A fifth, the **`Money` `bigint` → JSON wire format**, is a *live* open decisio
 
 ## Status meanings
 
-| Status | Meaning |
-|---|---|
-| ✅ **Accepted** | Binding. Code must comply. |
-| 🟡 **Proposed** | Written down, awaiting owner approval |
+| Status                             | Meaning                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| ✅ **Accepted**                    | Binding. Code must comply.                                               |
+| 🟡 **Proposed**                    | Written down, awaiting owner approval                                    |
 | ⚠️ **Reconstructed / Conflicting** | Recovered from another document, or contradicts one. Both need sign-off. |
-| 🔴 **Superseded** | Replaced by a later ADR |
+| 🔴 **Superseded**                  | Replaced by a later ADR                                                  |
 
 **No ADR is `Accepted`.** Nothing in this directory has been signed off. `ADR-020` and `ADR-021` are the closest: both were decided by the owner on 2026-09-29 (D27, D29), but as **agent recommendations ratified in the same conversation** rather than as independently-weighed owner decisions, and both remain formally `Proposed` pending review.
 
-**Enforcement is the real status.** Until Prompt Pack **P3** lands there is no CI, so *nothing* mechanically verifies that any of these is complied with. Per `ARCHITECTURE.md:307` — *"A rule that is not mechanically enforced is a suggestion"* — that is the single largest risk in the repository, and it is why P3 outranks everything except the ERD.
+**Enforcement is the real status.** Until Prompt Pack **P3** lands there is no CI, so _nothing_ mechanically verifies that any of these is complied with. Per `ARCHITECTURE.md:307` — _"A rule that is not mechanically enforced is a suggestion"_ — that is the single largest risk in the repository, and it is why P3 now outranks everything including the ERD, which was the only thing ahead of it until ARC-01 closed it on 2026-09-29.
+
+**Two decisions of record have no ADR and are owed one.** `ADR-022`…`024` are already spoken for (`TODO.md` P2: D25, D24, and the proposed `Money` wire format), so these are next:
+
+| Decision | What it is                                                                                                                                                                                                   | Status                                                                                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D33**  | The ERD and `schema.prisma` are **generated from one source** (`apps/api/prisma/schema-source.mjs`). Supersedes D22                                                                                          | In `SSOT.md` §4 and `docs/diagrams/ERD_PLATFORM_CORE.md`. **Mechanically enforced today** — 26 gate cases fail a hand-edit to either artefact, which is more than most accepted ADRs manage |
+| **D34**  | `audit_records` immutability is a **privilege plus a `BEFORE UPDATE OR DELETE` trigger**, not a convention — because a revoke binds only the role it is revoked from, and Prisma migrates as the table owner | In `SSOT.md` §4. Script: `apps/api/prisma/hardening/audit-immutability.sql`. ⚠️ **Never exercised** — no PostgreSQL in this environment (`ADR-019`)                                         |
 
 ---
 
@@ -82,23 +89,31 @@ A fifth, the **`Money` `bigint` → JSON wire format**, is a *live* open decisio
 **Source:** <the document or decision this comes from>
 
 ## Context
+
 What forces make this a decision rather than a default.
 
 ## Decision
+
 What was decided, in the active voice.
 
 ## Consequences
+
 ### Positive
+
 ### Negative / accepted costs
+
 ### Neutral
 
 ## Rejected alternatives
+
 Each with why it lost. **This section is the point** — an ADR that
 records only the decision gives a future reader no way to tell whether
 the alternative is still on the table.
 
 ## Links
+
 ## Revisit when
+
 The observable condition that would invalidate this.
 ```
 
@@ -109,6 +124,7 @@ The observable condition that would invalidate this.
 Write one when a decision is **expensive to reverse**, **constrains future work**, or **was non-obvious enough that a competent engineer would plausibly have chosen differently**.
 
 In this codebase that means, at minimum:
+
 - Any addition to, or removal from, the shared engines table (`AGENTS.md` §2.9)
 - Any change to the three mandatory guards, or to fail-closed behaviour — see ADR-018
 - Any change to the tenancy model (`AGENTS.md` §2.1) — **especially any proposal to add tenant scoping**
@@ -120,4 +136,4 @@ In this codebase that means, at minimum:
 
 ---
 
-*Referenced from: `AGENTS.md` §1, §12 · `docs/core/SSOT.md` §4 · `docs/core/ARCHITECTURE.md` · Prompt Pack §6 P1.*
+_Referenced from: `AGENTS.md` §1, §12 · `docs/core/SSOT.md` §4 · `docs/core/ARCHITECTURE.md` · Prompt Pack §6 P1._
