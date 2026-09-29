@@ -30,5 +30,5 @@ export default async function HomePage({
   const { locale } = await params;
   if (routing.locales.includes(locale as never)) setRequestLocale(locale as never);
 
-  return <LandingPage />;
+  return <LandingPage locale={locale} />;
 }

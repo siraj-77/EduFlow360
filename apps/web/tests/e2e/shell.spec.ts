@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /**
  * The four contracts the app shell promises, asserted against a real browser.
@@ -143,6 +143,67 @@ test.describe('landing page', () => {
       expect(hero, `/${locale} rendered an empty hero`).not.toBe('');
       expect(hero, `/${locale} fell back to the English hero`).not.toBe(en);
     }
+  });
+});
+
+test.describe('landing page motion', () => {
+  // The template's character is largely motion: an animated mesh-gradient hero,
+  // drifting orbs, a gradient that sheens across the heading, a glow pulse on
+  // the primary call to action, and a scrolling marquee. A landing page that
+  // drops all of it is a different product, so the motion is asserted rather
+  // than assumed.
+  //
+  // `document.getAnimations()` is the assertion that actually works. Checking
+  // that a `@keyframes` block exists in the stylesheet proves only that someone
+  // typed it; checking `animation-name` on an element proves a rule is
+  // *assigned*. Only the running-animation list proves the browser is
+  // compositing it, which is what a visitor sees.
+  const runningAnimations = (page: Page) =>
+    page.evaluate(() =>
+      document
+        .getAnimations()
+        .map((a) => ((a as CSSAnimation).animationName as string | undefined) ?? a.constructor.name),
+    );
+
+  test('the hero runs the template signature animations', async ({ page }) => {
+    await page.goto('/en');
+
+    const names = await runningAnimations(page);
+
+    for (const expected of ['sheen', 'meshShift', 'drift', 'pulse', 'glowPulse', 'scroll']) {
+      expect(names, `the ${expected} animation is not running on /en`).toContain(expected);
+    }
+  });
+
+  test('the marquee scrolls the module list', async ({ page }) => {
+    await page.goto('/en');
+
+    const marquee = page.locator('[data-testid="marquee-track"]');
+    await expect(marquee, 'the module marquee is missing from the landing page').toBeVisible();
+
+    // The track is duplicated so the -50% translate loops seamlessly. Both
+    // halves must be present or the seam is visible.
+    const items = page.locator('[data-testid="marquee-item"]');
+    expect(await items.count(), 'the marquee needs two identical halves to loop').toBeGreaterThanOrEqual(12);
+  });
+
+  test('prefers-reduced-motion stops every animation', async ({ page }) => {
+    // AGENTS.md 3.2.7 requires reduced motion to be respected. The template has
+    // no rule for it at all, so this is the guarantee this project has to
+    // supply rather than inherit.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/en');
+
+    // Wait for the pre-paint theme script and the first paint to settle, so a
+    // still-initialising animation is not counted as "not running".
+    await page.waitForLoadState('networkidle');
+
+    const names = await runningAnimations(page);
+
+    expect(
+      names,
+      `a visitor who asked for reduced motion is still running: ${names.join(', ') || '(none)'}`,
+    ).toHaveLength(0);
   });
 });
 

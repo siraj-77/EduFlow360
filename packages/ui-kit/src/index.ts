@@ -29,6 +29,15 @@ export const UI_KIT_TOKENS = [
   '--danger',
   '--ok',
   '--border',
+  /**
+   * Elevation and radius are tokens for the same reason the colours are: a
+   * component that hard-codes them cannot work in both themes, and the hex ban
+   * in `eslint/next.js` does not see `rgba()`. `--shadow` is theme-paired.
+   * (D47)
+   */
+  '--shadow',
+  '--radius-card',
+  '--radius-control',
 ] as const;
 
 export type UiKitToken = (typeof UI_KIT_TOKENS)[number];

@@ -1,0 +1,567 @@
+/*
+ * The landing page's visual language.
+ *
+ * Ported from `docs/template/EduFlow — Frontend Template.html`, which is the
+ * donor: the mesh-gradient hero, the grid overlay, the drifting orbs, the
+ * sheening gradient heading, the glow pulse on the primary call to action, the
+ * scrolling marquee and the gradient icon cards all come from there. The
+ * keyframe names are the template's, because a renamed animation is a renamed
+ * thing to grep for when something stops moving.
+ *
+ * WHY A CSS FILE AND NOT UTILITY CLASSES
+ * -------------------------------------
+ * Five of these cannot be expressed in Tailwind: `color-mix()` at four stops, a
+ * `mask-image` radial falloff, `backdrop-filter`, a keyframed
+ * `background-position` sheen, and the duplicated `translateX(-50%)` loop that
+ * makes a marquee seamless.
+ *
+ * EVERY SELECTOR IS SCOPED UNDER `.landing`, and every `@keyframes` block sits
+ * at the top level.
+ *
+ * That second point is a bug this file already committed once. The keyframes
+ * were initially nested inside `.landing { … }`, which is invalid CSS — an
+ * `@keyframes` at-rule is not allowed inside a qualified rule — and Chromium
+ * dropped them **silently**. The element rules beside them kept working, so
+ * the gradient background rendered and looked fine, and `animation-name`
+ * computed to `none`. Nothing failed: no build error, no lint error, no console
+ * warning. The only thing that caught it was the e2e assertion on
+ * `document.getAnimations()`, which is exactly the kind of check a stylesheet
+ * review cannot make. Keyframes are hoisted below.
+ *
+ * The template's own selectors were deliberately NOT copied. It used `.hero`,
+ * `.card`, `.stats`, `.topnav`, `.btn` and `.menu` — generic names at the
+ * document root with no namespace, which is part of why it needed four
+ * `html[dir="rtl"]` overrides to patch its own physics. Here everything hangs off
+ * `.landing`, so `.landing .card` cannot collide with a future card component,
+ * and the one `[dir="rtl"]` rule that remains is genuinely unavoidable rather
+ * than a symptom.
+ *
+ * Every colour is a token. The template had 24 hex literals in this block; the
+ * hex ban in `eslint/next.js` watches `.ts`/`.tsx` and so would never have
+ * caught them here, which is why they are gone by review rather than by gate.
+ * `--brand2` is renamed `--brand-2` to match the harvested token name.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Keyframes. Top level, template names, hoisted out of `.landing`.
+ * ------------------------------------------------------------------ */
+
+/* The mesh drifts in hue and saturation. The hero's single biggest character. */
+@keyframes meshShift {
+  0% {
+    filter: hue-rotate(0deg) saturate(1);
+  }
+  100% {
+    filter: hue-rotate(18deg) saturate(1.15);
+  }
+}
+
+/* The orbs float on a diagonal, offset by negative animation-delay. */
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(10px, -22px);
+  }
+}
+
+/* The badge dot's halo expands and fades. */
+@keyframes pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* A highlight travels across the heading's gradient. */
+@keyframes sheen {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* The primary call to action breathes. */
+@keyframes glowPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--brand) 0%, transparent);
+  }
+}
+
+/*
+ * The marquee. The track holds the list twice and travels -50%, so the second
+ * copy arrives exactly as the first leaves and the loop has no seam.
+ */
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Staggered entrance for the hero's contents. */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Components. All scoped under `.landing`.
+ * ------------------------------------------------------------------ */
+
+.landing {
+  /* ---- Top navigation: sticky, translucent, blurred ---- */
+  .landing-topnav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 5vw;
+    padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  .landing-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 1.1875rem;
+    font-weight: 800;
+  }
+
+  /* The brand mark: a gradient tile, the one flourish on every screen. */
+  .landing-brand .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+  }
+
+  /*
+   * The language switcher. `<a>` elements, not the template's `<button>`s:
+   * AGENTS.md 3.2.1 bans raw <button> and the shadcn primitives that would
+   * replace one do not exist yet (FIX-11). A switcher that navigates is a set of
+   * links, so this needs no button and the ban is satisfied rather than
+   * circumvented. The current locale carries aria-current, not a link.
+   */
+  .landing-lang {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+  }
+
+  .landing-lang a {
+    padding: 0.4rem 0.55rem;
+    border-radius: var(--radius-control);
+    color: var(--muted);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .landing-lang a:hover {
+    color: var(--text);
+  }
+
+  .landing-lang a[aria-current='true'] {
+    color: var(--brand);
+    font-weight: 700;
+  }
+
+  /* ---- Hero ---- */
+  .landing-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 6.875rem 5vw 4.375rem;
+    text-align: center;
+  }
+
+  /* Three offset radial gradients that slowly shift hue. */
+  .landing-hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand) 30%, transparent), transparent 55%),
+      radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 50%),
+      radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--brand-2) 22%, transparent), transparent 55%);
+    animation: meshShift 14s ease-in-out infinite alternate;
+  }
+
+  /* A 42px grid, radially masked so it fades out instead of tiling forever. */
+  .landing-hero-grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px);
+    background-size: 42px 42px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, #000 40%, transparent 90%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, #000 40%, transparent 90%);
+  }
+
+  .landing-orb {
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(2px);
+    animation: drift 11s ease-in-out infinite;
+  }
+
+  .landing-orb-1 {
+    top: 22%;
+    inset-inline-start: 14%;
+    width: 10px;
+    height: 10px;
+    background: var(--brand);
+    box-shadow: 0 0 18px 4px var(--brand);
+  }
+
+  .landing-orb-2 {
+    top: 65%;
+    inset-inline-start: 82%;
+    width: 7px;
+    height: 7px;
+    background: var(--accent);
+    box-shadow: 0 0 14px 4px var(--accent);
+    animation-delay: -3s;
+  }
+
+  .landing-orb-3 {
+    top: 15%;
+    inset-inline-start: 78%;
+    width: 9px;
+    height: 9px;
+    background: var(--brand-2);
+    box-shadow: 0 0 16px 4px var(--brand-2);
+    animation-delay: -6s;
+  }
+
+  .landing-orb-4 {
+    top: 78%;
+    inset-inline-start: 22%;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    box-shadow: 0 0 12px 3px var(--accent);
+    animation-delay: -8.5s;
+  }
+
+  /* The badge, with a pulsing status dot. */
+  .landing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 1.625rem;
+    padding: 7px 1rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    backdrop-filter: blur(6px);
+    color: var(--muted);
+    font-size: 0.78125rem;
+    animation: fadeUp 0.6s ease;
+  }
+
+  .landing-badge .pulse {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+  }
+
+  .landing-badge .pulse::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: var(--ok);
+    opacity: 0.5;
+    animation: pulse 1.8s ease-out infinite;
+  }
+
+  .landing-hero h1 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(2.125rem, 6vw, 3.75rem);
+    font-weight: 800;
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    animation: fadeUp 0.7s ease;
+  }
+
+  /*
+   * The accent phrase. `background-size: 200% auto` plus a keyframed
+   * background-position is the sheen. It cannot be a utility class because the
+   * animated property is background-position on a background-clip:text element,
+   * and it was the effect a plain rebuild lost.
+   */
+  .landing-hero h1 .grad {
+    background: linear-gradient(120deg, var(--brand), var(--accent) 55%, var(--brand-2));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: sheen 5s linear infinite;
+  }
+
+  .landing-hero-sub {
+    max-width: 580px;
+    margin: 0 auto 2.125rem;
+    color: var(--muted);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    animation: fadeUp 0.8s ease;
+  }
+
+  .landing-hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.875rem;
+    animation: fadeUp 0.9s ease;
+  }
+
+  .landing-btn {
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    padding: 0.625rem 1.125rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: filter var(--motion-fast) var(--motion-ease);
+  }
+
+  .landing-btn-primary {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: var(--surface);
+  }
+
+  .landing-btn-primary:hover {
+    filter: brightness(1.08);
+  }
+
+  .landing-btn-ghost {
+    border-color: var(--border);
+    background: transparent;
+    color: var(--text);
+  }
+
+  .landing-btn-ghost:hover {
+    border-color: var(--brand);
+  }
+
+  .landing-btn-glow {
+    position: relative;
+    animation: glowPulse 2.4s ease-in-out infinite;
+  }
+
+  /*
+   * The product mockup: a window frame with four capability chips.
+   *
+   * The template filled these with invented figures — 1,482 students, 94.5%
+   * present, $284,200 collected, 7 open requests — plus a "200+ / 1.2M / 99.9%
+   * uptime" row. AGENTS.md 2.8 names two of those as false, and D28 records
+   * what happens when a removed figure is swapped for a different unverified
+   * one, so the numbers are simply absent. The browser chrome is what makes
+   * this honest: it reads as a mockup, so labelled tiles with no values look
+   * like a mockup rather than like a failed query.
+   */
+  .landing-preview {
+    max-width: 880px;
+    margin: 3.5rem auto 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    animation: fadeUp 1s ease;
+  }
+
+  .landing-preview .bar {
+    display: flex;
+    gap: 6px;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .landing-preview .bar span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .landing-preview .body {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.875rem;
+    padding: 1.625rem;
+  }
+
+  .landing-preview .chip {
+    padding: 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--bg);
+    text-align: start;
+  }
+
+  .landing-preview .chip small {
+    color: var(--muted);
+    font-size: 0.6875rem;
+  }
+
+  /* ---- Marquee ---- */
+  .landing-marquee {
+    overflow: hidden;
+    margin-top: 3.75rem;
+    padding: 1.625rem 0;
+    border-block: 1px solid var(--border);
+  }
+
+  .landing-marquee .label {
+    margin: 0 0 1rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .landing-marquee-track {
+    display: flex;
+    gap: 3.75rem;
+    width: max-content;
+    color: var(--muted);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    opacity: 0.7;
+    animation: scroll 22s linear infinite;
+  }
+
+  /*
+   * THE ONE `[dir="rtl"]` RULE IN THIS FILE.
+   *
+   * The template needed four. The other three patched its own physical layout
+   * (`right:auto;left:0`, `text-align:right`) because it positioned things with
+   * `left`/`right` — which is the bug, not the fix. Everything else here uses
+   * `inset-inline-*` or logical properties and mirrors for free.
+   *
+   * This one cannot be avoided: `translateX` is a physical transform, and a
+   * right-to-left reading order runs the other way. Reversing the direction is
+   * correcting physics, not compensating for it.
+   */
+  :root[dir='rtl'] .landing-marquee-track {
+    animation-direction: reverse;
+  }
+
+  /* ---- Feature cards ---- */
+  .landing-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.125rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 4.375rem 5vw 5rem;
+  }
+
+  .landing-card {
+    padding: 1.375rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    transition:
+      transform var(--motion-base) var(--motion-ease),
+      border-color var(--motion-base) var(--motion-ease);
+  }
+
+  .landing-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--brand);
+  }
+
+  /* A gradient tile per card, so the grid is not four identical rectangles. */
+  .landing-card .ico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 0.875rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+    font-size: 1.0625rem;
+  }
+
+  .landing-card h3 {
+    margin: 0 0 0.375rem;
+    font-size: 1rem;
+  }
+
+  .landing-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.84375rem;
+    line-height: 1.5;
+  }
+
+  .landing-footer {
+    padding: 1.75rem 5vw;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+}
+
+@media (max-width: 700px) {
+  .landing .landing-preview .body {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/*
+ * AGENTS.md 3.2.7. The six ambient loops above run 1.8s to 22s, which is
+ * decorative motion rather than interaction feedback — a vestibular trigger is
+ * not cured by a faster animation, so the only correct response is to stop
+ * them. `packages/ui-kit/src/styles.css` carries a global guard for the same
+ * reason; this copy keeps the guarantee next to the keyframes it cancels.
+ *
+ * The e2e suite asserts the outcome rather than this rule: with reduced motion
+ * emulated, `document.getAnimations()` is empty.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .landing *,
+  .landing *::before,
+  .landing *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

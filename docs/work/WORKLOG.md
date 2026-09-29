@@ -8,6 +8,115 @@
 ---
 ---
 
+## 2026-09-30 — The landing page rebuilt to the template's actual visual language
+
+| Field      | Entry |
+| ---------- | ----- |
+| **Date**   | 2026-09-30 |
+| **Phase**  | Landing page, second pass |
+| **Task**   | The user, reviewing the first pass: _"it's not look like the template that i shared.. no animation no hero section pls make it look same like template"_. Correct on both counts. |
+| **Agent**  | `opencode` / space-bunny-free |
+| **Status**  | ✅ Complete. 19 e2e (was 16); all gates 0. |
+
+### What the first pass got wrong
+
+I read "use the template for the landing page" as *use its structure* and rebuilt the same content plainly. The user meant *make it look like it*. The gap was almost entirely **visual character**, and it was large:
+
+| Missing | Why it mattered |
+| --- | --- |
+| Mesh-gradient hero (`meshShift` 14s) | The single largest contributor to the template's look |
+| 42px grid overlay, radially masked | Gives the hero depth; invisible if you do not know to look for it |
+| Four drifting, glowing orbs (`drift` 11s) | The only movement in the upper half of the page |
+| Sheening gradient heading (`sheen` 5s) | The template's signature effect |
+| Glow-pulsing primary CTA (`glowPulse` 2.4s) | Draws the eye to the action |
+| Product mockup in a window frame | The hero's anchor; also where the fabricated figures lived |
+| **Scrolling marquee** (`scroll` 22s) | A whole section, entirely absent |
+| Gradient icon tiles, card hover lift | The feature grid read as four plain rectangles |
+| Backdrop-blur sticky topnav | The page had no navigation at all |
+
+**Lesson worth recording:** the first pass copied the template's *information architecture* and treated the CSS as decoration. It was not decoration — five of those effects (`color-mix` at four stops, `mask-image`, `backdrop-filter`, a keyframed `background-position` on a `background-clip:text` element, and the duplicated `translateX(-50%)` loop) **cannot be expressed as utility classes at all.** A visual port is a port of the stylesheet.
+
+### The bug I introduced, and what caught it
+
+The first version of `landing.css` nested the `@keyframes` blocks **inside** `.landing { … }`. That is invalid CSS — an `@keyframes` at-rule is not permitted inside a qualified rule — and Chromium dropped them **silently**.
+
+The failure was nasty precisely because it was partial. The `background` declaration in the same rule still applied, so the mesh gradient **rendered and looked correct**. `getComputedStyle(...).animationName` was `none`. No build error, no lint error, no console warning.
+
+**The e2e assertion on `document.getAnimations()` was the only thing that caught it.** Checking that a `@keyframes` block exists in the stylesheet would have passed — it was in the file. Checking that an element has an `animation-name` would have passed too, because the shorthand was assigned. Only the browser's list of *running* animations distinguishes "someone typed it" from "the browser is compositing it", which is what a visitor actually sees. The keyframes are now hoisted to the top level and the file documents the trap.
+
+### The motion contract, measured
+
+Not asserted from the stylesheet — measured in a real browser, both ways:
+
+| Context | Running animations | By name |
+| --- | --- | --- |
+| `reducedMotion: 'no-preference'` | **9** | `meshShift`×1 `drift`×4 `pulse`×1 `sheen`×1 `glowPulse`×1 `scroll`×1 — all `playState: running` |
+| `reducedMotion: 'reduce'` | **0** | — |
+
+That is the guarantee `AGENTS.md §3.2.7` asks for, and it is a real one: the template has **no** `prefers-reduced-motion` rule at all, so this is a rule this project supplies rather than inherits. Six ambient loops running 1.8s–22s is decorative motion, and a vestibular trigger is not cured by a faster animation.
+
+**Which also explains a false alarm in the browser session.** The MCP Chrome instance on this machine has `prefers-reduced-motion: reduce` set at the OS level, so the page correctly rendered static there and `getAnimations()` returned `[]`. That looked like the bug still being unfixed. It was the accessibility feature working. Measured in an explicit context instead of inferred from a screenshot.
+
+### Tokens the template needed and the token layer did not have
+
+Porting the visual language exposed the gap the 2026-09-30 audit had flagged but not fixed. The template defined **12** custom properties; the harvest took **10**.
+
+- **`--shadow`** — absent entirely. The template pairs it: `rgba(20,20,40,.08)` light, `rgba(0,0,0,.4)` dark. It **must stay paired**: a single value is correct in one theme and invisible in the other. A component needing elevation had no sanctioned way to express one, so it would hard-code an `rgba()` — and the hex ban in `eslint/next.js` watches `#rrggbb`, **not** `rgba()`, so the gate would not have caught it either.
+- **`--radius: 14px`** — the harvest had quietly changed it to `12px` card / `8px` control. Two radii is better than one, but neither number is in the template or in `AGENTS.md §3.2.5`; they were undocumented choices filed under a "harvested" heading. Now `14px` card / `9px` control, both the template's.
+
+All three are now tokens in `packages/ui-kit`, with `--shadow` in the dark block. `AGENTS.md §3.2.5` still names only the ten colours, so extending it to name these is a `D14` question for the owner. (D47)
+
+### One `[dir="rtl"]` rule, and why that is the right number
+
+The template needed **four** `html[dir="rtl"]` overrides. Three of them — `right:auto;left:0`, `text-align:right` — were patching its own physical layout, which is the bug rather than the fix. Everything here uses `inset-inline-*` or logical properties and mirrors for free; `/ar` was verified in a browser with the grid, the CTAs, the orbs and the card order all flipping correctly.
+
+The one that remains is `.landing-marquee-track { animation-direction: reverse }`, and it **cannot** be avoided: `translateX` is a physical transform, and a right-to-left reading order runs the other way. That is correcting physics, not compensating for it.
+
+### Honest accounting of the TDD
+
+Three new e2e cases. **Two were genuine REDs** — "the sheen animation is not running on /en, `Received array: []`" and "the module marquee is missing". The third, *"prefers-reduced-motion stops every animation"*, **passed immediately and was not a RED**: there were no animations at all, so zero running animations trivially satisfied it. Same shape as the claim-absence guard — an empty page cannot contain a forbidden string. It is a guard paired with a positive test, and it is labelled as such rather than counted.
+
+The guard turned out to be the one that mattered most, because it is what caught the hoisting bug in the opposite direction: once the animations ran, the reduced-motion guarantee is asserted to still hold.
+
+### A stale dev-server incident, for the record
+
+Mid-session `/ar` served a `__webpack_modules__[moduleId] is not a function` overlay and a 500. Cause: `landing.css` was rewritten underneath a long-running `next dev`, and Fast Refresh had to do a full reload. Clearing `.next` and restarting resolved it. The e2e suite — which starts a **fresh** server with `reuseExistingServer: false` — passed 19/19 throughout and never saw it. That is the `reuseExistingServer: false` flag earning its keep for the second time, and the third entry for the same footgun already noted in `playwright.config.ts`.
+
+### Files changed
+
+| File | Change |
+| ---- | ------ |
+| `apps/web/src/features/landing/landing.css` | **new** — 7 hoisted keyframes + the template's visual language, all scoped under `.landing` |
+| `.../components/hero.tsx` | rewritten — mesh, grid, orbs, badge, sheen, glow CTA, mockup; plus `TopNav` |
+| `.../components/marquee.tsx` | **new** — the scrolling module list, duplicated for a seamless loop, with an `sr-only` copy for assistive tech |
+| `.../components/feature-grid.tsx` | rewritten — gradient icon tiles |
+| `.../components/site-footer.tsx` | restyled |
+| `.../components/capability-strip.tsx` | **deleted** — superseded by the mockup's chips |
+| `packages/ui-kit/src/styles.css` | `--shadow` (paired) and corrected radii |
+| `packages/ui-kit/src/index.ts` | 3 tokens exported |
+| `packages/i18n-resources/src/locales/*.json` | `+previewLabel` (21 landing keys each) |
+| `apps/web/tests/e2e/shell.spec.ts` | +3 motion cases |
+
+### Quality
+
+| Check | Result |
+| ----- | ------ |
+| `pnpm test:e2e` | ✅ 0 — **19 passed** (16 → 19) |
+| `pnpm test` | ✅ 0 — 106 unit; i18n parity and the ui-kit token contract both held across the new keys |
+| `pnpm typecheck` · `lint` | ✅ 0 — lint caught one real defect: an inline `import()` type annotation |
+| `pnpm build` · `test:coverage` · `test:integration` · `docs:verify` | ✅ 0 |
+| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, untouched |
+| Browser | `/en` light, `/ar` dark, both verified. Motion measured: 9 running, 0 under reduced-motion |
+
+### Still open
+
+- **Theme toggle omitted.** The template's topnav has one; a toggle must be a `<button>`, which `FIX-11`/`FIX-10` gate. `ThemeScript` still honours `prefers-color-scheme` and a stored choice, so dark-mode visitors are served correctly — they just cannot flip it from this page yet.
+- **`AUD-30-03` / `G1-4`** — the nav-parity test now resolves `nav a, header a` and still finds **zero** links, because the language switcher uses `a` inside a `div`, not a `nav`. It remains vacuous. Unchanged by this pass.
+
+---
+
+---
+
 ## 2026-09-30 — The landing page, built from the template but not its claims
 
 | Field      | Entry |

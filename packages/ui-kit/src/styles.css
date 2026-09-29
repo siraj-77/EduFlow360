@@ -27,6 +27,25 @@
   --danger: #dc2626;
   --ok: #059669;
 
+  /*
+   * Elevation and corner radius, from the template.
+   *
+   * These are tokens too, and for two years they were not: the template
+   * defined `--shadow` and `--radius` alongside the ten colours, the harvest
+   * took only the ten, and the landing page had no sanctioned way to express a
+   * drop shadow or a card radius. A component needing one had to hard-code an
+   * `rgba()` — precisely the class of thing this token layer exists to prevent,
+   * and invisible to the hex ban because that rule watches `#rrggbb`, not
+   * `rgba()`.
+   *
+   * `--shadow` is a PAIRED token and must stay one: the template uses a light
+   * tint over a light surface and pure black over a dark one. A single value
+   * would be correct in one theme and invisible in the other. (D47)
+   */
+  --shadow: 0 10px 30px rgba(20, 20, 40, 0.08);
+  --radius-card: 14px;
+  --radius-control: 9px;
+
   /* Motion. AGENTS.md 3.2.7: <= 200ms, and reduced-motion respected. */
   --motion-fast: 120ms;
   --motion-base: 200ms;
@@ -42,6 +61,8 @@
   --text: #eef0f6;
   --muted: #9099ad;
   --border: #242938;
+  /* Paired with the light value above. See the note in :root. */
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 @theme inline {
