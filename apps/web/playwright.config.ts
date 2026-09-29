@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { WEB_PORT } from './web-port';
+import { WEB_PORT } from './src/lib/web-port';
 
 /**
  * Playwright. Configured at P2 so `pnpm test:e2e` is runnable and a real
@@ -14,7 +14,7 @@ import { WEB_PORT } from './web-port';
  * 1. The port comes from `WEB_PORT` and is never written out here. On
  *    2026-09-29 it was hard-coded in four places, an unrelated app answered
  *    the readiness probe on that port with a 307 and a 200, and all 11 tests
- *    ran against the wrong application. See `web-port.ts`.
+ *    ran against the wrong application. See `src/lib/web-port.ts`.
  *
  * 2. `reuseExistingServer: false`. This is the assertion that actually
  *    prevents the silent failure: with it true, the probe accepts whatever is

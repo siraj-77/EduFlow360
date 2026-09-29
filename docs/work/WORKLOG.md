@@ -5,6 +5,131 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 
 ---
+---
+
+## 2026-09-30 — G1-1: the test that guards the port incident now actually runs
+
+| Field      | Entry |
+| ---------- | ----- |
+| **Date**   | 2026-09-30 |
+| **Phase**  | `ACTION_PLAN` **EPIC-G1** · first story of the "make the gates honest" epic |
+| **Task**   | `G1-1` — close `AUD-30-01` (P0): `apps/web/web-port.spec.ts` matched neither of its package's `include` globs and had never executed. Also: push the 9 unpushed commits. |
+| **Agent**  | `opencode` / space-bunny-free |
+| **Status**  | ✅ Complete. Full TDD cycle: RED observed, GREEN verified, teeth proven by deliberate break, reverted, all gates green. |
+
+### Activity
+
+**Git first.** Pushed 9 commits — `951acec..930e087`, `main` in sync with `origin/main`. `HEAD` had been a **dangling RED**: `f67c8aa` committed a reproducer whose fix was never committed. That is now closed.
+
+**Port confirmed at 3500** before starting: `dev`, `start`, `web-port.ts`, `playwright.config.ts` via `WEB_PORT`, `main.ts` CORS, `.env.example`. The only surviving `3000` references are inside test assertions that guard it and in comments recording the incident — correct.
+
+#### RED — observed twice, by execution
+
+```console
+$ pnpm --filter @eduflow/web exec vitest run web-port.spec.ts
+No test files found, exiting with code 1
+
+$ pnpm --filter @eduflow/web test
+ Test Files  1 passed (1)
+      Tests  4 passed (4)          # exit 0 — green, while the test does not run
+```
+
+Named explicitly **and still refused**, because Vitest applies `include` as a filter to explicit arguments. The second command is the proof of silence: `1 passed (1)`, and that one file is `src/lib/rtl.spec.ts`. `web-port.spec.ts` appeared in no count anywhere.
+
+#### GREEN — three files, the minimum
+
+`AGENTS.md` §3: *"one test file per source file, colocated"*. Both files moved from the package root to `src/lib/`.
+
+- `playwright.config.ts` import → `./src/lib/web-port`
+- the spec's `dirname(import.meta.url)` — which resolved to the web package **only because the file sat at the root** — replaced with a walk up to the `@eduflow/web` manifest
+
+That last one is the part worth arguing for. A hard-coded `../../` would have been a **second thing that silently drifts when a file moves**, in a fix whose entire subject is *a test that quietly stops testing*. The test is now position-independent.
+
+```console
+$ pnpm --filter @eduflow/web test
+ Test Files  2 passed (2)
+      Tests  7 passed (7)          # the exact count G1-1's acceptance criteria predicted
+```
+
+#### Teeth proven — the production change this test exists to prevent
+
+- **Defect:** `"dev": "next dev --port 3500"` → `--port 3000`
+- **Observed:**
+  ```text
+   ❯ src/lib/web-port.spec.ts (3 tests | 1 failed) 11ms
+     → "dev" must use --port 3500: expected 'next dev --port 3000' to contain '--port 3500'
+   AssertionError: "dev" must use --port 3500: expected 'next dev --port 3000' to contain '--port 3500'
+   ❯ src/lib/web-port.spec.ts:60:68
+   Test Files  1 failed | 1 passed (2)
+        Tests  1 failed | 6 passed (7)
+  ```
+  exit **1**
+- **Reverted**, suite returned to `7 passed (7)`.
+
+**That is the whole point in one before/after:** the same defect produced silence before this change and a precise named failure after it.
+
+#### ⚠️ A footgun hit during this cycle
+
+The first break attempt used PowerShell `Set-Content -Encoding utf8`, which **writes a BOM**. The suite went red with exit 1 — for the *wrong* reason:
+
+```text
+[SyntaxError] Unexpected token '﻿', "﻿{
+```
+
+A parse error, not the port assertion, and per the TDD rule it does not count as valid RED: *"the failure is not caused only by unrelated syntax errors."* Restored from a byte-exact `Copy-Item` backup, asserted no BOM, and redone with a BOM-free write.
+
+**This is the second time a PowerShell BOM has been the actual cause of a failure in this project.** It is already a recorded footgun (`SSOT.md` §8) and it is why the restore path is `Copy-Item` plus an explicit BOM assertion rather than a rewrite. Cheap to state, expensive to rediscover.
+
+### Files changed
+
+| File | Change |
+| ---- | ------ |
+| `apps/web/web-port.ts` → `apps/web/src/lib/web-port.ts` | moved (`git mv`, rename preserved) |
+| `apps/web/web-port.spec.ts` → `apps/web/src/lib/web-port.spec.ts` | moved; `webPackageRoot()` walk-up replaces the root-relative path |
+| `apps/web/playwright.config.ts` | import path; one comment path |
+| `docs/core/SSOT.md` | `AUD-30-01` marked closed in §1b, §5.1 and §8; 3 stale path citations corrected |
+| `docs/work/TODO.md` | G1-1 checked with its evidence; G1-2 promoted as the class fix |
+| `docs/work/TDD_EVIDENCE_GATES.md` | G1-1 cycle recorded; `docs:verify` row marked observed; table 0/9 → 1/9 |
+
+### Side effect, not scope creep
+
+`apps/web/vitest.config.ts` declares a `src/lib/**/*.ts` coverage threshold. That glob previously matched only a spec file, so it was **inert** — part of `FIX-26`. With a real source file now in `src/lib/` it is **live**: `web/src/lib` reports **100% statements / branches / functions / lines**, `web-port.ts` 100%.
+
+A partial `FIX-26` win obtained by fixing the actual defect rather than by editing a config. `G1-6` finishes the job for `apps/api`, whose three tiers still match zero files.
+
+### A gate caught something, again
+
+`pnpm docs:verify` failed after the move — **3 broken references**, all `apps/web/web-port.spec.ts` citations in `SSOT.md`. It is the only gate in this repository that guards documentation, and it is also the cheapest. It caught a real drift on the same day it was measured green.
+
+### Quality
+
+| Check | Result |
+| ----- | ------ |
+| `pnpm test` | ✅ 0 — **106 tests** (103 → 106, the 3 recovered) |
+| `pnpm typecheck` | ✅ 0 |
+| `pnpm lint` | ✅ 0 |
+| `pnpm test:coverage` | ✅ 0 — one web tier now actually enforced |
+| `pnpm build` | ✅ 0 |
+| `pnpm test:integration` | ✅ 0 — still **hollow** (`AUD-30-02`, G1-3) |
+| `pnpm docs:verify` | ✅ 0 — 207/207 |
+| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, unchanged by this task |
+| TDD cycle | ✅ **Complete.** RED observed (twice, by execution) → minimal GREEN (3 files) → deliberate break produced a named `AssertionError` → reverted → all green |
+
+### Decisions
+
+| ID | Decision | Rationale |
+| -- | -------- | --------- |
+| **D41** | `web-port.spec.ts` moves **with** its source into `src/lib/`, rather than extending the `include` globs to cover the package root. | `AGENTS.md` §3 requires colocation, and a root `*.spec.ts` is exactly the shape that got orphaned. Widening `include` to `*.spec.ts` at the root would have left the trap armed for the next file. The move also makes the `src/lib/**` coverage tier live, which a glob edit would not. |
+| **D42** | The spec locates `@eduflow/web/package.json` by **walking up**, not by counting `../` hops. | It previously used `dirname(import.meta.url)`, which was correct only because the file sat at the root. Encoding the new location as `../../package.json` would introduce a second silent-drift hazard inside a fix about silent drift. This is the same walk-up pattern already used in `e2e-gate.spec.ts`, `coverage-gate.spec.ts` and `workspace-config.spec.ts`. |
+
+### Next steps
+
+1. **G1-2 — the test-file oracle.** G1-1 fixed one instance; G1-2 is what stops the class. It is now the highest-value remaining story in EPIC-G1.
+2. **G1-6** — `apps/api`'s three coverage tiers still match **zero** files, so the api half of the mandatory coverage gate remains decorative.
+3. **G1-3 / G1-4** — both are one-line changes against helpers that already exist and work (`isPassingStub()`, and the `not.toBe('')` floor nine lines above the assertion that needs one).
+
+---
+
 
 ## 2026-09-30 — Hollow-gate audit: a test that has never run, and a git state that was never true
 
