@@ -225,7 +225,7 @@ W7  G-6 G-2 G-3 G-4 G-5 G-7            34 pts   FIRST FEATURE SHIPPED
   - [ ] Add the toggle as a shadcn `Button` (depends on `B-1`)
   - [ ] `data-theme` set on `<html>` before first paint, honouring a saved choice then `prefers-color-scheme`
   - [ ] e2e: the toggle flips `data-theme`, the choice survives reload, and the dark token set resolves on the **rendered** document via `getComputedStyle`
-  - [ ] Verify all ten `AGENTS.md` §3.2.5 tokens differ between light and dark
+  - [x] ~~Verify all ten `AGENTS.md` §3.2.5 tokens differ between light and dark~~ → **AMENDED 2026-09-30: the six surface tokens differ; the five brand tokens are theme-independent by design.** The original wording was unsatisfiable _and_ contradicted an existing tested decision. `packages/ui-kit/src/index.spec.ts` already splits the palette deliberately: `SURFACE_TOKENS` (`--bg --surface --text --muted --border`, plus the paired `--shadow`) **must** differ per theme, and `BRAND_TOKENS` (`--brand --brand-2 --accent --danger --ok`) **must not** be overridden — asserted by _"brand tokens are theme-independent, as AGENTS.md §3.2.5 specifies"_. So the four tokens with no dark value are the _correct_ behaviour, not a defect. **Left as open:** whether the brand shades meet contrast against the near-black surface. That is a design judgement needing a real screen, it is deliberately unasserted, and it is `DSN-01`.
 - **Acceptance Criteria:**
   - Given `colorScheme: 'dark'` and no saved choice, when the page loads, then `document.documentElement.dataset.theme === 'dark'` and all ten tokens resolve to their dark values
   - Given a saved `light` choice with the OS set to dark, then the page renders light

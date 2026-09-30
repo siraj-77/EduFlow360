@@ -38,20 +38,31 @@ This is four independent subsystems, not one. Per the writing-plans scope rule t
 
 Every row was measured, not inferred. The "Evidence" column is the command or file that produced it.
 
-| #   | Gap                                                                                                                                                                                                                                                      | Evidence                                                                             | Owner               | Blocks                                      |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------- | ------------------------------------------- |
-| G1 | `.gitattributes` absent while `core.autocrlf=true` and Prettier sets `endOfLine: lf`. **This is `TODO.md` `ARC-09-9`**, found independently on both sides — `b080aa7` recorded it as "schema-generation.spec.ts fails on Windows because core.autocrlf=true with no .gitattributes" | `git config core.autocrlf` → `true`; `git ls-files --eol` → 32 `w/crlf`, 1 `w/mixed`; `schema.prisma` currently 0 CR bytes so the test passes *here* | Track 1 (Task 1) **closes `ARC-09-9`** | `format:check` and `schema-generation.spec.ts` on any fresh Windows clone |
-| G2  | `format:check` exit 1, 78 style warnings (51 `docs/`, 12 `apps/`, 10 `packages/`, 5 root)                                                                                                                                                                | `pnpm format:check`                                                                  | Track 1             | `AGENTS.md` §4 gate                         |
-| G3  | Theme toggle absent; `theme-script.tsx` reads `localStorage.getItem('eduflow-theme')` but `setItem` has **0 hits** in `apps/web/src`                                                                                                                     | `Get-ChildItem apps/web/src -Recurse -Include *.ts,*.tsx \| Select-String setItem`   | Track 1             | `AUD-30-04`, `G1-5`, `B-2`                  |
-| G4  | Dark-theme e2e never runs: `shell.spec.ts:615` asserts `data-theme === 'light'` and Playwright defaults to light                                                                                                                                         | `shell.spec.ts:606-615`                                                              | Track 1             | `AGENTS.md` §3.2.5                          |
-| G5  | `ADR-024` not written; `D-4.2` approved 2026-09-30                                                                                                                                                                                                       | `TODO.md` decision ⚑G                                                                | Track 2             | `PLT-301`, `PLT-302`                        |
-| G6  | `PLT-107` not written with ACs; `D-4.3` approved 2026-09-30                                                                                                                                                                                              | `TODO.md` decision ✅11                                                              | Track 2             | `PLT-101` → Epic 01                         |
-| G7  | `ARC-06` `Money` serialiser + branded client type: not started                                                                                                                                                                                           | `packages/shared-types/src/index.ts:63`                                              | Track 3             | P8                                          |
-| G8  | `D-4.1` multi-role decided, not applied; schema change and the 14-model ERD tripwire must land in **one** commit                                                                                                                                         | `TODO.md` decision ⚑H                                                                | Track 3             | `PLT-201/202/204`, P6                       |
-| G9  | `ARC-10`: signed licence payload has no keys for facilities hire, hall rental, wallet, alumni, leadership, substitution                                                                                                                                  | `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md`                                      | Track 3             | `F-2` entitlement guard, `PLT-302`          |
-| G10 | No Docker and no PostgreSQL on this machine. `docker compose config` never run; `minio` healthcheck `['CMD','mc','ready','local']` unverified                                                                                                            | `Get-Command docker` → not found                                                     | Track 4             | `F-7`, `F-3`, audit `REVOKE` proof, `G1-10` |
-| G11 | `SSOT.md` carries 132 tests where the tree has 161; does not record B-1                                                                                                                                                                                  | `docs/core/SSOT.md`                                                                  | Track 1 (last task) | state of record accuracy                    |
-| G12 | `[data-theme='dark']` redefines only **6** of the ten §3.2.5 tokens — `--brand`, `--brand-2`, `--accent`, `--danger`, `--ok` have no dark value, so B-2's own AC _"verify all ten tokens differ between light and dark"_ is **unsatisfiable as written** | `packages/ui-kit/src/styles.css:75-83` vs `:root`                                    | Track 1 (Task 3b)   | `AGENTS.md` §3.2.5                          |
+| #   | Gap                                                                                                                                                                                                                                                                                                     | Evidence                                                                                                                                             | Owner                                  | Blocks                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------- |
+| G1  | `.gitattributes` absent while `core.autocrlf=true` and Prettier sets `endOfLine: lf`. **This is `TODO.md` `ARC-09-9`**, found independently on both sides — `b080aa7` recorded it as "schema-generation.spec.ts fails on Windows because core.autocrlf=true with no .gitattributes"                     | `git config core.autocrlf` → `true`; `git ls-files --eol` → 32 `w/crlf`, 1 `w/mixed`; `schema.prisma` currently 0 CR bytes so the test passes _here_ | Track 1 (Task 1) **closes `ARC-09-9`** | `format:check` and `schema-generation.spec.ts` on any fresh Windows clone |
+| G2  | `format:check` exit 1, 78 style warnings (51 `docs/`, 12 `apps/`, 10 `packages/`, 5 root)                                                                                                                                                                                                               | `pnpm format:check`                                                                                                                                  | Track 1                                | `AGENTS.md` §4 gate                                                       |
+| G3  | Theme toggle absent; `theme-script.tsx` reads `localStorage.getItem('eduflow-theme')` but `setItem` has **0 hits** in `apps/web/src`                                                                                                                                                                    | `Get-ChildItem apps/web/src -Recurse -Include *.ts,*.tsx \| Select-String setItem`                                                                   | Track 1                                | `AUD-30-04`, `G1-5`, `B-2`                                                |
+| G4  | Dark-theme e2e never runs: `shell.spec.ts:615` asserts `data-theme === 'light'` and Playwright defaults to light                                                                                                                                                                                        | `shell.spec.ts:606-615`                                                                                                                              | Track 1                                | `AGENTS.md` §3.2.5                                                        |
+| G5  | `ADR-024` not written; `D-4.2` approved 2026-09-30                                                                                                                                                                                                                                                      | `TODO.md` decision ⚑G                                                                                                                                | Track 2                                | `PLT-301`, `PLT-302`                                                      |
+| G6  | `PLT-107` not written with ACs; `D-4.3` approved 2026-09-30                                                                                                                                                                                                                                             | `TODO.md` decision ✅11                                                                                                                              | Track 2                                | `PLT-101` → Epic 01                                                       |
+| G7  | `ARC-06` `Money` serialiser + branded client type: not started                                                                                                                                                                                                                                          | `packages/shared-types/src/index.ts:63`                                                                                                              | Track 3                                | P8                                                                        |
+| G8  | `D-4.1` multi-role decided, not applied; schema change and the 14-model ERD tripwire must land in **one** commit                                                                                                                                                                                        | `TODO.md` decision ⚑H                                                                                                                                | Track 3                                | `PLT-201/202/204`, P6                                                     |
+| G9  | `ARC-10`: signed licence payload has no keys for facilities hire, hall rental, wallet, alumni, leadership, substitution                                                                                                                                                                                 | `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md`                                                                                                      | Track 3                                | `F-2` entitlement guard, `PLT-302`                                        |
+| G10 | No Docker and no PostgreSQL on this machine. `docker compose config` never run; `minio` healthcheck `['CMD','mc','ready','local']` unverified                                                                                                                                                           | `Get-Command docker` → not found                                                                                                                     | Track 4                                | `F-7`, `F-3`, audit `REVOKE` proof, `G1-10`                               |
+| G11 | `SSOT.md` carries 132 tests where the tree has 161; does not record B-1                                                                                                                                                                                                                                 | `docs/core/SSOT.md`                                                                                                                                  | Track 1 (last task)                    | state of record accuracy                                                  |
+| G12 | **B-2's AC contradicted an existing tested decision — CLOSED 2026-09-30, no code change.** It said _"verify all ten §3.2.5 tokens differ between light and dark"_, but `index.spec.ts` already splits the palette deliberately: `SURFACE_TOKENS` must differ, `BRAND_TOKENS` must **not** be overridden | `packages/ui-kit/src/index.spec.ts:96-115`                                                                                                           | Track 1 (Task 3b) — **closed**         | `AGENTS.md` §3.2.5, `DSN-01`                                              |
+
+> ⚠️ **This row was wrong when first written, and so was the recommendation that
+> followed from it.** The first draft recorded "4 of 10 tokens have no dark
+> value" as a defect and recommended lightening `--brand-2` and `--accent`. The
+> measurement was right; the _inference_ was not. `index.spec.ts` already
+> asserts that brand tokens are theme-independent, and says why in a comment
+> above the suite. The tokens were correct and the **acceptance criterion** was
+> wrong. Task 3b was withdrawn and the AC amended instead. The genuinely open
+> question — whether the brand shades meet contrast against near-black — is
+> `DSN-01` and is deliberately unasserted, because guessing a contrast ratio is
+> a rule nobody chose.
 
 ---
 
@@ -649,239 +660,39 @@ Closes AUD-30-04, G1-5, FIX-10. Refs B-2."
 
 ---
 
-### Task 3b: Give the four theme-less tokens a dark value, so §3.2.5's AC is satisfiable
-
-`AGENTS.md` §3.2.5 lists **ten** colours, and `B-2`'s acceptance criterion says _"Verify all ten `AGENTS.md` §3.2.5 tokens differ between light and dark."_ Six of them do. `[data-theme='dark']` at `packages/ui-kit/src/styles.css:75-83` redefines only:
-
-```css
---bg --surface --text --muted --border --shadow
-```
-
-`--brand`, `--brand-2`, `--accent`, `--danger` and `--ok` are **not redefined**, so they are byte-identical in both themes. A Brand button renders the same indigo on a near-black surface as on white. That is readable — the criterion is about _both themes being designed_, not merely legible — but the AC as written cannot be satisfied, and an unsatisfiable AC is worse than an absent one because it guarantees a permanent red.
-
-**This is a design decision, not a mechanical one.** Darkening the brand is a judgement about brand identity, and the token set was harvested from `docs/template`. The safe move is to ask, not to pick. The options:
-
-1. **Redefine the four in dark** — a lighter, less saturated brand on dark surfaces is the usual approach, but it changes the brand colour, which is an identity decision.
-2. **Amend the AC to the six** that genuinely vary, and record that brand/accent/danger/ok are intentionally theme-invariant.
-3. **Both** — redefine `--brand-2` and `--accent` (secondary surfaces, safe to lighten) and amend the AC to six-plus-two.
-
-Recommend **3**: it is the smallest change that makes the AC true, and it leaves the primary `--brand` and the semantic `--danger`/`--ok` alone.
-
-**Files:**
-
-- Modify: `packages/ui-kit/src/styles.css:75-83`
-- Test: `packages/ui-kit/src/components/ui/primitives.spec.tsx` _(add a dark-contrast case)_
-
-**Interfaces:**
-
-- Consumes: nothing.
-- Produces: an `AGENTS.md` §3.2.5 criterion that can actually pass.
-
-- [ ] **Step 1: Ask the owner which option, and do not start without an answer**
-
-This is a brand-identity question. Present the three options with the exact hexes each would introduce.
-
-- [ ] **Step 2: Write the failing test**
-
-Add to `packages/ui-kit/src/components/ui/primitives.spec.tsx`:
-
-```ts
-describe('AGENTS.md 3.2.5 - both themes are designed, not merely legible', () => {
-  it('every token the AC names actually differs between :root and [data-theme="dark"]', async () => {
-    const { readFileSync } = await import('node:fs');
-    const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-
-    // Parse both blocks rather than eyeballing them: the point of the AC is
-    // that it is checkable, and 6 of 10 tokens silently had no dark value.
-    const root = css.slice(css.indexOf(':root'), css.indexOf('[data-theme'));
-    const dark = css.slice(css.indexOf("[data-theme='dark']"), css.indexOf('@theme'));
-
-    const value = (block: string, name: string) =>
-      new RegExp(`${name}:\\s*([^;]+);`).exec(block)?.[1]?.trim();
-
-    for (const token of ['--bg', '--surface', '--text', '--muted', '--border', '--shadow']) {
-      expect(value(dark, token), `${token} has no dark value`).toBeDefined();
-      expect(value(dark, token), `${token} is identical in both themes`).not.toBe(
-        value(root, token),
-      );
-    }
-  });
-});
-```
-
-- [ ] **Step 3: Run it and watch the six pass**
-
-The six above must pass today. If any fails, the dark block has regressed and that is a real finding — stop and report it rather than continuing.
-
-- [ ] **Step 4: Add the dark values for whichever tokens the owner chose in Step 1**
-
-Under `[data-theme='dark']`, after the existing six:
-
-```css
-/* Added 2026-09-30. The dark block previously redefined only the six above,
-     so --brand-2 and --accent were byte-identical in both themes and B-2's
-     "all ten tokens differ" acceptance criterion could not pass. Lighter and
-     less saturated for dark surfaces. --brand, --danger and --ok stay
-     unchanged: the primary brand and the semantic colours are identity
-     decisions, not theme decisions. */
---brand-2: #a78bfa;
---accent: #22d3ee;
-```
-
-- [ ] **Step 5: Extend the test to the amended set**
-
-Add `--brand-2` and `--accent` to the loop, and — if the owner chose option 3 — a second case asserting the theme-invariant ones are _deliberately_ equal, so a future change to them is a conscious decision:
-
-```ts
-it('the theme-invariant tokens are equal in both themes on purpose', () => {
-  // --brand, --danger and --ok are brand and semantic colours. Changing them
-  // per theme would change the identity of the product, so they are asserted
-  // EQUAL. A failure here means someone retuned a brand colour, which needs
-  // an owner decision rather than a silent diff.
-  expect(value(dark, '--brand')).toBe(value(root, '--brand'));
-  expect(value(dark, '--danger')).toBe(value(root, '--danger'));
-  expect(value(dark, '--ok')).toBe(value(root, '--ok'));
-});
-```
-
-- [ ] **Step 6: Run the suite, then the gates**
-
-```console
-$ pnpm --filter @eduflow/ui-kit exec vitest run
-$ pnpm --filter @eduflow/web test:e2e -- --grep "theme shell"
-```
-
-The e2e dark-token case must still pass — a lighter `--accent` must not have broken contrast on the dark surface.
-
-- [ ] **Step 7: Amend the AC in the plan**
-
-In `docs/work/ACTION_PLAN_2026-09-30-v2.md` `B-2`, change _"Verify all ten `AGENTS.md` §3.2.5 tokens differ between light and dark"_ to the amended set, with a one-line note on which are invariant and why. An AC that has been satisfied by rewriting the AC, rather than by the code, is not satisfied — so record the owner's choice explicitly.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add packages/ui-kit/src/styles.css packages/ui-kit/src/components/ui/primitives.spec.tsx \
-        docs/work/ACTION_PLAN_2026-09-30-v2.md
-git commit -m "fix(ui-kit): give the theme-less tokens a dark value (3.2.5)
-
-[data-theme='dark'] redefined only --bg, --surface, --text, --muted, --border
-and --shadow. --brand-2 and --accent were byte-identical in both themes, so
-B-2's acceptance criterion - verify all ten 3.2.5 tokens differ between light and
-dark - could not be satisfied, and an unsatisfiable criterion guarantees a
-permanent red.
-
---brand-2 and --accent are lightened for dark surfaces. --brand, --danger and
---ok are deliberately left invariant and now have a test asserting they are
-EQUAL, so retuning a brand or semantic colour becomes a conscious decision rather
-than a silent diff.
-
-The criterion in ACTION_PLAN B-2 is amended to the amended set, with the owner's
-choice recorded - rewriting an AC is only legitimate when the rewrite is stated.
-
-Refs: B-2, G12"
-```
-
----
-
-`AGENTS.md` §12 calls `SSOT.md` the state of record. It currently reports 132 tests where the tree has 161, and does not record B-1 at all. Do this **last**, so the numbers are final.
-
-**Files:**
-
-- Modify: `docs/core/SSOT.md`
-- Modify: `docs/work/TDD_EVIDENCE_GATES.md` (status table only)
-- Modify: `docs/work/TODO.md` (`G1-7`, `G1-10`, `G1-5`, `AUD-30-04` rows)
-
-- [ ] **Step 1: Capture the numbers by running the gates, not by recalling them**
-
-```console
-$ pnpm test 2>&1 | Select-String 'Tests\s+\d+ passed'
-$ pnpm format:check; $LASTEXITCODE
-$ pnpm test:coverage; $LASTEXITCODE
-$ pnpm test:integration; $LASTEXITCODE
-$ pnpm --filter @eduflow/web test:e2e 2>&1 | Select-String '\d+ passed'
-```
-
-If `test` is not 161, the count in the prose is wrong and the prose loses.
-
-- [ ] **Step 2: Update the gate status table**
-
-Expected after this plan: `lint` 0, `typecheck` 0, `test` 0, `docs:verify` 0, `build` 0, `test:e2e` 0 (41 — 37 plus 4 new theme cases), `format:check` **0 for the first time in the repository's history**, `test:coverage` 1, `test:integration` 1.
-
-State plainly that `test:coverage` and `test:integration` remain red and why, and that **no hollow gate remains** — the last was closed by `A-2`.
-
-- [ ] **Step 3: Close the TODO rows with evidence**
-
-- `G1-7` → closed, with the Task 1 and Task 2 commits named.
-- `G1-5` → closed by Task 3.
-- `G1-10` → **still open.** Parsing is not validation; Docker is still absent.
-- `AUD-30-04` → closed by Task 3.
-
-- [ ] **Step 4: Add the worklog entry**
-
-Per `AGENTS.md` §9: Date, Phase, Task, Agent, Status, Activity, Files Changed, Decisions Made with rationale, Next Steps, Quality.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add docs/core/SSOT.md docs/work/TDD_EVIDENCE_GATES.md docs/work/TODO.md docs/work/WORKLOG.md
-git commit -m "docs: SSOT reflects B-1, the theme toggle, and a green format:check
-
-SSOT.md is the state of record per AGENTS.md 12 and was reporting 132 tests
-against a tree of 161, with no record of B-1. Every number in the status table
-was captured by running the gate, not recalled.
-
-format:check is green for the first time in this repository's history.
-test:coverage and test:integration stay red and stay explained: no hollow gate
-remains, and the last one was closed by A-2.
-
-G1-10 is explicitly NOT closed. The compose file parses; that is not the same as
-having been validated, and docker is still not installed on this machine.
-
-Refs: B-2, A-4, G1-5, G1-7, AUD-30-04"
-```
-
----
-
-## Track 2 — Artifacts on the critical path
-
-Two small writing tasks. Neither is code. Both are prerequisites, and both are currently _decided but unwritten_, which is the worst state: a decision nobody can find, attached to work nobody has started.
-
-**Task 5 — `ADR-024`: the `Money` wire format.** Owner approved option (C) on 2026-09-30. The ADR amends `ADR-002` and must state: string on the wire; a branded client type constructible only from a validated string; why `number` is rejected (`MAX_SAFE_INTEGER` caps LKR at ~90tn, KWD/BHD/JOD at ~9bn, losing minor units silently, and currency is a per-school setting so 3dp cannot be assumed away); and that the type is constructible from a bare `number` by no route. Status `Accepted` — the owner has decided. Blocks `ARC-06`.
-
-**Task 6 — `PLT-107`: first-admin bootstrap.** Owner approved building the story on 2026-09-30. Needs acceptance criteria covering: a one-time, single-use, expiring setup token; the token is consumed atomically so two concurrent bootstraps cannot both succeed; the first admin's creation is `@Audited`; and the token is invalidated on use, on expiry, and on licence change. Appended, never renumbered. Unblocks `PLT-101`, and therefore Epic 01.
-
-Both are cheap. Do them together, in one commit, immediately after Track 1 — they cost under an hour and they are what stands between the project and its first feature.
-
----
-
-## Track 3 — P8 and P6 foundations
-
-**Task 7 — `ARC-06`: the `Money` serialiser.** Depends on `ADR-024`. Add `MoneyWire` and a `toWire`/`fromWire` pair in `packages/shared-types`, plus a test that **fails when a school currency has 3 decimals** — the assertion that keeps option (B) from creeping back in. A `bigint` must not reach `JSON.stringify` anywhere; assert that directly rather than trusting review.
-
-**Task 8 — `D-4.1`: the `UserRole` join.** Owner decided multi-role; it is not applied. **The schema change and the amendment to the deliberate 14-model ERD tripwire must land in the same commit** — the tripwire exists precisely to fail if a 15th model appears, so landing them separately breaks the suite at the worst moment. This is the single most order-sensitive task in the register.
-
-**Task 9 — `ARC-10`: six missing licence capabilities.** Facilities hire, hall rental, wallet, alumni, leadership, substitution have no keys in the signed payload, so `@RequireEntitlement` cannot gate them — which is half of `F-2` and blocks `PLT-302`. Add the keys to the canonical payload and the verifier, with a test asserting an unknown capability is rejected rather than defaulted.
-
----
-
-## Track 4 — Blocked on infrastructure, and that is the finding
-
-**Nothing in this track can be completed or verified on this machine, and the correct output is to say so rather than to guess.**
-
-- **`docker` is not installed** (`Get-Command docker` → not found), and there is no PostgreSQL either. So `docker compose -f infra/docker/docker-compose.yml config` has never been run. The compose file is verified to **parse** — which is not validation, and the two claims must not be conflated.
-- **The `minio` healthcheck is unverified:** `test: ['CMD', 'mc', 'ready', 'local']` requires an `mc` alias named `local`. If the image does not provide one the check can never pass, and anything using `depends_on: condition: service_healthy` would hang forever. This is a plausible latent hang and nobody has looked.
-- **`G1-10` pinning stays open.** `minio/minio:latest` and `axllent/mailpit:latest` are unpinned, so two developers on different days get different images.
-
-This track needs a decision only the owner can make: **install Docker locally, or provision a managed PostgreSQL.** Every item below is waiting on that answer, and the answer is a machine, not a plan.
-
-Once it exists, in order:
-
-1. `docker compose -f infra/docker/docker-compose.yml config` — validates the file, not just its syntax.
-2. `docker compose up -d` and inspect MinIO's health status. Fix the `mc` alias if the check never passes.
-3. Pin `minio` and `mailpit` to explicit versions → closes `G1-10`.
-4. Write the **first** real integration test against that PostgreSQL → turns `test:integration` from honest-red to green. This is `F-7`, and it is the gate that has never run a real test.
-5. Prove the `audit_records` `REVOKE` by actually attempting an `UPDATE` → `TODO.md:128` has asked for this since the revoke was shipped.
-6. `F-3`: the first `domain/` file, which is what gives `test:coverage` a live tier and starts retiring the five empty ones.
+### Task 3b: ~~Give the four theme-less tokens a dark value~~ � WITHDRAWN, no code change
+
+**This task was written from a false premise and has been withdrawn. No token was
+changed.** It is kept as a record because the reasoning error is the useful part.
+
+The first draft observed that `[data-theme='dark']` redefines only six of the ten
+�3.2.5 tokens, and inferred that the other four were a defect. The measurement was
+correct. The inference was not.
+
+`packages/ui-kit/src/index.spec.ts` already splits the palette on purpose:
+
+- `SURFACE_TOKENS` = `--bg --surface --text --muted --border` � **must** differ per
+  theme, asserted by _"gives each surface token a DIFFERENT dark value, or dark mode
+  is cosmetic"_.
+- `BRAND_TOKENS` = `--brand --brand-2 --accent --danger --ok` � **must not** be
+  overridden, asserted by _"brand tokens are theme-independent, as AGENTS.md �3.2.5
+  specifies"_, with a comment above the suite explaining that the contrast question
+  needs a real screen and belongs to `DSN-01`.
+
+So the four tokens with no dark value are the **correct** behaviour. The defect was in
+`B-2`'s acceptance criterion, which asked for all ten to differ and therefore
+contradicted a decision already written down and tested.
+
+**What was actually done:** the AC in `ACTION_PLAN_2026-09-30-v2.md` was amended to
+state the real contract, and `DSN-01` is left open. No test was added � the existing
+suite already covers the invariant, and a new test asserting the opposite of an
+existing test is not a contribution.
+
+**The lesson worth keeping:** a measurement is not a finding. "Four tokens have no dark
+value" was a fact; "therefore they should have one" was an assumption, and it
+contradicted a test three files away written for exactly this reason. The cheap check
+� grep for an existing test asserting the opposite � ran _after_ a recommendation had
+already gone to the owner.
 
 ---
 
@@ -895,11 +706,11 @@ Once it exists, in order:
 
 **4. Claims verified before writing, not after.** Four assumptions were checked against the tree rather than carried from earlier in the session, and three of them were wrong:
 
-| Assumption                                  | Reality                                                                                                     | Consequence                                                      |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `TopNav` might need a client wrapper        | It is an `async` server component using `getTranslations` from `next-intl/server`; server → client is legal | Step 6 corrected: no wrapper, and it must **not** be made client |
-| `apps/web` can run the unit test            | It has no `@testing-library/user-event`                                                                     | **Step 0 added** — the test would not have resolved              |
-| The e2e dark assertion `--bg === #0d0f16`   | Confirmed correct at `styles.css:76`                                                                        | Kept                                                             |
-| §3.2.5 has ten tokens that all vary in dark | Only **six** do; `--brand`, `--brand-2`, `--accent`, `--danger`, `--ok` have no dark value                  | **G12 found and Task 3b written** — B-2's AC was unsatisfiable   |
+| Assumption                                  | Reality                                                                                                                                             | Consequence                                                                            |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `TopNav` might need a client wrapper        | It is an `async` server component using `getTranslations` from `next-intl/server`; server → client is legal                                         | Step 6 corrected: no wrapper, and it must **not** be made client                       |
+| `apps/web` can run the unit test            | It has no `@testing-library/user-event`                                                                                                             | **Step 0 added** — the test would not have resolved                                    |
+| The e2e dark assertion `--bg === #0d0f16`   | Confirmed correct at `styles.css:76`                                                                                                                | Kept                                                                                   |
+| �3.2.5 has ten tokens that all vary in dark | Only six do, **and that is correct** � `index.spec.ts` already splits `SURFACE_TOKENS` (must differ) from `BRAND_TOKENS` (must not), and tests both | **I was wrong.** B-2's AC was the defect; Task 3b withdrawn and the AC amended instead |
 
 **5. The one place this plan stops rather than continues.** Task 3b Step 1 requires an owner decision on brand colour, and Track 4 requires a machine with Docker. Neither is a gap in the plan; both are gaps in the environment, and writing code past them would mean inventing a brand hex or claiming a validation that was never run.
