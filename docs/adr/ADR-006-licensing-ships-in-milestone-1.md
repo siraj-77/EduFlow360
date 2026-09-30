@@ -1,6 +1,6 @@
 # ADR-006 — Licensing Ships in Milestone 1
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (`AGENTS.md` §7 states the decision was taken 2026-09-27, D4)
 **Affects:** `AGENTS.md` §7, §2.3 · `PLT-EPIC-03` (`PLT-301`…`PLT-305`) · `PLT-602`, `PLT-901`

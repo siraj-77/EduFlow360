@@ -1,6 +1,6 @@
 # ADR-014 — Email Delivery Behind `INotificationChannelAdapter` (SMTP, Mailpit in Dev)
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-H)
 **Affects:** `PLT-105`, `PLT-702` · `AGENTS.md` §2.2

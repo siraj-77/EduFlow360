@@ -1,6 +1,6 @@
 # ADR-011 — Instance Fingerprint: Stable Install ID, Not MAC Address
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-E)
 **Affects:** `PLT-303`, `PLT-304` · `AGENTS.md` §2.1

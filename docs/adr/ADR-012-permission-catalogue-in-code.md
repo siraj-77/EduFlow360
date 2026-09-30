@@ -1,6 +1,6 @@
 # ADR-012 — Permission Catalogue Declared in Code, Synced to the Database
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-F)
 **Affects:** `PLT-201`, `PLT-202`, `PLT-205` · `AGENTS.md` §2.3

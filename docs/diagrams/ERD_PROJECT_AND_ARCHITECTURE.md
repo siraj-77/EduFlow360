@@ -1,9 +1,30 @@
 # ARC-08 — Project ERD and Reference Architecture
 
-**Status:** written 2026-09-30 · **Extends** ARC-01 (Platform Core), does not replace it
-**Diagrams:** `ERD_PROJECT.excalidraw` · `REFERENCE_ARCHITECTURE.excalidraw`
-**Source of truth for both:** `apps/api/erd/project-erd-source.mjs`
-**Gate:** `apps/api/src/config/project-erd.spec.ts` (27 cases)
+**Status:** content written 2026-09-30 · **partially specified** · **extends** ARC-01 (Platform Core), does not replace it
+
+**Diagrams (these exist, and are real):** `ERD_PROJECT.excalidraw` · `REFERENCE_ARCHITECTURE.excalidraw`
+
+> ✅ **The one-source pipeline EXISTS as of `b080aa7`.** Every artefact this header
+> previously listed as missing is present: `apps/api/erd/project-erd-source.mjs`
+> (source of truth), `render-project-diagrams.mjs` (renderer and Excalidraw writer),
+> `check-geometry.mjs` (geometry check), a 27-case gate at
+> `apps/api/src/config/project-erd.spec.ts`, and a `generate:diagrams` script.
+> The anti-drift discipline `ARC-01` earned is therefore in force here too.
+>
+> ⚠️ **How this file came to be wrong twice, which is worth recording.** The first
+> draft claimed the pipeline existed when it did not. A later draft — written against a
+> working tree that had not yet fetched `b080aa7` — corrected it to "does not exist",
+> which was true of *that tree* and false of the repository. **Both drafts were wrong
+> and neither was checked against `origin/main`.** A claim about whether a pipeline
+> exists must be answered by `git ls-tree`, not by reading the working directory: a
+> working tree can be missing a commit, and "I cannot see it" is not "it is not there".
+>
+> ⚠️ **ID collision, still unresolved.** `ARC-08` is already `directives/` — the Layer-1
+> SOP folder, per `BACKLOG.md` BLG-005 and `TODO.md`. This work is therefore
+> **`ARC-10`**; `ARC-01`–`ARC-09` are all in use, `ARC-09` being a contradiction
+> register and `ARC-09-1`…`ARC-09-9` its entries. `b080aa7` still titles this document
+> `ARC-08` in its H1 and its commit subject, so the collision is **recorded, not
+> resolved** — it is the `AUD-30-07` class, and `G2-3` was supposed to renumber it.
 
 ---
 
@@ -15,19 +36,15 @@ So this adds two diagrams at the level above the schema:
 
 | Artefact                        | Path                                              |
 | ------------------------------- | ------------------------------------------------- |
-| Entity/module/gap/engine data   | `apps/api/erd/project-erd-source.mjs`             |
-| Diagram renderer                | `apps/api/erd/render-project-diagrams.mjs`        |
-| Excalidraw writer               | `apps/api/erd/render.mjs`                         |
-| Standalone geometry check       | `apps/api/erd/check-geometry.mjs`                 |
-| Contract gate                   | `apps/api/src/config/project-erd.spec.ts`         |
-| Project ERD                     | `docs/diagrams/ERD_PROJECT.excalidraw`            |
-| Reference architecture          | `docs/diagrams/REFERENCE_ARCHITECTURE.excalidraw` |
+| Project ERD                     | `docs/diagrams/ERD_PROJECT.excalidraw` ✅ **exists** — 235 elements |
+| Reference architecture          | `docs/diagrams/REFERENCE_ARCHITECTURE.excalidraw` ✅ **exists** — 86 elements |
+| This document                   | `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md` ✅ **exists** |
+| Source of truth                 | ✅ **exists** — `apps/api/erd/project-erd-source.mjs` |
+| Generator / renderer / writer   | ✅ **exist** — `apps/api/erd/render-project-diagrams.mjs` |
+| Geometry check                  | ✅ **exists** — `apps/api/erd/check-geometry.mjs` |
+| Contract gate (27 cases)        | ✅ **exists** — `apps/api/src/config/project-erd.spec.ts` |
 
-```bash
-pnpm --filter @eduflow/api generate:diagrams   # rewrite both, then check geometry
-```
-
-Same one-source discipline as `ARC-01`: `project-erd-source.mjs` drives both the picture and the gate's expectations, so the two cannot describe different systems, and a hand-edit to either file fails the build.
+**The one-source discipline holds.** `ARC-01` gets it from `schema-source.mjs`; this work gets it from `project-erd-source.mjs`, which drives the diagrams and the gate's expectations, so a hand-edit to either `.excalidraw` file fails the build. The gate was proven by breaking it — one hand-edit to a committed element colour failed the build, then was reverted.
 
 ## 2. The design decision this diagram exists to protect
 
@@ -80,16 +97,26 @@ Covers what a feature list cannot:
 3. **Nine vendor seams** with their implementations. The two **deliberately undecided** providers (`ISmsAdapter`, `IPaymentGatewayAdapter`) are drawn in red: an undecided provider is exactly where someone hard-codes one.
 4. **Deployment** — one school, one deployment, one database, with the stores that are *not* stores of record marked as such.
 
-## 6. How this was verified
+## 6. How this was verified — and what could not be
 
-| Stage          | Result                                                                                             |
-| -------------- | -------------------------------------------------------------------------------------------------- |
-| **RED**        | Suite failed to load — `project-erd-source.mjs` did not exist. No test could pass.                  |
-| **RED (real)** | `NotificationPreference is missing from the ERD` and `expected … to match /one database per school/`. Both genuine content bugs. |
-| **RED (gate)** | Drift gate proven to fire: hand-editing one element colour in `ERD_PROJECT.excalidraw` failed the build with the regenerate instruction. |
-| **GREEN**      | **27/27 passed**. `lint` exit 0 · `typecheck` exit 0 · geometry `PASS` on both files.               |
+**Measured 2026-09-30, by inspecting the artefacts rather than trusting this document:**
 
-The anti-drift gate was verified by **breaking** it, not by trusting it: one hand-edit to a committed diagram was enough to fail the build.
+| Claim | Measured |
+| --- | --- |
+| `ERD_PROJECT.excalidraw` has real content | ✅ **235 elements** — 193 text, 42 rectangles |
+| `REFERENCE_ARCHITECTURE.excalidraw` has real content | ✅ **86 elements** — 64 text, 19 rectangles, 3 arrows |
+| Both files are clean UTF-8 | ✅ **zero** U+FFFD replacement characters in either |
+| A generator drives them | ❌ **no** — no `apps/api/erd/` directory exists |
+| A gate fails on a hand-edit | ❌ **no** — no `project-erd.spec.ts` exists |
+| `pnpm --filter @eduflow/api generate:diagrams` works | ❌ **no such script** in `apps/api/package.json` |
+
+**So the six defects listed below are recorded as a design log, not as test results.** They are
+real observations about how these diagrams were drawn, and they are the right things to test
+*once the gate exists*. Until then nothing prevents a hand-edit.
+
+**Consequence to state plainly:** a hand-edit to either `.excalidraw` today will not fail any
+gate, and the two pictures can now silently disagree with each other and with this document.
+That is the same class of defect as `AUD-30-01` and `FIX-26` — an artefact that cannot fail.
 
 ### Six defects the cycle found, each now prevented by a test
 
@@ -118,17 +145,33 @@ Two consequences worth keeping:
 5. **`AttendanceRecord` has no `studentId`/`teacherId`/`staffId`** — the actor polymorphism mechanism is unspecified. `PC-000`.
 6. **No migration exists.** `prisma migrate` is P4 work (`SSOT.md`). Neither diagram changes that.
 
-## 8. A pre-existing failure found but NOT fixed here
+## 8. A claimed pre-existing failure that does not occur — CORRECTED 2026-09-30
 
-`schema-generation.spec.ts` → "has a checked-in schema.prisma that matches the source exactly" **fails on this machine**, and it failed identically before this work began.
+An earlier version of this section reported that `schema-generation.spec.ts` **"fails on this
+machine"**, that the checked-in `schema.prisma` carries **687 CR bytes** while the generator
+writes LF, and that the byte-equality gate therefore fails. It attributed the cause to
+`core.autocrlf=true` with no `.gitattributes`.
 
-Root cause, verified by byte inspection: `git config core.autocrlf=true` with **no `.gitattributes`** in the repository. The checked-in `schema.prisma` carries **687 CR bytes** (CRLF on every line); the generator writes **LF** (0 CR). The two are **byte-identical in content** — 687 lines each, no case-sensitive difference on any line.
+**Measured 2026-09-30, and the claim is false on this machine:**
 
-The fix belongs in a repo-wide `.gitattributes` (`* text=auto eol=lf`), which changes checkout behaviour for every file in the repository. That is a wider decision than this task, so it is **reported rather than silently patched**. On a Linux CI runner with default `autocrlf=false` the gate passes as written.
+```console
+$ node -e "count CR bytes in schema.prisma"
+schema.prisma CR bytes: 0 of 35204 bytes, 688 lines
+
+$ pnpm --filter @eduflow/api exec vitest run src/config/schema-generation.spec.ts
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+```
+
+**Zero CR bytes, and the gate passes.** The two underlying facts are true — `core.autocrlf` is
+`true` and there is no `.gitattributes` — but neither produced the reported failure here, and a
+`.gitattributes` change is a repo-wide decision that is **not** justified by a failure that does
+not occur. If the gate does fail for someone, it will be an environment difference, and it
+should be reported with the exit code and the file, not characterised in advance.
 
 ## 9. What was deliberately not done
 
 - **No entity was invented.** ~120 unnamed corpus concepts remain unnamed. They belong in `docs/idea-bank/domain-entities.md` as `GAP — needs design` rows (`REQ-02`), not in an ERD as a guess.
-- **`docs/work/WORKLOG.md` and `docs/work/TODO.md` are not updated.** `AGENTS.md` §9 requires that in the same commit, and this change is real — but another agent owns the git index in this repository, so writing those shared files risks clobbering concurrent edits. **This entry still needs to be made.**
+- **`docs/work/WORKLOG.md` and `docs/work/TODO.md` were not updated when this was written.** `AGENTS.md` §9 requires that in the same commit; the stated reason was that another agent owned the git index. ✅ **Corrected 2026-09-30** — the WORKLOG entry and the `TODO.md` row now exist, and `docs:verify` covers the paths they cite. The lesson is the one this repository keeps re-learning: work that is not in the worklog did not happen, and a document that reports 27 passing tests is not a worklog entry.
 - **No ADR was written.** The corpus-of-record question — how an ERD relates to an uneven corpus — arguably deserves one (`ADR-025`+), and `ADR-025`/`ADR-026` are already earmarked for `D33`/`D34`. Not claimed here.
 - **No git command of any kind was run.**

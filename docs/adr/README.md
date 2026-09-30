@@ -8,27 +8,27 @@
 
 | ADR                                                              | Title                                                                                | Source                    | Status                                                  |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------------------- |
-| [ADR-001](ADR-001-monorepo-toolchain.md)                         | Monorepo with pnpm workspaces and Turborepo                                          | `SRS` §15/§17             | 🟡 Proposed                                             |
-| [ADR-002](ADR-002-money-as-integer-minor-units.md)               | Money as integer minor units, scale per school                                       | `AGENTS.md` §2.5          | 🟡 Proposed                                             |
-| **[ADR-003](ADR-003-new-app-single-tenant-selective-reuse.md)**  | **New application, single-tenant, selective legacy reuse**                           | `AGENTS.md` §1, §2.1, §5  | ⚠️ **RECONSTRUCTED — needs sign-off**                   |
-| [ADR-004](ADR-004-time-via-injected-clock.md)                    | Time via an injected `IClock`                                                        | `AGENTS.md` §2.4          | 🟡 Proposed                                             |
-| [ADR-005](ADR-005-mobile-is-milestone-2.md)                      | `apps/mobile` is milestone 2                                                         | `AGENTS.md` §7 (D5)       | ⚠️ **CONFLICTS with `SRS` §19**                         |
-| [ADR-006](ADR-006-licensing-ships-in-milestone-1.md)             | Licensing ships in milestone 1                                                       | `AGENTS.md` §7 (D4)       | 🟡 Proposed                                             |
-| [ADR-007](ADR-007-password-hashing-argon2id.md)                  | Password hashing: argon2id behind `IPasswordHasher`                                  | Prompt Pack D-A           | 🟡 Proposed                                             |
-| [ADR-008](ADR-008-token-strategy-jwt-refresh-rotation.md)        | Token strategy: short-lived access JWT, rotating refresh with family reuse detection | Prompt Pack D-B           | 🟡 Proposed                                             |
-| [ADR-009](ADR-009-licence-signature-ecdsa-canonical-json.md)     | Licence signature: ECDSA P-256 over **canonical JSON**                               | Prompt Pack D-C           | 🟡 Proposed                                             |
-| [ADR-010](ADR-010-activation-server-external-boundary.md)        | Activation server is an **external vendor service**                                  | Prompt Pack D-D           | 🟡 Proposed · **answers ⚑6**                            |
-| [ADR-011](ADR-011-instance-fingerprint-install-id.md)            | Instance fingerprint: stable install ID, **not MAC**                                 | Prompt Pack D-E           | 🟡 Proposed                                             |
-| [ADR-012](ADR-012-permission-catalogue-in-code.md)               | Permission catalogue declared **in code**                                            | Prompt Pack D-F           | 🟡 Proposed                                             |
-| [ADR-013](ADR-013-audit-durability-same-transaction.md)          | **Audit durability: same-transaction write**                                         | Prompt Pack D-G           | 🟡 Proposed · **resolves conflict C1**                  |
-| [ADR-014](ADR-014-email-adapter-smtp.md)                         | Email behind `INotificationChannelAdapter` (SMTP, Mailpit in dev)                    | Prompt Pack D-H           | 🟡 Proposed                                             |
-| [ADR-015](ADR-015-object-storage-minio-s3.md)                    | Object storage: S3-compatible behind `IStorageAdapter`, MinIO in dev                 | Prompt Pack D-I           | 🟡 Proposed                                             |
-| [ADR-016](ADR-016-metrics-prometheus.md)                         | Metrics in Prometheus exposition format                                              | Prompt Pack D-J           | 🟡 Proposed                                             |
-| [ADR-017](ADR-017-deviations-from-jira-sprint-order.md)          | **Documented deviations from the Jira sprint order** (4 pull-forwards)               | Prompt Pack §2.2          | 🟡 Proposed                                             |
-| [ADR-018](ADR-018-public-route-escape-hatch.md)                  | `@Public('<reason>')` is the only route exemption, and it is allowlisted             | Prompt Pack §P3.2/§P4.7   | 🟡 Proposed                                             |
-| [ADR-019](ADR-019-docker-optional-persistence-disabled-state.md) | **Docker is optional: an explicit `persistence: 'disabled'` boot state**             | Owner decision 2026-09-28 | 🟡 Proposed · **deviates from Prompt Pack §1.1**        |
-| [ADR-020](ADR-020-test-runner-is-vitest.md)                      | **The test runner is Vitest, not Jest**                                              | Audit FIX-14 (D27)        | 🟡 Proposed · ⚠️ **`AGENTS.md` §3.1 amendment BLOCKED** |
-| [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md)          | **`next-intl` is the web i18n library**                                              | Audit DOC-05 (D29)        | 🟡 Proposed                                             |
+| [ADR-001](ADR-001-monorepo-toolchain.md)                         | Monorepo with pnpm workspaces and Turborepo                                          | `SRS` §15/§17             | ✅ Accepted                                             |
+| [ADR-002](ADR-002-money-as-integer-minor-units.md)               | Money as integer minor units, scale per school                                       | `AGENTS.md` §2.5          | ✅ Accepted                                             |
+| **[ADR-003](ADR-003-new-app-single-tenant-selective-reuse.md)**  | **New application, single-tenant, selective legacy reuse**                           | `AGENTS.md` §1, §2.1, §5  | ✅ **Accepted 2026-09-30** (reconstructed, then signed)                   |
+| [ADR-004](ADR-004-time-via-injected-clock.md)                    | Time via an injected `IClock`                                                        | `AGENTS.md` §2.4          | ✅ Accepted                                             |
+| [ADR-005](ADR-005-mobile-is-milestone-2.md)                      | `apps/mobile` is milestone 2                                                         | `AGENTS.md` §7 (D5)       | ✅ **Accepted 2026-09-30** — `SRS` §19 conflict recorded                         |
+| [ADR-006](ADR-006-licensing-ships-in-milestone-1.md)             | Licensing ships in milestone 1                                                       | `AGENTS.md` §7 (D4)       | ✅ Accepted                                             |
+| [ADR-007](ADR-007-password-hashing-argon2id.md)                  | Password hashing: argon2id behind `IPasswordHasher`                                  | Prompt Pack D-A           | ✅ Accepted                                             |
+| [ADR-008](ADR-008-token-strategy-jwt-refresh-rotation.md)        | Token strategy: short-lived access JWT, rotating refresh with family reuse detection | Prompt Pack D-B           | ✅ Accepted                                             |
+| [ADR-009](ADR-009-licence-signature-ecdsa-canonical-json.md)     | Licence signature: ECDSA P-256 over **canonical JSON**                               | Prompt Pack D-C           | ✅ Accepted                                             |
+| [ADR-010](ADR-010-activation-server-external-boundary.md)        | Activation server is an **external vendor service**                                  | Prompt Pack D-D           | ✅ Accepted · **answers ⚑6**                            |
+| [ADR-011](ADR-011-instance-fingerprint-install-id.md)            | Instance fingerprint: stable install ID, **not MAC**                                 | Prompt Pack D-E           | ✅ Accepted                                             |
+| [ADR-012](ADR-012-permission-catalogue-in-code.md)               | Permission catalogue declared **in code**                                            | Prompt Pack D-F           | ✅ Accepted                                             |
+| [ADR-013](ADR-013-audit-durability-same-transaction.md)          | **Audit durability: same-transaction write**                                         | Prompt Pack D-G           | ✅ Accepted · **resolves conflict C1**                  |
+| [ADR-014](ADR-014-email-adapter-smtp.md)                         | Email behind `INotificationChannelAdapter` (SMTP, Mailpit in dev)                    | Prompt Pack D-H           | ✅ Accepted                                             |
+| [ADR-015](ADR-015-object-storage-minio-s3.md)                    | Object storage: S3-compatible behind `IStorageAdapter`, MinIO in dev                 | Prompt Pack D-I           | ✅ Accepted                                             |
+| [ADR-016](ADR-016-metrics-prometheus.md)                         | Metrics in Prometheus exposition format                                              | Prompt Pack D-J           | ✅ Accepted                                             |
+| [ADR-017](ADR-017-deviations-from-jira-sprint-order.md)          | **Documented deviations from the Jira sprint order** (4 pull-forwards)               | Prompt Pack §2.2          | ✅ Accepted                                             |
+| [ADR-018](ADR-018-public-route-escape-hatch.md)                  | `@Public('<reason>')` is the only route exemption, and it is allowlisted             | Prompt Pack §P3.2/§P4.7   | ✅ Accepted                                             |
+| [ADR-019](ADR-019-docker-optional-persistence-disabled-state.md) | **Docker is optional: an explicit `persistence: 'disabled'` boot state**             | Owner decision 2026-09-28 | ✅ Accepted · **deviates from Prompt Pack §1.1**        |
+| [ADR-020](ADR-020-test-runner-is-vitest.md)                      | **The test runner is Vitest, not Jest**                                              | Audit FIX-14 (D27)        | ✅ Accepted · ⚠️ **`AGENTS.md` §3.1 amendment BLOCKED** |
+| [ADR-021](ADR-021-next-intl-is-the-web-i18n-library.md)          | **`next-intl` is the web i18n library**                                              | Audit DOC-05 (D29)        | ✅ Accepted                                             |
 
 **21 ADRs. Numbering is contiguous 001–021 and must stay that way** — the Prompt Pack §6 P1 instruction is to "continue after the highest existing ADR".
 
@@ -64,7 +64,9 @@ A fifth, the **`Money` `bigint` → JSON wire format**, is a _live_ open decisio
 | ⚠️ **Reconstructed / Conflicting** | Recovered from another document, or contradicts one. Both need sign-off. |
 | 🔴 **Superseded**                  | Replaced by a later ADR                                                  |
 
-**No ADR is `Accepted`.** Nothing in this directory has been signed off. `ADR-020` and `ADR-021` are the closest: both were decided by the owner on 2026-09-29 (D27, D29), but as **agent recommendations ratified in the same conversation** rather than as independently-weighed owner decisions, and both remain formally `Proposed` pending review.
+**All 21 ADRs are `Accepted`,** approved by the owner on 2026-09-30. Until then every one sat at `Proposed`, with `ADR-003` marked *reconstructed* and `ADR-005` *conflicting with `SRS` §19*; both caveats are retained in their own files rather than erased by the approval.
+
+**Acceptance is not enforcement.** `ARCHITECTURE.md:307` — _"A rule that is not mechanically enforced is a suggestion"_. Nothing in this directory is enforced today because there is no CI; `EPIC-E` of `ACTION_PLAN_2026-09-30-v2.md` is what closes that. An accepted ADR is a decision with an owner, not a running check.
 
 **Enforcement is the real status.** Until Prompt Pack **P3** lands there is no CI, so _nothing_ mechanically verifies that any of these is complied with. Per `ARCHITECTURE.md:307` — _"A rule that is not mechanically enforced is a suggestion"_ — that is the single largest risk in the repository, and it is why P3 now outranks everything including the ERD, which was the only thing ahead of it until ARC-01 closed it on 2026-09-29.
 
@@ -82,7 +84,7 @@ A fifth, the **`Money` `bigint` → JSON wire format**, is a _live_ open decisio
 ```markdown
 # ADR-NNN — <Title>
 
-**Status:** 🟡 Proposed
+**Status:** ✅ Accepted
 **Date:** YYYY-MM-DD
 **Deciders:** <who>
 **Affects:** <modules, files, decisions>

@@ -1,6 +1,6 @@
 # ADR-019 — Docker Is Optional: An Explicit `persistence: 'disabled'` Boot State
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-29
 **Deciders:** Owner decision (2026-09-28: "no docker installed on my windows PC, we should be able to run the project by `npm run dev`")
 **Affects:** `apps/api` boot, local development, `AGENTS.md` §11

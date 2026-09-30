@@ -1,6 +1,6 @@
 # ADR-017 — Documented Deviations From the Jira Sprint Order
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (deviations supplied by Prompt Pack §2.2)
 **Affects:** `PLT-501`, `PLT-502`, `PLT-702` (email half), `PLT-901` (liveness), `PLT-401`, `PLT-402`

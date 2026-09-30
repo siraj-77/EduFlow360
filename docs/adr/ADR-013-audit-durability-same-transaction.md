@@ -1,6 +1,6 @@
 # ADR-013 — Audit Durability: Same-Transaction Write for Sensitive Actions
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-G)
 **Affects:** `PLT-401`, `PLT-402`, every `@Audited` route · `AGENTS.md` §2.3, §2.7

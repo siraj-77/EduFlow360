@@ -1,6 +1,6 @@
 # ADR-008 — Token Strategy: Short-Lived Access JWT, Rotating Refresh with Family Reuse Detection
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-B)
 **Affects:** `PLT-101`, `PLT-102`, `PLT-103` · `AGENTS.md` §2.2

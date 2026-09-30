@@ -1,6 +1,6 @@
 # ADR-002 — Money as Integer Minor Units, Scale per School
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded*
 **Affects:** `AGENTS.md` §2.5, §2.6, §8 · `ARC-06` · every finance, retail and hall-rental module

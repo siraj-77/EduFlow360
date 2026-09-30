@@ -1,6 +1,6 @@
 # ADR-005 — `apps/mobile` Is Milestone 2
 
-**Status:** ⚠️ **CONFLICTS with `SRS` §19 — needs owner decision**
+**Status:** ✅ **Accepted 2026-09-30 (owner) — the `SRS` §19 conflict is a recorded deviation, not a blocker**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (`AGENTS.md` §7 states the decision was taken 2026-09-27, D5)
 **Affects:** `AGENTS.md` §7 · `SRS` §19, §21–24 · `PLT-104`, `PLT-106`, `PLT-702` (push half)

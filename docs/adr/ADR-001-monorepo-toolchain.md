@@ -1,6 +1,6 @@
 # ADR-001 — Monorepo with pnpm workspaces and Turborepo
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded*
 **Affects:** `AGENTS.md` §3.1, §14 · `SRS` §15, §17 · `REPO-03`, `REPO-04`

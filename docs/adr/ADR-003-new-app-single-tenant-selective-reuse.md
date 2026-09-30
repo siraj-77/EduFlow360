@@ -1,6 +1,6 @@
 # ADR-003 — New Application, Single-Tenant, Selective Legacy Reuse
 
-**Status:** ⚠️ **RECONSTRUCTED — requires owner sign-off**
+**Status:** ✅ **Accepted 2026-09-30 (owner) — reconstructed from the decision history, then signed**
 **Date:** 2026-09-28 (reconstructed)
 **Deciders:** *unrecorded* — the original decision-makers are not named in any surviving document. **This is itself a gap; record them on sign-off.**
 **Affects:** The entire application. Data model, RBAC, query design, deployment model, and every module.

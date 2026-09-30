@@ -1,6 +1,6 @@
 # ADR-021 — `next-intl` Is the Web i18n Library
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-29
 **Deciders:** Owner, 2026-09-29 (D29) — agent-recommended, owner-ratified
 **Affects:** `apps/web` · `packages/i18n-resources` · `AGENTS.md` §2.8 · SSR locale resolution

@@ -1,6 +1,6 @@
 # ADR-016 — Metrics in Prometheus Exposition Format
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-J)
 **Affects:** `PLT-902`, `PLT-901` · `AGENTS.md` §2.15

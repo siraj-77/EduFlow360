@@ -1,6 +1,6 @@
 # ADR-004 — Time via an Injected `IClock`
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded*
 **Affects:** `AGENTS.md` §2.4, §8 · `SRS` §10 · `ARC-03` · licence expiry, lockout, accrual, deadlines, hold expiry

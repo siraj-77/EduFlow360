@@ -1,6 +1,6 @@
 # ADR-018 — `@Public('<reason>')` Is the Only Route Exemption, and It Is Allowlisted
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (gap identified by Prompt Pack §P3.2, §P4.7)
 **Affects:** every controller route · `AGENTS.md` §2.3

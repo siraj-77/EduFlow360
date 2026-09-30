@@ -1,6 +1,6 @@
 # ADR-009 — Licence Signature: ECDSA P-256 over Canonical JSON
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-C)
 **Affects:** `PLT-301`, `PLT-303`, `PLT-304` · `AGENTS.md` §2.3

@@ -1,6 +1,6 @@
 # ADR-015 — Object Storage: S3-Compatible Behind `IStorageAdapter`, MinIO in Dev
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-I)
 **Affects:** `PLT-801`, `PLT-802` · `AGENTS.md` §2.2

@@ -1,6 +1,6 @@
 # ADR-007 — Password Hashing: argon2id Behind `IPasswordHasher`
 
-**Status:** 🟡 Proposed — needs sign-off
+**Status:** ✅ **Accepted 2026-09-30 (owner)**
 **Date:** 2026-09-28
 **Deciders:** *unrecorded* (decision supplied by Prompt Pack §2.1 D-A)
 **Affects:** `PLT-101`, `PLT-105` · `AGENTS.md` §2.2, §5.1
