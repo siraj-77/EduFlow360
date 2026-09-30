@@ -28,6 +28,23 @@
   --ok: #059669;
 
   /*
+   * Foreground tokens - ADDED 2026-09-30 by B-1.
+   *
+   * A button needs text that is readable on `--brand`. Without a token for
+   * that, the only options were `text-white` (a hard-coded colour, which is
+   * what section 3.2.5 forbids, and invisible to the hex-literal rule because
+   * it is not written as `#rrggbb`) or picking a text token that happens to
+   * contrast, which breaks the moment one of the ten changes.
+   *
+   * So the palette grows pairs rather than colours: every surface that can
+   * carry text now names the colour to put ON it. The ten in section 3.2.5 are
+   * unchanged and remain exactly those; this adds the foreground half.
+   */
+  --on-brand: #ffffff;
+  --on-danger: #ffffff;
+  --on-accent: #06121a;
+
+  /*
    * Elevation and corner radius, from the template.
    *
    * These are tokens too, and for two years they were not: the template
@@ -76,6 +93,9 @@
   --color-accent: var(--accent);
   --color-danger: var(--danger);
   --color-ok: var(--ok);
+  --color-on-brand: var(--on-brand);
+  --color-on-danger: var(--on-danger);
+  --color-on-accent: var(--on-accent);
 
   --radius-card: 12px;
   --radius-control: 8px;
