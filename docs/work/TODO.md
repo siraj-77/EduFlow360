@@ -78,9 +78,27 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 
 ---
 
+## ARC-08 → ARC-09 — Design the gaps the project ERD drew ⚠️ **NEW 2026-09-30**
+
+> **Added 2026-09-30.** `docs/diagrams/ERD_PROJECT.excalidraw` draws the system at module level with an **evidence tier** on every row: `SPECIFIED` · `NAMED` · `MODULE` · `GAP`. **`MODULE` means the corpus names a capability and no entity at all**, and `GAP` is one of `PC-000`…`PC-006`. Seven gaps are drawn **in their own band rather than inside the modules they block**, because a gap drawn inside a module reads as handled. **No entity was invented** — `docs/idea-bank/README.md` §6 rule 5 forbids it, and ~120 unnamed corpus concepts remain unnamed. Gate: `project-erd.spec.ts` (27 cases). Record: `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md`.
+
+- [ ] **ARC-09-1** `PC-004` **Admission** — the only gap `MP` §30 explicitly demands an entity set for **in the ERD**. Design `Application` → `EntranceTest` → `Approval` → auto-conversion to `Student`. Blocks MVP scope
+- [ ] **ARC-09-2** `PC-005` **BookShop / Canteen / Hall** — the `Sale` record is the missing piece; `MP` §17.6–17.9 specify the behaviour and `FR-RET-01` assumes the sale *is* a stock movement while `MP` §30 separately demands an **immutable** sales log. Two records, one sentence, no reconciliation → `T3`
+- [ ] **ARC-09-3** `PC-006` **Student Wallet** — stored-value legal review + GL liability design. Enterprise add-on; **must not ship without** jurisdiction review (`AGENTS.md` §2.10)
+- [ ] **ARC-09-4** `PC-000` **Attendance** and `PC-001` **Leave/Workforce** — no design at all; `MP` §8/§9 defer to a **v3.0 document not in this repository**. Requires first-principles design (`D1` carve-out: designed fresh)
+- [ ] **ARC-09-5** `PC-002` **Grading & Moderation** — P0 with zero rules. **Never invent a threshold**; `PC-002` is the ticket
+- [ ] **ARC-09-6** **The six certificate keys that do not exist** (GAP-GATE-1) — facilities hire, hall rental, wallet, alumni, leadership and substitution are gated in `MP` §3 but have **no key** in the signed payload's `allowed_modules`/`features`, so `@RequireEntitlement` cannot be written for them. Needs either a payload extension or an edition-matrix change → owner decision
+- [ ] **ARC-09-7** **The journal entity's name and shape** — `LedgerEntry` / "Journal Entry" / `journal_entries` is **one concept, four names**. The balance invariant forces entry + line; the naming is undecided
+- [ ] **ARC-09-8** **The default CoA omissions** — `MP` §5.2 seeds `1000/4000/5000` but omits **`Deposits Held`** (§17.6) and the **wallet liability** (§17.10), plus no `Purchases`/`COGS` account for `SCHOOL_RUN`. A checkable inconsistency
+- [ ] **ARC-09-9** **`.gitattributes`** — `core.autocrlf=true` with no `.gitattributes` makes `schema-generation.spec.ts` red on Windows: the checked-in `schema.prisma` is CRLF (687 CR) and the generator writes LF. Content identical. Repo-wide fix, so it was **reported, not patched**
+
+---
+
 ## P0 — Do These First
 
-> **State 2026-09-30 (evening):** P2 (scaffold) is DONE. The ERD is written **and committed** (ARC-01); Phase 0 has exited. `G0` is closed — 23 commits, clean tree, everything pushed. **The top engineering priority is `EPIC-G1`, then `EPIC-G4 (P3 CI)`.** The single next task is **`G1-2`**.
+> **State 2026-09-30 (late evening):** P2 (scaffold) is DONE. The ERD is written **and committed** (ARC-01); Phase 0 has exited. `G0` is closed — 23 commits, clean tree, everything pushed. **The top engineering priority is `EPIC-G1`, then `EPIC-G4 (P3 CI)`.** The single next task is **`G1-2`**.
+>
+> **Added late 2026-09-30 — ARC-08.** `docs/diagrams/ERD_PROJECT.excalidraw` and `REFERENCE_ARCHITECTURE.excalidraw` now draw the system **above** the schema: 23 modules with licence gates and evidence tiers, all 7 `PC-000`…`PC-006` gaps drawn as gaps, the 7 shared engines, and the prohibitions. **No entity was invented.** New work items **`ARC-09-1`…`ARC-09-9`** are listed above — they are the *design* work the diagram deliberately refuses to guess at, so they do **not** change the P0 ordering.
 >
 > ⚠️ **`PLT-101` entry condition is NOT met.** `TODO.md:226` records it as *"the harness is still not trustworthy"*, and the 2026-09-30 audit confirmed why in more detail. It got measurably closer today — 3 of the 4 hollow gates are closed — but `test:integration` still runs nothing (`AUD-30-02`), the coverage tiers still match **zero** instrumented files (`FIX-26`), `format:check` is red (`FIX-05`), and nothing runs in CI (`FIX-12`). **Do not start a Platform Core story until EPIC-G1 closes.**
 

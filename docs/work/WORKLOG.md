@@ -8,6 +8,159 @@
 ---
 ---
 
+## 2026-09-30 — ARC-08: the project ERD and the reference architecture, and the gaps drawn as gaps
+
+| Field      | Entry                                                                                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30 (branch `siraj-77/ERD`)                                                                                                     |
+| **Phase**  | ARC-08 · extends ARC-01 (Platform Core), does not replace it                                                                            |
+| **Task**   | Draw the system above the schema — what it looks like, and what is undesigned                                                          |
+| **Agent**  | opencode · `test-driven-development`, `tdd-workflow`, `diagram-design`, `using-superpowers`                                             |
+| **Status** | ✅ **Complete.** 2 diagrams, 27 gate cases, geometry-checked. **No entity invented.** 1 pre-existing failure found and **not** patched |
+
+### The problem ARC-08 actually solves
+
+`ARC-01` draws fourteen tables that exist. That is a correct ERD of a module that
+exists, and it is not the question a reviewer opens `docs/` with. The corpus is
+badly uneven: `SRS` §6 names 35 entities, the Master Plan names at least 120
+further concepts, and **five modules have zero entity names anywhere** — Library,
+Transport, Hostel, Events & Sports, AI.
+
+The temptation is to fill the page with a plausible `Student`, `Vehicle`, `Book`,
+`Wallet`. `docs/idea-bank/README.md` §6 rule 5 forbids it — _"a missing rule is
+visible. An invented one is not."_ — and `AGENTS.md` §6 withdrew the "35 entities"
+figure rather than replacing it with another number.
+
+So every row carries an **evidence tier**, and the tier is the most important
+column on the diagram:
+
+| Tier         | Means                                          | What may be drawn            |
+| ------------ | ---------------------------------------------- | ---------------------------- |
+| `SPECIFIED`  | corpus names the entity **and its fields**      | entity + fields              |
+| `NAMED`      | corpus names the entity, **not** its fields     | entity; fields marked as GAP |
+| `MODULE`     | capability exists, **no entity name**           | the module — never a table   |
+| `GAP`        | a documented `PC-xxx` hole                       | the hole, with its ticket    |
+
+All seven `PC-000`…`PC-006` gaps are drawn **in their own band**, not inside the
+modules they block — a gap drawn inside a module reads as handled; a gap drawn
+beside it reads as open, which is the truth.
+
+### RED, then GREEN
+
+`apps/api/src/config/project-erd.spec.ts` written before any source existed.
+
+```
+RED    suite failed to load — "Failed to load url ../../erd/project-erd-source.mjs"
+RED    "NotificationPreference is missing from the ERD"          ← real content bug
+RED    "expected … to match /one database per school/i"          ← real content bug
+GREEN  27/27 passed · lint 0 · typecheck 0 · geometry PASS ×2
+```
+
+The anti-drift gate was proven by **breaking** it, not by trusting it: one
+hand-edit to a committed element colour failed the build with the regenerate
+instruction, then was reverted.
+
+### Six defects the cycle found, each now a test
+
+Every one was invisible in the element list and visible on the canvas or in the
+bytes:
+
+- **`...el` spread after `id`** overwrote it with `undefined` — and
+  `JSON.stringify` drops undefined keys, so the written file looked correct while
+  the in-memory scene disagreed. The drift gate compares objects, not text.
+- **`nextId` passed instead of called** — IDs became a function's own source text
+  and the canvas refused the batch with a generic error that reads as a tool
+  failure rather than a bad element.
+- **`false && text(…)`** spread into the element list as seven typeless elements.
+- **Zero-width arrows** — Excalidraw rejects them.
+- **UTF-8 corruption.** A `latin1` round-trip during editing turned every em dash,
+  arrow and `§` into U+FFFD. Excalidraw renders a replacement glyph rather than
+  failing, so it was invisible until the bytes were inspected.
+- **Three layout collisions**: Platform Core's fourteen-entity list ran into its
+  own caption; a three-line subtitle overlapped the first band header by 3px; the
+  architecture's two band headers were both 1400px wide and sat on top of each
+  other.
+
+Two consequences kept: **card and box heights are now derived from content**, not
+constants — a fixed height is what allowed the collisions; and the generator emits
+`G.*` constants for every non-ASCII glyph, so the corruption class cannot recur
+silently.
+
+### Eight findings from the corpus, recorded because each is a decision
+
+The most consequential: **`SRS` §6 names a `School` entity; `ADR-003` and the
+shipped `ARC-01` schema have no `School` table.** `AGENTS.md`/`ADR-003` win, and
+the discrepancy is *stated on the diagram* rather than resolved by omission —
+because a reader who has just read `SRS` §6 needs to see it was decided.
+
+Also recorded: **six §3 capabilities have no key** in the signed certificate's
+`allowed_modules`/`features`, so an entitlement guard cannot be written against
+them; `LedgerEntry` / "Journal Entry" / `journal_entries` are **one concept, four
+names**, and the balance invariant forces entry + line; the default Chart of
+Accounts **omits two accounts the spec requires** (`Deposits Held`, wallet
+liability); `operator_model` is the corpus's **only** effective-dated field; and
+money, `school_id` and time columns are **absent from the corpus entirely** —
+they come from `ADR-002` and `AGENTS.md` §2.1, so citing the corpus for them
+would cite a document that is silent.
+
+### A pre-existing failure found but NOT patched
+
+`schema-generation.spec.ts` → "has a checked-in schema.prisma that matches the
+source exactly" **fails on this machine, and failed identically before this work
+began.** Verified by byte inspection: `core.autocrlf=true` with **no
+`.gitattributes`**. The checked-in file carries 687 CR bytes (CRLF); the generator
+writes LF (0 CR). Content is byte-identical — 687 lines each, no difference on any
+line.
+
+The fix is a repo-wide `.gitattributes`, which changes checkout behaviour for every
+file. Wider than this task, so **reported, not silently patched**. Passes on Linux
+CI with default `autocrlf=false`.
+
+### Files Changed
+
+- `apps/api/erd/project-erd-source.mjs` — **new.** Modules, tiers, gaps, engines, architecture data
+- `apps/api/erd/render-project-diagrams.mjs` — **new.** Both renderers
+- `apps/api/erd/render.mjs` — **new.** Excalidraw writer
+- `apps/api/erd/check-geometry.mjs` — **new.** Standalone overlap/escape check
+- `apps/api/src/config/project-erd.spec.ts` — **new.** 27 gate cases
+- `docs/diagrams/ERD_PROJECT.excalidraw`, `REFERENCE_ARCHITECTURE.excalidraw` — **new, generated**
+- `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md` — **new.** Decision record
+- `apps/api/eslint.config.mjs` — Node globals extended to `erd/**/*.mjs`, following the existing `prisma/**/*.mjs` precedent
+- `apps/api/package.json` — `generate:diagrams` script
+
+### Decisions Made
+
+- **Drawn at module level, not field level, for everything outside Platform
+  Core.** Drawing `NotificationDelivery`'s columns beside seven requirement gaps
+  would be unreadable *and* would imply the undesigned modules are as settled as
+  the designed one. Fields belong in the generated schema; modules belong here.
+- **Gaps in their own band, not inside their modules.** Drawn inside, a gap reads
+  as handled.
+- **Prohibitions drawn as statements, not by omission.** `SRS` names `School` and
+  the legacy app has cross-tenant roles, so the diagram has to show the
+  discrepancy was decided rather than missed.
+- **The anti-drift gate compares objects, not text.** That is what caught the
+  `undefined`-id defect a string comparison reported as clean.
+- **Fixed card heights removed in favour of derived heights**, after they produced
+  three collisions.
+
+### Next Steps
+
+`PC-004` (admission) is the only `PC-xxx` gap `MP` §30 explicitly demands an
+entity set for **in the ERD**, so it is the one to design first. The six
+certificate keys that do not exist (GAP-GATE-1) block entitlement guards for
+hall, wallet, alumni, leadership, substitution and facilities hire.
+
+### Quality
+
+- `pnpm --filter @eduflow/api exec vitest run src/config/project-erd.spec.ts` → **27/27**
+- `lint` → exit 0 · `typecheck` → exit 0 · `generate:diagrams` → exit 0
+- `check-geometry.mjs` → `PASS` both files (0 overlaps, 0 escapes)
+- Full `pnpm test` → 1 failure, **`schema-generation.spec.ts`, pre-existing CRLF** (§ above), not caused by this change
+- `pnpm format:check` still exits 2 — pre-existing `FIX-05`, untouched. This commit edits `.md` files, which are among the 60 it reports, so it neither fixes nor worsens it.
+
+---
+
 ## 2026-09-30 — Scroll diagnosis, three real defects, the sign-in route, and responsive proof
 
 | Field      | Entry |

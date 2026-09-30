@@ -18,20 +18,22 @@ export default [
   { rules: {} },
 
   /**
-   * `prisma/*.mjs` are Node build scripts — the ARC-01 schema/ERD generator
-   * and its two renderers. They run under `node`, not under NestJS, so they
-   * legitimately use `process` and `console`.
+   * `prisma/*.mjs` and `erd/*.mjs` are Node build scripts — the ARC-01
+   * schema/ERD generator, the ARC-08 diagram generator and its geometry
+   * checker. They run under `node`, not under NestJS, so they legitimately use
+   * `process`, `console` and `Buffer`.
    *
-   * Scoped to this directory on purpose. Declaring Node globals for the whole
-   * package would stop `no-undef` catching a stray `process` in application
-   * code, which is the case the rule exists for.
+   * Scoped to these two directories on purpose. Declaring Node globals for the
+   * whole package would stop `no-undef` catching a stray `process` in
+   * application code, which is the case the rule exists for.
    */
   {
-    files: ['prisma/**/*.mjs'],
+    files: ['prisma/**/*.mjs', 'erd/**/*.mjs'],
     languageOptions: {
       globals: {
         process: 'readonly',
         console: 'readonly',
+        Buffer: 'readonly',
       },
     },
     rules: {
