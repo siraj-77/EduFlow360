@@ -212,7 +212,7 @@ export const MODELS = [
       {
         name: 'roleId',
         type: 'String',
-        attrs: ['@map("role_id")'],
+        attrs: ['@map("role_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'Role',
         fk: 'fk_user_role',
@@ -408,7 +408,7 @@ export const MODELS = [
       {
         name: 'roleId',
         type: 'String',
-        attrs: ['@map("role_id")'],
+        attrs: ['@map("role_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'Role',
         fk: 'fk_role_permission_role',
@@ -430,7 +430,7 @@ export const MODELS = [
       {
         name: 'permissionId',
         type: 'String',
-        attrs: ['@map("permission_id")'],
+        attrs: ['@map("permission_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'Permission',
         fk: 'fk_role_permission_permission',
@@ -475,7 +475,7 @@ export const MODELS = [
       {
         name: 'userId',
         type: 'String',
-        attrs: ['@map("user_id")'],
+        attrs: ['@map("user_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'User',
         fk: 'fk_session_user',
@@ -543,7 +543,7 @@ export const MODELS = [
       {
         name: 'sessionId',
         type: 'String',
-        attrs: ['@map("session_id")'],
+        attrs: ['@map("session_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'Session',
         fk: 'fk_refresh_token_session',
@@ -563,7 +563,7 @@ export const MODELS = [
       {
         name: 'userId',
         type: 'String',
-        attrs: ['@map("user_id")'],
+        attrs: ['@map("user_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'User',
         fk: 'fk_refresh_token_user',
@@ -842,7 +842,7 @@ export const MODELS = [
       {
         name: 'updatedById',
         type: 'String',
-        attrs: ['?', '@map("updated_by_id")'],
+        attrs: ['?', '@map("updated_by_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'User',
         fk: 'fk_school_settings_updated_by',
@@ -1032,7 +1032,7 @@ export const MODELS = [
       {
         name: 'userId',
         type: 'String',
-        attrs: ['@map("user_id")'],
+        attrs: ['@map("user_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'User',
         fk: 'fk_notification_preference_user',
@@ -1115,7 +1115,7 @@ export const MODELS = [
       {
         name: 'userId',
         type: 'String',
-        attrs: ['@map("user_id")'],
+        attrs: ['@map("user_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'User',
         fk: 'fk_notification_delivery_user',
@@ -1135,7 +1135,7 @@ export const MODELS = [
       {
         name: 'notificationPreferenceId',
         type: 'String',
-        attrs: ['?', '@map("notification_preference_id")'],
+        attrs: ['?', '@map("notification_preference_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'NotificationPreference',
         fk: 'fk_notification_delivery_preference',
@@ -1297,7 +1297,7 @@ export const MODELS = [
       {
         name: 'uploadedById',
         type: 'String',
-        attrs: ['?', '@map("uploaded_by_id")'],
+        attrs: ['?', '@map("uploaded_by_id")', '@db.Uuid'],
         kind: 'relation',
         to: 'User',
         fk: 'fk_stored_file_uploaded_by',

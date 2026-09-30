@@ -176,7 +176,7 @@ model User {
   /// would hard-code English into every deployment (`AGENTS.md` §8).
   preferredLocale         String?                  @map("preferred_locale")
   /// One role per user. See the open question on multi-role support.
-  roleId                  String                   @map("role_id")
+  roleId                  String                   @map("role_id") @db.Uuid
   role                    Role                     @relation("fk_user_role", fields: [roleId], references: [id], onDelete: Restrict)
   sessions                Session[]                @relation("fk_session_user")
   refreshTokens           RefreshToken[]           @relation("fk_refresh_token_user")
@@ -261,9 +261,9 @@ model RolePermission {
   /// physical. It exists for auditability and licence portability.
   schoolId     String     @map("school_id")
   /// A role holding a permission that no longer exists is a sync-time error, not a silent orphan (`ADR-012`).
-  roleId       String     @map("role_id")
+  roleId       String     @map("role_id") @db.Uuid
   role         Role       @relation("fk_role_permission_role", fields: [roleId], references: [id], onDelete: Cascade)
-  permissionId String     @map("permission_id")
+  permissionId String     @map("permission_id") @db.Uuid
   permission   Permission @relation("fk_role_permission_permission", fields: [permissionId], references: [id], onDelete: Cascade)
   /// Who granted it is answered by `audit_records` (`PLT-402`), not by a nullable column here.
   grantedAt    DateTime   @default(now()) @map("granted_at")
@@ -284,7 +284,7 @@ model Session {
   /// physical. It exists for auditability and licence portability.
   schoolId      String         @map("school_id")
   id            String         @id @default(uuid()) @db.Uuid
-  userId        String         @map("user_id")
+  userId        String         @map("user_id") @db.Uuid
   user          User           @relation("fk_session_user", fields: [userId], references: [id], onDelete: Cascade)
   /// `ADR-008`: device tracking, so an administrator can answer "who is logged in, from where".
   deviceLabel   String?        @map("device_label")
@@ -315,10 +315,10 @@ model RefreshToken {
   /// physical. It exists for auditability and licence portability.
   schoolId          String    @map("school_id")
   id                String    @id @default(uuid()) @db.Uuid
-  sessionId         String    @map("session_id")
+  sessionId         String    @map("session_id") @db.Uuid
   session           Session   @relation("fk_refresh_token_session", fields: [sessionId], references: [id], onDelete: Cascade)
   /// Denormalised from the session so revoking every token for a user is one indexed query.
-  userId            String    @map("user_id")
+  userId            String    @map("user_id") @db.Uuid
   user              User      @relation("fk_refresh_token_user", fields: [userId], references: [id], onDelete: Cascade)
   /// Shared by every token issued from one login. The unit that reuse detection revokes.
   familyId          String    @map("family_id")
@@ -469,7 +469,7 @@ model SchoolSettings {
   /// (`PLT-602`). Typed columns stay above for the values that finance
   /// and every other module depend on, so they can be constrained.
   settings               Json
-  updatedById            String?      @map("updated_by_id")
+  updatedById            String?      @map("updated_by_id") @db.Uuid
   updatedBy              User?        @relation("fk_school_settings_updated_by", fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt              DateTime     @default(now()) @map("created_at")
   updatedAt              DateTime     @updatedAt @map("updated_at")
@@ -571,7 +571,7 @@ model NotificationPreference {
   /// physical. It exists for auditability and licence portability.
   schoolId        String                 @map("school_id")
   id              String                 @id @default(uuid()) @db.Uuid
-  userId          String                 @map("user_id")
+  userId          String                 @map("user_id") @db.Uuid
   user            User                   @relation("fk_notification_preference_user", fields: [userId], references: [id], onDelete: Cascade)
   eventType       String                 @map("event_type")
   channel         NotificationChannel
@@ -607,10 +607,10 @@ model NotificationDelivery {
   /// physical. It exists for auditability and licence portability.
   schoolId                 String                     @map("school_id")
   id                       String                     @id @default(uuid()) @db.Uuid
-  userId                   String                     @map("user_id")
+  userId                   String                     @map("user_id") @db.Uuid
   user                     User                       @relation("fk_notification_delivery_user", fields: [userId], references: [id], onDelete: Cascade)
   /// Nullable: an EMERGENCY broadcast reaches a user who never configured a preference.
-  notificationPreferenceId String?                    @map("notification_preference_id")
+  notificationPreferenceId String?                    @map("notification_preference_id") @db.Uuid
   preference               NotificationPreference?    @relation("fk_notification_delivery_preference", fields: [notificationPreferenceId], references: [id], onDelete: SetNull)
   eventType                String                     @map("event_type")
   channel                  NotificationChannel
@@ -672,7 +672,7 @@ model StoredFile {
   checksum         String
   scanStatus       FileScanStatus @default(PENDING) @map("scan_status")
   scannedAt        DateTime?      @map("scanned_at")
-  uploadedById     String?        @map("uploaded_by_id")
+  uploadedById     String?        @map("uploaded_by_id") @db.Uuid
   uploadedBy       User?          @relation("fk_stored_file_uploaded_by", fields: [uploadedById], references: [id], onDelete: SetNull)
   /// Per scope, from the retention policy. Archival, not deletion (`PLT-404`).
   retentionUntil   DateTime?      @map("retention_until")
