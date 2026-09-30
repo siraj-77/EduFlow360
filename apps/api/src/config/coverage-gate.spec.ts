@@ -46,7 +46,14 @@ interface PackageJson {
 const ROOT = repoRoot();
 
 /** Every workspace project, matching the list pnpm itself uses. */
-const WORKSPACE_DIRS = ['apps/api', 'apps/web', 'packages/config', 'packages/shared-types', 'packages/ui-kit', 'packages/i18n-resources'];
+const WORKSPACE_DIRS = [
+  'apps/api',
+  'apps/web',
+  'packages/config',
+  'packages/shared-types',
+  'packages/ui-kit',
+  'packages/i18n-resources',
+];
 
 /** Vitest's default when no config file is present. */
 const DEFAULT_PROVIDER = 'v8';
@@ -62,7 +69,9 @@ function readJson(path: string): PackageJson {
 }
 
 function configPathFor(dir: string): string | undefined {
-  return ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vitest.config.mjs'].map((f) => join(ROOT, dir, f)).find((p) => existsSync(p));
+  return ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vitest.config.mjs']
+    .map((f) => join(ROOT, dir, f))
+    .find((p) => existsSync(p));
 }
 
 /**
@@ -76,7 +85,10 @@ function providerFor(dir: string): string {
   return /provider:\s*'([^']+)'/.exec(readFileSync(configPath, 'utf8'))?.[1] ?? DEFAULT_PROVIDER;
 }
 
-const COVERAGE_GATED = WORKSPACE_DIRS.map((dir) => ({ dir, name: readJson(join(ROOT, dir, 'package.json')).name ?? dir })).filter(({ dir }) => {
+const COVERAGE_GATED = WORKSPACE_DIRS.map((dir) => ({
+  dir,
+  name: readJson(join(ROOT, dir, 'package.json')).name ?? dir,
+})).filter(({ dir }) => {
   const script = readJson(join(ROOT, dir, 'package.json')).scripts?.['test:coverage'] ?? '';
   return script.includes('vitest run --coverage');
 });
@@ -85,7 +97,13 @@ describe('the coverage gate is runnable, not merely configured', () => {
   it('finds the packages that declare a coverage gate', () => {
     // A guard on the guard. If the workspace ever changes such that no package
     // runs coverage, the tests below would pass vacuously.
-    expect(COVERAGE_GATED.map((p) => p.dir)).toEqual(['apps/api', 'apps/web', 'packages/shared-types', 'packages/ui-kit', 'packages/i18n-resources']);
+    expect(COVERAGE_GATED.map((p) => p.dir)).toEqual([
+      'apps/api',
+      'apps/web',
+      'packages/shared-types',
+      'packages/ui-kit',
+      'packages/i18n-resources',
+    ]);
   });
 
   describe.each(COVERAGE_GATED)('$name', ({ dir, name }) => {
@@ -93,7 +111,10 @@ describe('the coverage gate is runnable, not merely configured', () => {
       const provider = providerFor(dir);
       const required = PROVIDER_PACKAGE[provider];
 
-      expect(required, `${name} uses coverage provider "${provider}", which this test does not know how to satisfy`).toBeDefined();
+      expect(
+        required,
+        `${name} uses coverage provider "${provider}", which this test does not know how to satisfy`,
+      ).toBeDefined();
 
       const devDeps = Object.keys(readJson(join(ROOT, dir, 'package.json')).devDependencies ?? {});
 
@@ -112,7 +133,10 @@ describe('the coverage gate is runnable, not merely configured', () => {
       // is necessary but not by itself sufficient.
       const requireFromPackage = createRequire(resolve(ROOT, dir, 'package.json'));
 
-      expect(() => requireFromPackage.resolve(required), `${name} declares ${required} but it is not installed. Run pnpm install.`).not.toThrow();
+      expect(
+        () => requireFromPackage.resolve(required),
+        `${name} declares ${required} but it is not installed. Run pnpm install.`,
+      ).not.toThrow();
     });
   });
 
@@ -126,7 +150,10 @@ describe('the coverage gate is runnable, not merely configured', () => {
       const config = readFileSync(configPath, 'utf8');
       if (!/thresholds:/.test(config)) continue;
 
-      expect(/provider:\s*'[^']+'/.test(config), `${dir} sets coverage.thresholds but no coverage.provider, so its thresholds are inert`).toBe(true);
+      expect(
+        /provider:\s*'[^']+'/.test(config),
+        `${dir} sets coverage.thresholds but no coverage.provider, so its thresholds are inert`,
+      ).toBe(true);
     }
   });
 });

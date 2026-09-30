@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit --incremental false",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage && node ../../scripts/check-coverage-tiers.mjs",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true});require('node:fs').rmSync('coverage',{recursive:true,force:true})\"",
     "migration:generate": "prisma migrate dev --name",
