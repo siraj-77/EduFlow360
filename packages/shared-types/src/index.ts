@@ -46,7 +46,6 @@ export interface IntlMessages {
   readonly [key: string]: string | IntlMessages;
 }
 
-
 /**
  * Arabic is the only RTL locale at launch (Master Plan 5.3).
  * Derived rather than duplicated, so adding a locale is one edit.

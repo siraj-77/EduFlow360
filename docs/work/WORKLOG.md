@@ -5,7 +5,595 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 
 ---
+
+## 2026-09-30 — B-1 complete: 11 primitives, token-bound, and two RED→GREEN cycles
+
+| Field      | Entry                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                            |
+| **Phase**  | `ACTION_PLAN_2026-09-30-v2.md` **EPIC-B** — `B-1` closed                              |
+| **Task**   | Owner: _"proceed with B-1, dont forget we have the screen template at docs/template"_ |
+| **Agent**  | `opencode` / space-bunny-free, using `test-driven-development` and `tdd-workflow`     |
+| **Status** | ✅ **Done.** All 11 primitives the story lists, 28 ui-kit tests, 161 repo-wide.       |
+
+### What was built
+
+`button` `input` `label` `card` `badge` `select` `dialog` `table` `sheet` `dropdown-menu` `skeleton` `sonner`, plus a local `icons` module — all exported from the package barrel, all bound to the **existing** `--*` tokens via the `styles.css` `@theme inline` block, none importing a shadcn colour scale. `components.json` sets `cssVariables` against the existing token file, so the "second token source" risk on this story **did not occur**.
+
+`select`, `dropdown-menu` and `sonner` came in a **second cycle**, after the first tranche was green. The story's own list is 11 and eight is not done; `select` is not optional because §3.2.1 bans a raw `<select>`, so without a compliant picker the ban is a dead end for any school choosing language, class, currency or role.
+
+### Three defects that were mine, and what each one proves
+
+Recorded because each was found by a gate rather than by reading:
+
+| #   | Defect                                                          | How it surfaced                                                                                                                                                                          | Fix                                                                                                                                                    |
+| --- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `environment: 'jsdom'` broke a suite that had been passing      | `index.spec.ts` → `The URL must be of scheme file` ×5. It reads CSS with `readFileSync(new URL('./styles.css', import.meta.url))`, and under jsdom `import.meta.url` is an `http://` URL | `environment: 'node'` + `// @vitest-environment jsdom` docblock in the one file that renders. **The passing test was not edited to suit the new one.** |
+| 2   | `asChild` case asserted `bg-brand` on a `variant`-less `Button` | `expected 'inline-flex …' to match /bg-brand/`                                                                                                                                           | The test was wrong, not the component. The default variant is `bg-surface`.                                                                            |
+| 3   | New tests appended **inside** `describe('Dialog')`              | Reported as `Dialog > exposes a listbox through Select`                                                                                                                                  | Closed the block; `Select`, `DropdownMenu`, `Toaster` got their own describes                                                                          |
+
+And one that was not mine but hid a false green: `@radix-ui/react-select` calls `target.hasPointerCapture`, which jsdom does not implement. It surfaced as an **unhandled** `TypeError` _alongside_ `1 failed | 27 passed` — **Vitest can report a suite green while an exception is in flight**, so that run's 27 was not trustworthy. Shimmed in `vitest.setup.ts`, guarded on `typeof Element` because the node-environment suite has no DOM. The shim asserts nothing on purpose: these tests assert roles and keyboard access, and a fake capture would only make them look thorough.
+
+**Full-suite effect:** `@eduflow/ui-kit` **8 → 28**; repo total **141 → 161** (7 shared-types · 100 api · 16 web · 10 i18n-resources · 28 ui-kit).
+
+### Files changed
+
+- **New (13):** `components.json`; `packages/ui-kit/{vitest.config.ts,vitest.setup.ts}`; `packages/ui-kit/src/lib/cn.ts`; `packages/ui-kit/src/components/ui/{button,input,label,card,badge,select,dialog,table,dropdown-menu,skeleton,sonner,icons}.tsx`; `packages/ui-kit/src/components/ui/primitives.spec.tsx`
+- **Modified:** `packages/ui-kit/src/index.ts` (barrel), `packages/ui-kit/package.json` + `pnpm-lock.yaml` (`@radix-ui/react-{slot,dialog,select,dropdown-menu}`, `sonner`, `jsdom`, `@testing-library/{react,jest-dom,user-event}`, `@vitejs/plugin-react`, `@types/react`, `@types/react-dom`), `packages/ui-kit/src/styles.css`, `apps/web/vitest.config.ts`, `.gitignore`
+- **Docs:** `ACTION_PLAN_2026-09-30-v2.md`, `TODO.md` (`G1-7`/`G1-8`/`G1-10`), `TDD_EVIDENCE_GATES.md`, this file
+
+### Decisions made
+
+1. **Added `--on-brand` / `--on-danger` / `--on-accent` to `styles.css`.** A button needs readable text on `--brand`. The alternative was `text-white`, which is a hard-coded colour in spirit **and invisible to the hex-literal rule** because it is not written as `#rrggbb` — the lint would have passed. The ten §3.2.5 colours are unchanged; this adds the foreground half so the palette grows _pairs_. `UI_KIT_TOKENS` was **deliberately not** extended, because `index.spec.ts` asserts against the §3.2.5 list.
+2. **Declined `lucide-react`.** Declared nowhere in this workspace, and §3.2.6 requires directional icons to mirror under RTL — so the mirror has to be provable and testable, not inherited from a package whose default is LTR-only. Two inline 24×24 paths in `icons.tsx`, with `rtl:rotate-180` on the chevrons, beat a runtime dependency and a second place for the RTL decision to be wrong.
+3. **The raw-element exemption is scoped to `components/ui/**` and re-declares the colour ban rather than switching it off** — so adding 11 components could not have widened it. `ui-primitive-rules.spec.ts` still passes 9/9, which is the regression guard.
+4. **Accessibility behaviour is Radix's, not reimplemented.** Focus trap, `Escape`, scroll lock, focus return, roving tabindex, typeahead. All of it is load-bearing for a school deploying to staff using assistive technology, and none of it is worth a hand-rolled version.
+
+### Next steps
+
+- `B-2` (theme toggle) is now unblocked → this is the last hollow gate, `AUD-30-04`.
+- `G1-5` dark-theme e2e, same blocker, now satisfiable.
+- `A-4` is the last `EPIC-A` item.
+
+### Quality
+
+| Gate                    | Result                                              |
+| ----------------------- | --------------------------------------------------- |
+| `pnpm typecheck`        | ✅ **0**                                            |
+| `pnpm lint`             | ✅ **0**                                            |
+| `pnpm test`             | ✅ **0** — **161** tests                            |
+| `pnpm docs:verify`      | ✅ **0**                                            |
+| `pnpm test:e2e`         | ✅ **0** — 37 tests, ⚠️ **1 flaky run** (see below) |
+| `pnpm test:coverage`    | ❌ **1** — _intended_, `A-2`                        |
+| `pnpm test:integration` | ❌ **1** — _intended_, no Postgres yet (`F-7`)      |
+| `pnpm format:check`     | ❌ **1** — _improved from 2_                        |
+| `pnpm build`            | ⏸ not re-run                                        |
+
+**Two issues left open rather than smoothed over:**
+
+- **`test:e2e` flaked once** — `36 passed | 1 failed`, then `37 passed` twice. The failure was `SyntaxError: Unexpected end of JSON input` from Playwright's `[WebServer]` plus `.landing-topnav is missing`, i.e. the dev server was not up when the test ran — consistent with the turbo pipeline and a direct run competing for port 3500. **Not confirmed**: no test has failed twice. A flake seen only under parallel load should be fixed, not re-run until green.
+- **`docker` is not installed in this environment.** `docker compose -f infra/docker/docker-compose.yml config` has never run. The compose file is verified to _parse_ and nothing more.
+
 ---
+
+## 2026-09-30 — B-1 gate half: §3.2.1's raw-element ban had never fired, and nobody knew
+
+| Field      | Entry                                                                                                             |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                                        |
+| **Phase**  | `ACTION_PLAN_2026-09-30-v2.md` **EPIC-B** — start                                                                 |
+| **Task**   | Owner: _"EDR is updated … proceed with B-1, dont forget we have the screen template at docs/template"_            |
+| **Agent**  | `opencode` / space-bunny-free, using `test-driven-development` and `tdd-workflow`                                 |
+| **Status** | 🟡 **Partially complete.** The blocking half is done and it was the important half. **No primitive written yet.** |
+
+### `AGENTS.md` §3.2.1's ban was decorative
+
+> _"All UI primitives are shadcn/ui components — no raw `<button>`, `<input>`, `<select>`, `<textarea>`, `<table>`, `<dialog>`."_
+
+**It had never rejected a single line.** Three defects were stacked, and all three had to be fixed before it fired once:
+
+| #   | Defect                                       | Why it killed the rule                                                                                                                                                                                                                     |
+| --- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Selector was `JSXElement[name.name='<tag>']` | **In the ESTree spec a `JSXElement` has no `name` property** — it has `openingElement`, `children`, `closingElement`. The node carrying `name` is `JSXOpeningElement`. The selector matched a property that cannot exist.                  |
+| 2   | Two `no-restricted-syntax` blocks            | The colour block came _after_ the raw-element block and its `files` also covered `**/*.tsx`. A later flat-config object **replaces** the rule array rather than merging, so the raw-element patterns were discarded for every `.tsx` file. |
+| 3   | `parserOptions: {}` in `base.js`             | Setting `parserOptions` **replaces** what `tseslint.configs.recommended` set. Empty meant **no JSX was produced at all**, so every `JSX…` selector had nothing to match.                                                                   |
+
+**Why it survived three days of auditing.** `lint-rules.spec.ts` exercises the **node** config, whose rules contain no JSX selectors. **No suite had ever executed the _next_ config.** The rule had been read carefully, described as "real and wired into `apps/web/eslint.config.mjs`", and cited in a WORKLOG entry as _the reason the landing page had to be built from links with no theme toggle_ — a constraint the author obeyed in the belief it was enforced, and which had in fact never been checked by anything.
+
+**This is the same class as `AUD-30-01` and `FIX-26`, and it is the third instance in this repository:** a rule that reads as enforced and is not. `ARCHITECTURE.md:307` — _"A rule that is not mechanically enforced is a suggestion"_ — has now been demonstrated four times.
+
+### The isolation that found defect 1
+
+Three causes were each individually plausible, so I stopped guessing and ran five minimal configs against one source string:
+
+```text
+files:["**/*.tsx"] + JSXElement                     -> no messages
+files:["**/*.tsx"] + any JSXElement                 -> HIT-ANY    <- JSX parsed fine
+files:["**/*.tsx"] + JSXOpeningElement[name.name=…] -> HIT-OPEN   <- the name lives here
+sanity: Literal on .tsx                             -> no messages  (JSXText, not Literal)
+no languageOptions at all                           -> Parsing error: Unexpected token <
+```
+
+`JSXElement` matched. `JSXElement[name.name=…]` did not. **The AST was correct and the selector was not** — which is precisely the defect that reading the config cannot find.
+
+**Proven against the real toolchain, not the test harness:**
+
+```console
+$ pnpm --filter @eduflow/web exec eslint src/lib/probe-raw.tsx    # a real file containing <button>
+✖ 1 problem (1 error, 0 warnings)
+EXIT = 1        # was 0 before all three fixes
+```
+
+### The exemption, and why it is shaped the way it is
+
+The ban's own message says _"use the shadcn/ui component from @eduflow/ui-kit"_ — and a shadcn component **necessarily contains** the raw element. §3.2.1 says primitives must be shadcn; it does not say the raw element ceases to exist somewhere. That is the only reading that can be satisfied, and it is the reading the landing page was written under.
+
+Scoped to `components/ui/**` under **two** globs, because the config is shared between two working directories — `packages/ui-kit` linting itself, and the repo root or `apps/web` otherwise. An exemption anchored at only one **passes locally and fails in CI**, which is the kind of gap that only appears once someone else runs it.
+
+**§3.2.5's colour ban is re-declared rather than switched off** inside the exemption. A primitive that hard-codes a hex cannot work in both themes, and the primitives are exactly where that mistake would land. A test asserts it survives.
+
+### New coverage
+
+`apps/web/src/config/ui-primitive-rules.spec.ts` — **9 cases**, and the first suite ever to execute the _next_ config:
+
+- the ban fires for all six elements, and names the replacement
+- it **still fires** in `ui-kit/src/lib` — the exemption is scoped to `components/ui`, not to the package
+- the primitives are exempt from **both** cwd forms
+- the colour ban **survives inside a primitive**
+
+The "still fires in `ui-kit/src/lib`" case is the one that stops the exemption being widened to the whole package, which would silently delete the rule.
+
+### Files changed
+
+| File                                             | Change                                                                                                                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/config/eslint/next.js`                 | selector → `JSXOpeningElement`; rule sets made disjoint so neither clobbers the other; `components/ui/**` exemption added with the colour rule re-declared |
+| `packages/config/eslint/base.js`                 | `parserOptions.ecmaFeatures.jsx = true` restored                                                                                                           |
+| `apps/web/src/config/ui-primitive-rules.spec.ts` | **new** — 9 cases                                                                                                                                          |
+| `docs/work/TDD_EVIDENCE_GATES.md`                | `B-1` gate transcript with the isolation table                                                                                                             |
+| `docs/work/TODO.md`                              | `FIX-11` / `G1-5` / `G4-9` updated — the ban's real status recorded                                                                                        |
+
+### Not done, and not claimed
+
+No `components.json`. No Radix. **No primitive written.** The three remaining B-1 tasks are unchanged:
+
+1. `components.json`, mapped to `packages/ui-kit` with aliases
+2. install `@radix-ui/react-slot` (every primitive's `asChild`) and `@radix-ui/react-dialog` (the mobile `Sheet`); the registry is reachable and the store has no Radix cached
+3. write the first tranche — `button` `input` `label` `card` `badge` `skeleton` `table` `dialog` `sheet` `dropdown-menu` — each mapped to the **existing** `--*` tokens
+
+**Deferred with reasons, not omitted:** `select` (Radix `Select` is a large surface and no screen needs it), `sonner` (no toasts yet), `command`, `form`. All recorded in the plan.
+
+**The template.** `docs/template/EduFlow — Frontend Template.html` remains a **token and RTL-pattern donor only** — 21 marketing i18n keys, zero application keys, 4 RTL rules, no `prefers-reduced-motion` (`docs/design/FRONTEND_TEMPLATE.md`). Its marketing copy and its social-login buttons are not ported (`BLG-095`), and its "Trusted by 200+ schools" / "1.2M students" claims are false. The tokens it contributed are already in `packages/ui-kit/src/styles.css`, and the primitives must bind to _those_, not to shadcn's default theme — which is the specific risk this story exists to manage.
+
+### Next Steps
+
+1. **`B-1` remainder** — `components.json`, Radix, the first tranche of primitives.
+2. **`B-2`** — the theme toggle, the moment a `Button` exists. Closes `AUD-30-04`, **the last hollow gate**.
+3. **`D-4.1`** — apply multi-role: `schema-source.mjs` **and** the 14-model tripwire in one change.
+4. **`D-4.2`** (`Money` wire format) and **`D-4.3`** (`PLT-107`) — both still unanswered, and `D-4.3` blocks `PLT-101`.
+5. **`ARC-09` finding 2** — the licence payload has no key for six gated capabilities, so `@RequireEntitlement` cannot be written against them. **Blocks part of `F-2`.**
+
+---
+
+## 2026-09-30 — ARC-10 reconciled: the project ERD has pictures but no gate
+
+| Field      | Entry                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                            |
+| **Phase**  | Records reconciliation, before `B-1`                                                                  |
+| **Task**   | Owner: _"EDR is updated, pls update the docs, pls update the Epic status as well, proceed with B-1"_  |
+| **Agent**  | `opencode` / space-bunny-free                                                                         |
+| **Status** | ✅ Reconciled. Content kept; **6 false claims corrected**; ID collision resolved; worklog gap closed. |
+
+### The artefacts are real. The pipeline described around them is not.
+
+The owner updated the ERD. Three new files, and the Platform Core trio modified:
+
+| File                                              | State                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------- |
+| `docs/diagrams/ERD_PROJECT.excalidraw`            | **new** — 235 elements, 193 text, 42 rectangles, 0 mojibake         |
+| `docs/diagrams/REFERENCE_ARCHITECTURE.excalidraw` | **new** — 86 elements, 64 text, 19 rectangles, 3 arrows, 0 mojibake |
+| `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md`   | **new** — 14 KB of genuine corpus analysis                          |
+| `ERD_PLATFORM_CORE.elements.json`                 | modified — **byte-different, semantically identical**               |
+| `ERD_PLATFORM_CORE.md` · `.excalidraw`            | modified — **byte-different, semantically identical**               |
+
+**The Platform Core model did not change.** 78 elements, 15 rectangles, 13 arrows, 27 named
+elements — identical to `HEAD`. The byte difference is **CRLF line endings**: the file was
+rewritten on Windows with `core.autocrlf=true` and no `.gitattributes`. `schema.prisma` and
+`schema-source.mjs` were untouched, and the generation gate still passes 26/26.
+
+### Six false claims, corrected in place
+
+The new document's header named six artefacts as existing. **None do** — not in this tree, and
+not in the `.kilo/worktrees/citrine-eclipse` worktree either:
+
+```text
+apps/api/erd/project-erd-source.mjs          DOES NOT EXIST
+apps/api/erd/render-project-diagrams.mjs    DOES NOT EXIST
+apps/api/erd/render.mjs                     DOES NOT EXIST
+apps/api/erd/check-geometry.mjs             DOES NOT EXIST
+apps/api/src/config/project-erd.spec.ts     DOES NOT EXIST  (claimed 27 cases)
+pnpm --filter api generate:diagrams          no such script
+```
+
+**So the pictures are real and the anti-drift machinery is not.** A hand-edit to either
+`.excalidraw` today fails nothing, and the two diagrams can silently disagree with each other
+and with the document. That is `AUD-30-01` and `FIX-26` again — an artefact that cannot fail —
+arriving in the newest document in the repository, which is the one most likely to be believed.
+
+**§6 claimed 27/27 green with a drift gate "proven by breaking it".** There is no gate to break.
+Rewritten as a measured table: three claims ✅, three ❌.
+
+**§8 reported a pre-existing failure that does not occur.** It said `schema-generation.spec.ts`
+"fails on this machine" because `schema.prisma` carries 687 CR bytes. Measured:
+
+```text
+schema.prisma CR bytes: 0 of 35204 bytes, 688 lines
+Test Files  2 passed (2)   Tests  26 passed (26)
+```
+
+`core.autocrlf=true` and no `.gitattributes` are both true; neither produced the reported failure.
+A repo-wide `.gitattributes` is **not** justified by a failure that does not happen. Corrected,
+and reclassified as an environment difference to be reported with an exit code if seen.
+
+### Two more record defects
+
+- **`ARC-08` and `ARC-09` both collide.** `ARC-08` is the `directives/` Layer-1 SOP folder
+  (`BACKLOG.md` BLG-005, `TODO.md`); `ARC-09` is a contradiction register. This work is
+  **`ARC-10`** — `ARC-01` through `ARC-09` are all in use. **I hit this collision twice
+  myself** before enumerating the ID space, which is exactly what `AUD-30-07` predicts:
+  the `ARC-xx` series is exhausted precisely where new work is landing, and `G2-3` —
+  written to renumber it — has not run.
+- **It was never in the worklog.** `AGENTS.md` §9: _"If work is not in the worklog, it did not
+  happen."_ The document said so itself. Now closed.
+
+`docs:verify` scans 8 governing documents and **none of them is this one**, which is why six
+false path claims passed the only gate that catches documentation drift. A new diagram document
+is invisible to it. → `C-3` should make the scanned set discoverable rather than hard-coded.
+
+### What was kept, because it is good
+
+The corpus analysis is the most valuable part and it survives intact. Two findings are **new
+blockers** nothing else in the repository records:
+
+| #   | Finding                                                                                                                                                               | Consequence                                                                                                                                                   |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2   | Six §3 capabilities have **no key** in the signed certificate's `allowed_modules`/`features` — facilities hire, hall rental, wallet, alumni, leadership, substitution | **An entitlement guard cannot be written** against a capability the licence payload cannot name. Blocks `PLT-302` and the `@RequireEntitlement` half of `F-2` |
+| 4   | The default Chart of Accounts seeds `1000/4000/5000` but **omits** `Deposits Held` (§17.6) and the **wallet liability** (§17.10)                                      | A checkable inconsistency between `MP` §5.2 and `MP` §17.6/§17.10                                                                                             |
+
+Also carried forward: the **evidence-tier** idea (`SPECIFIED` / `NAMED` / `MODULE` / `GAP`), 23
+modules, 7 gaps drawn as gaps rather than inside the modules they block, 7 shared engines with
+their prohibitions, and 9 vendor seams with the two undecided providers drawn in red. The refusal
+to invent a plausible `Student`, `Vehicle`, `Book` or `Wallet` is exactly right and is why this
+document is worth keeping.
+
+### Files changed
+
+| File                                            | Change                                                                                       |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md` | header, artefact table, §6 and §8 corrected; `ARC-08`→`ARC-10`; worklog-omission note closed |
+| `docs/work/TODO.md`                             | `ARC-08`/`ARC-10` row                                                                        |
+| `docs/work/WORKLOG.md`                          | this entry                                                                                   |
+
+### Next Steps
+
+1. **`B-1`** — shadcn into `packages/ui-kit`. The keystone; unblocks §3.2.1, the theme toggle,
+   `AUD-30-04` (the last hollow gate) and P3's human gate.
+2. **`B-6`** — the `ARC-10` one-source pipeline, so those two diagrams gain a gate.
+3. **`D-4.1`** — apply multi-role: `schema-source.mjs` **and** the 14-model tripwire together.
+4. **`D-4.2`** — `Money` wire format. **`D-4.3`** — `PLT-107`. Both still unanswered.
+5. **Finding 2 needs an answer before `F-2`**: the licence payload has no keys for six gated
+   capabilities, so `@RequireEntitlement` cannot be written against them.
+
+---
+
+## 2026-09-30 — A-2: the last hollow gate, and why it moved out of `pnpm test`
+
+| Field      | Entry                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                     |
+| **Phase**  | `ACTION_PLAN_2026-09-30-v2.md` **EPIC-A** — last unstarted story                               |
+| **Task**   | Owner: _"pls update the docs with all the info, and proceed with A-2"_                         |
+| **Agent**  | `opencode` / space-bunny-free, using `test-driven-development` and `tdd-workflow`              |
+| **Status** | ✅ Complete. **`FIX-26` closed — no gate is green-but-hollow any more.** 132 tests, all green. |
+
+### Five of six coverage tiers were decorative
+
+`AGENTS.md` §4's coverage tiers can be perfectly written, correctly quoted, and backed by an installed provider, and still enforce nothing — because the glob matches no file.
+
+| Package    | Tier                       | Threshold | Files matched |
+| ---------- | -------------------------- | --------- | ------------- |
+| `apps/api` | `src/**/domain/**/*.ts`    | 90 / 85   | **0**         |
+| `apps/api` | `src/**/use-cases/**/*.ts` | 90 / 85   | **0**         |
+| `apps/api` | `src/**/*.controller.ts`   | 70        | **0**         |
+| `apps/web` | `src/**/hooks/**/*.ts`     | 80        | **0**         |
+| `apps/web` | `src/**/hooks/**/*.tsx`    | 80        | **0**         |
+| `apps/web` | `src/lib/**/*.ts`          | 80        | **LIVE**      |
+
+**And the sharper finding, which the globs alone would have hidden: `apps/api` had no live tier at all.** It ships real, tested source in `src/config/`, and all three of its tiers point at `domain/`, `use-cases/` or `*.controller.ts` — directories that exist and are empty. The API's coverage was **ungated**, not merely under-gated. "5 empty tiers" reads like tuning debt; "`apps/api` is unmeasured" reads like the truth.
+
+### RED, genuine, then deliberately relocated
+
+Written first as a spec in `coverage-gate.spec.ts`. It worked — red, naming all five globs _and_ the ungated package. **Then I moved it**, and the reason matters more than the code:
+
+> A failing spec fails **`pnpm test`** — the gate every session runs to answer _"is the product tested?"_. `F-1`, which fixes this, is three epics away. A permanently-red main gate is `D30` exactly: _"a gate left red teaches the next developer to ignore it."_
+
+So the red moved to the gate that **owns the concern**:
+
+| Gate                 | Before     | After          | What it now tells you                                           |
+| -------------------- | ---------- | -------------- | --------------------------------------------------------------- |
+| `pnpm test`          | 0          | **0**          | the product is tested, and that means something                 |
+| `pnpm test:coverage` | 0 — hollow | **1 — honest** | the coverage gate is not yet real, and says which file fixes it |
+
+Both signals honest. Neither is one anyone learns to ignore. This is the difference between `D35` (_a gate that exits 0 while testing nothing is hollow, not green_) and `D30` (_don't leave a gate red forever_) — which are in tension, and the resolution is to put each red on the gate that owns its concern.
+
+### Teeth, shown both ways
+
+A failing check that only ever fails proves nothing. With a real file at `apps/api/src/modules/health/domain/entities/probe.ts`:
+
+```text
+4 configured tier(s) match ZERO source files:      # was 5
+# ...and the "apps/api is ungated" line is GONE
+```
+
+Reverted, full state returned, module tree verified untouched (12 `.gitkeep`, zero changes). **The gate responds to real code arriving** — which is the distinction between a _mechanism probe_ and a _configured tier_, the thing this file's own §4 rule 2 exists to police.
+
+### I hit this repository's own recorded footgun, twice
+
+`WORKLOG.md` `[0.1.0-scaffold]` "Fixed" already lists: _"a `*/` inside a JSDoc comment that closed it early and parsed the glob as code."_ I wrote a block comment containing a glob table. **A recursive glob ends in the two-character sequence star-slash, so any `**/` terminates the comment.** It happened twice — once for the globs, and once because my own _explanation_ of the bug contained the sequence. The compiler named the line both times.
+
+Every comment in the file is now a line comment, with a note saying a future "tidy" into a block comment will not compile. **That is the only reason to prefer the uglier style**, and it is why the note is there.
+
+### Files changed
+
+| File                                             | Change                                                                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `scripts/check-coverage-tiers.mjs`               | **new** — the gate. Names every empty tier and every ungated package, then exits 1                             |
+| `apps/api/package.json`, `apps/web/package.json` | `test:coverage` now runs the check after Vitest                                                                |
+| `apps/api/src/config/coverage-gate.spec.ts`      | the four tier assertions were **removed** — deliberately, see above                                            |
+| `docs/core/SSOT.md`                              | §1, §1a, §8 and the §5.1 register reconciled; `AUD-30-02` open-vs-closed contradiction fixed in a second place |
+| `docs/work/TDD_EVIDENCE_GATES.md`                | `A-2` transcript; §1 table re-measured; §3 rows retired                                                        |
+| `docs/work/TODO.md`                              | `G1-6` closed; coverage row corrected                                                                          |
+| `docs/work/ACTION_PLAN_2026-09-30-v2.md`         | progress line; `A-2` marked done                                                                               |
+| `docs/work/WORKLOG.md`                           | this entry                                                                                                     |
+
+### Next Steps
+
+1. **`B-1` — shadcn/ui into `packages/ui-kit`.** The keystone: unblocks `AGENTS.md` §3.2.1 (currently unsatisfiable), the theme toggle, `G1-5`/`AUD-30-04` (**the last hollow gate**), and P3's human gate.
+2. **`D-4.1`** — apply multi-role: `schema-source.mjs` **and** the 14-model tripwire, in one change. Also makes `src/**/domain/**` live, which starts clearing `test:coverage`.
+3. **`A-4`** — `format:check` back to green (needs a decision on whether to reformat the docs).
+4. **`D-4.2`** — the `Money` wire format, once the owner chooses A, B or C.
+5. **`D-4.3`** — `PLT-107` first-admin bootstrap: story, or seed script? **Still unanswered, and `PLT-101` is blocked on it.**
+
+### Quality
+
+| Check                                                                 | Result                                                                       |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm test`                                                           | ✅ **0** — 132 tests (api 100 · i18n 10 · ui-kit 8 · shared-types 7 · web 7) |
+| `pnpm typecheck` · `pnpm lint` · `pnpm docs:verify` · `pnpm test:e2e` | ✅ **0**                                                                     |
+| `pnpm test:coverage`                                                  | ❌ **1 — honest.** Was 0 and enforcing nothing. Names `F-1`.                 |
+| `pnpm test:integration`                                               | ❌ **1 — honest.** Was 0 and running nothing. Names `F-7`.                   |
+| `pnpm format:check`                                                   | ❌ **2** — pre-existing `FIX-05`                                             |
+| `pnpm build`                                                          | **not re-run** this session                                                  |
+
+**Honest score: 6 of 9 trustworthy · 1 hollow · 3 red.** Was **5 / 3 hollow / 1 red** when the audit measured it. **No gate is green-but-hollow any more** — that is the whole of what these three stories achieved, and it took three sessions of measurement work.
+
+**That is also the argument for stopping.** Three sessions, three stories, and the product is still 189 lines of API. `EPIC-B` (`B-1`) and then `EPIC-F` are where the code starts.
+
+---
+
+## 2026-09-30 — A-1: the integration gate stops lying, and 21 ADRs get signed
+
+| Field      | Entry                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                              |
+| **Phase**  | `ACTION_PLAN_2026-09-30-v2.md` **EPIC-A** · plus `D-0` (owner decisions applied)                        |
+| **Task**   | Owner: _"pls proceed … update the docs and proceed with G1-3 / A-1"_                                    |
+| **Agent**  | `opencode` / space-bunny-free, using `test-driven-development` and `tdd-workflow`                       |
+| **Status** | ✅ Complete. **`AUD-30-02` closed.** 7 new tests. api 93 → 100; repo 125 → 132. **21 ADRs `Accepted`.** |
+
+### `AUD-30-02` — the last hollow gate that was a pure fiction
+
+Two packages declared `test:integration`. **Two of two exited 0 having run nothing:**
+
+```console
+@eduflow/web:test:integration: $ echo "no web integration suite at P2" && exit 0
+@eduflow/api:test:integration: No test files found, exiting with code 0
+ Tasks:  5 successful, 5 total
+```
+
+`isPassingStub()` already existed and detects the first shape exactly — it was written on 2026-09-29 to stop `test:e2e` reporting a green from a stub. It was simply never pointed at `test:integration`. **The second shape needed a new assertion, not an extension:** `passWithNoTests` is a Vitest config key, and no amount of reading a `package.json` script can see it.
+
+**RED, genuine, both defects in one run:**
+
+```text
+× 'apps/web' > does not declare a test:integration that always passes
+  → apps/web declares test:integration as "echo "no web integration suite at P2" && exit 0" …
+× 'apps/api' does not set passWithNoTests
+  → apps/api/vitest.integration.config.ts sets passWithNoTests: true …
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)          exit 1
+```
+
+**GREEN — the fix is two lines, and one of them is a deletion:**
+
+| File                                    | Change                                                       |
+| --------------------------------------- | ------------------------------------------------------------ |
+| `apps/web/package.json`                 | `test:integration` **deleted.** Turbo now skips the package. |
+| `apps/api/vitest.integration.config.ts` | `passWithNoTests: true` → **`false`**                        |
+
+**`pnpm test:integration` now exits 1. That is the intended state**, and the reason is written into the config file itself:
+
+> A gate that fails because it has no test yet tells the next developer exactly what is missing. A gate that passes because it has no test yet tells them nothing. `D30`.
+
+It stays red until `F-7` supplies the first real integration test against a containerized PostgreSQL. **Do not set `passWithNoTests` back to `true`** — `integration-gate.spec.ts` now fails if anyone does.
+
+### The obvious wrong fix, guarded before it could be taken
+
+Deleting every `test:integration` script would make the new spec pass while `pnpm test:integration` reported success having run nothing — **the same hollow gate, reached from the other direction.** A case asserts _at least one package still declares an integration gate_, because `AGENTS.md` §4 requires the gate to exist. Without it, the cheapest way to make this story green would have been to delete the thing being tested.
+
+Three further cases test `isPassingStub()` itself — against a known stub, a known runner invocation, and a real failing command (`vitest run --coverage || exit 1`). A detector that stopped recognising its own shape would otherwise make every other case pass without checking anything. That guard is the direct descendant of yesterday's false-RED post-mortem: **a test whose detector can silently stop detecting is the same defect as a test that never runs.**
+
+**Case count moved 8 → 7, correctly.** `apps/web` no longer declares the script, so its `describe.each` case is gone; its coverage moved into the "at least one declares it" case.
+
+### `D-0` — 21 ADRs signed
+
+The owner approved `ADR-001`…`ADR-021`. Applied to 21 status lines plus `docs/adr/README.md` (23 index cells), and the claim _"**No ADR is `Accepted`.** Nothing in this directory has been signed off"_ is replaced with the approval and — more importantly — with what acceptance does **not** mean:
+
+> **Acceptance is not enforcement.** `ARCHITECTURE.md:307` — _"A rule that is not mechanically enforced is a suggestion."_ Nothing here is enforced today because there is no CI. An accepted ADR is a decision with an owner, not a running check.
+
+**Caveats retained, not erased.** `ADR-003` was _reconstructed_ from the decision history and is now reconstructed-then-signed. `ADR-005` still conflicts with `SRS` §19 — recorded as a deviation, not a blocker. `ADR-020`'s `AGENTS.md` §3.1 amendment is still outstanding, and the file says so. Approving a document is not a reason to delete the caveat that made it worth approving.
+
+**A script did the 22-file edit, dry-run first.** Emoji, em dash and middle dot codepoints were read from disk rather than guessed: the first attempt matched **0 of 3** special rows because it assumed a hyphen where the file has `—` and `·`. Guessing at characters across 21 files is how you silently corrupt a governing document.
+
+### `D-4.1` — multi-role, decided but not applied
+
+**Owner decision: multi-role, a `UserRole` join table.**
+
+**Deliberately not actioned.** `prisma-schema.spec.ts` _fails on purpose_ if a 15th model appears — a tripwire written to catch exactly this. Applying the decision in the same commit as an unrelated test would break the suite for the right reason at the wrong moment, and the tripwire amendment and the schema change have to be reviewed together. Recorded for `D-4.1`; it is next.
+
+### `D-4.2` — the Money question, still open
+
+The owner asked for clarification. `packages/shared-types` **already ships** `Money{amountMinor: bigint}` with a passing test, and:
+
+```console
+$ node -e "JSON.stringify({amountMinor: 100n, currency:'LKR'})"
+THROWS: TypeError: Do not know how to serialize a BigInt
+```
+
+**So the day any endpoint returns a `Money`, Nest's serialiser throws and the request 500s.** `PLT-301`/`PLT-302` are scheduled for P8. The three options, the `Number.MAX_SAFE_INTEGER` arithmetic, and a recommendation for **C** (string on the wire plus a branded client type) are now in the owner-decision register rather than living only in a chat window.
+
+### Files changed
+
+| File                                           | Change                                                                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `apps/api/src/config/integration-gate.spec.ts` | **new** — 7 tests, two hollow-gate shapes                                                      |
+| `apps/api/vitest.integration.config.ts`        | `passWithNoTests: false`, with the reason recorded in the file                                 |
+| `apps/web/package.json`                        | `test:integration` deleted                                                                     |
+| `docs/adr/ADR-001…021` (21 files)              | Status → `✅ Accepted 2026-09-30 (owner)`, caveats preserved                                   |
+| `docs/adr/README.md`                           | 23 index cells updated; the false "no ADR is Accepted" claim replaced                          |
+| `docs/work/TDD_EVIDENCE_GATES.md`              | `G1-3` transcript; §1 status table re-measured; §3 row retired                                 |
+| `docs/work/TODO.md`                            | `G1-3` closed; `G1-4` closure narrowed honestly; `⚑'10` answered; `⚑'H` added; `⚑'G` clarified |
+
+### Next Steps
+
+1. **`A-2` / `G1-6`** — make a configured coverage tier that matches zero files fail loudly. **The last hollow gate.**
+2. **`D-4.1`** — apply multi-role: `schema-source.mjs` **and** the 14-model tripwire, in one change.
+3. **`B-1`** — shadcn. Unblocks `AGENTS.md` §3.2.1, the theme toggle, `G1-5`, and P3's human gate.
+4. **`D-4.2`** — the `Money` wire format, once the owner chooses A, B or C.
+
+### Quality
+
+| Check                          | Result                                                                                              |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `pnpm test`                    | ✅ 0 — **132 tests** (api 100 · i18n 10 · ui-kit 8 · shared-types 7 · web 7)                        |
+| `pnpm typecheck` · `pnpm lint` | ✅ 0                                                                                                |
+| `pnpm docs:verify`             | ✅ 0 — 213 references                                                                               |
+| `pnpm test:e2e`                | ✅ 0 — 37 browser tests                                                                             |
+| **`pnpm test:integration`**    | ❌ **1 — deliberately.** Was 0, meaning nothing. Now 1, meaning _"no integration test exists yet"_. |
+| `pnpm test:coverage`           | ⚠️ 0 — **still hollow.** `A-2`                                                                      |
+| `pnpm format:check`            | ❌ **2** — pre-existing `FIX-05`                                                                    |
+| `pnpm build`                   | **not re-run** this session                                                                         |
+
+**Honest score: 6 of 9 trustworthy · 2 hollow · 1 red.** Was 5 / 3 / 1 when the audit measured it. `docs:verify` went 207 → 213 references because this session's own prose added six.
+
+---
+
+## 2026-09-30 — A-3: the test-file oracle, and a false RED that nearly became a P0 report
+
+| Field      | Entry                                                                                               |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                          |
+| **Phase**  | `ACTION_PLAN_2026-09-30-v2.md` **EPIC-A** — make the gates honest                                   |
+| **Task**   | Owner approved `ADR-001…021`; decided **multi-role**; asked to proceed with **A-3**                 |
+| **Agent**  | `opencode` / space-bunny-free, using `test-driven-development` and `tdd-workflow`                   |
+| **Status** | ✅ Complete. **15 new tests.** `@eduflow/api` 78 → 93; repo total 110 → 125. All gates re-measured. |
+
+### The false RED, first, because it is the part worth reading
+
+The new test reported:
+
+```text
+× '@eduflow/web' > has every spec file on disk matched by a runner include glob
+  → @eduflow/web: 1 spec file(s) exist on disk but no runner collects them:
+    apps/web/tests/e2e/shell.spec.ts
+```
+
+**That reads as a second live instance of `AUD-30-01`** — a 636-line, 37-test Playwright suite that has never run. If true it is the most serious finding in the project. I measured before reporting, and it was **my own bug**: the Playwright glob was written `[jt]s[x]?` instead of `[jt]s?(x)`, and the former matches nothing.
+
+```text
+**/*.spec.ts                      -> ["shell.spec.ts"]
+**/*.{spec,test}.?(c|m)[jt]s?(x)  -> ["shell.spec.ts"]
+**/*.{spec,test}.?(c|m)[jt]s[x]?  -> []            <-- the bug
+```
+
+Per `tdd-workflow`, a failure caused by broken test setup is **not a RED gate**. Discarded. This is the third recorded instance of the same discipline in this project — after the PowerShell BOM that faked a RED, and the `ibm850` console artefact that faked mojibake. **A false RED that names a real-looking path is more dangerous than no test at all**, because it invites a confident report of a defect that does not exist.
+
+### A hole the bug exposed, now closed
+
+The test also asserted `apps/web` is discovered by _both_ Vitest and Playwright. That assertion **passed** while Playwright's glob set was empty, because it compared only runner _names_. A new case asserts every detected runner has a **non-empty** glob set, with the failure message naming the exact mis-parse. Without it, a wrong glob reads as a repository finding rather than a test bug.
+
+### The valid RED — the original defect shape
+
+A guard's RED cannot be a missing feature, because the feature _is_ the absence of a defect. So the evidence is a deliberate break reproducing `AUD-30-01` exactly: `apps/web/web-port.spec.ts` recreated at the package root, outside `src/**` and `tests/**`.
+
+```text
+$ pnpm --filter @eduflow/api exec vitest run src/config/test-file-oracle.spec.ts
+× '@eduflow/web' > has every spec file on disk matched by a runner include glob
+  → @eduflow/web: 1 spec file(s) exist on disk but no runner collects them:
+    apps/web/web-port.spec.ts
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 passed (15)          exit 1
+```
+
+Reverted. **GREEN `1 passed (1)` / `15 passed (15)`.**
+
+Worth noting: `pnpm --filter @eduflow/api test` did **not** collect the probe. It sat in `apps/web`, outside the api runner's globs — dormant for exactly the reason the original was. The oracle is the only thing that noticed.
+
+### Zero new dependencies
+
+The glob engine is `node:fs`'s own `fs.globSync` (Node 26.7.0). I checked for `tinyglobby` / `fast-glob` / `picomatch` first and **none is resolvable** — pnpm's isolated `node_modules`. Adding one would have meant a new dependency in a story about not trusting dependencies, and `AGENTS.md` §8 says not to add libraries without instruction. `fs.globSync` was verified against all three glob forms the repo actually uses, including Vitest's `**/*.{test,spec}.?(c|m)[jt]s?(x)` default.
+
+A hand-rolled matcher would have been the weakest link in a test whose entire job is trusting its own matching, so the choice mattered.
+
+### Files changed
+
+| File                                           | Change                                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `apps/api/src/config/test-file-oracle.spec.ts` | **new** — 15 tests. Six cases, each guarding a distinct way the oracle could lie to itself |
+| `docs/work/ACTION_PLAN_2026-09-30-v2.md`       | **new** — 9 epics, 39 stories, ~164 pts to a shipped login                                 |
+| `docs/work/TDD_EVIDENCE_GATES.md`              | `A-3` transcript, including the discarded attempt; the `G1-2` row in §3 marked done        |
+| `docs/work/TODO.md`                            | `G1-2` closed; `G1-3` named as the next task; the gate block re-measured                   |
+
+### Decisions Made
+
+- **Multi-role, per the owner.** Taken as: a `UserRole` join table. This is **not yet applied** — it adds a 15th model, and `prisma-schema.spec.ts` _deliberately fails_ if a 15th appears. The tripwire has to be amended deliberately, in the same change, or the suite breaks for the right reason at the wrong moment. Recorded for `A-2`'s successor `D-4.1`; **not** actioned in this session.
+- **`ADR-001…021` approved, per the owner.** `docs/adr/README.md` still reads _"No ADR is `Accepted`."_ That is now false and is **`D-0`'s** to apply — it is a 21-row status change across a governing document, and doing it in the same commit as an unrelated test would make both harder to review.
+- **The integration gate will be left deliberately red** (next task, `G1-3`). It currently exits 0 while running nothing. Making it honest means it must exit non-zero until a real test exists.
+
+### Next Steps
+
+1. **`G1-3` / `A-1`** — integration gate guards. Extend `isPassingStub()` from `test:e2e` to `test:integration`; delete the `echo … && exit 0`; `passWithNoTests: false`.
+2. **`D-0`** — apply the ADR approval to `docs/adr/README.md`.
+3. **`D-4.1`** — apply multi-role to `schema-source.mjs` and amend the 14-model tripwire in the same change.
+4. **`D-4.2`** — still open: the `Money` `bigint` → JSON wire format. The owner asked for clarification; `bigint` does not survive `JSON.stringify` (verified: `TypeError: Do not know how to serialize a BigInt`), so every endpoint returning a `Money` would 500.
+
+### Quality
+
+| Check                   | Result                                                                      |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `pnpm test`             | ✅ 0 — **125 tests** (api 93 · i18n 10 · ui-kit 8 · shared-types 7 · web 7) |
+| `pnpm typecheck`        | ✅ 0                                                                        |
+| `pnpm lint`             | ✅ 0                                                                        |
+| `pnpm docs:verify`      | ✅ 0 — 209 references                                                       |
+| `pnpm test:e2e`         | ✅ 0 — 37 browser tests                                                     |
+| `pnpm test:coverage`    | ⚠️ 0 — **still hollow**, enforces nothing. `A-2`                            |
+| `pnpm test:integration` | ⚠️ 0 — **still a stub**. `A-1`                                              |
+| `pnpm format:check`     | ❌ **2** — pre-existing `FIX-05`, untouched                                 |
+| `pnpm build`            | **not re-run** this session                                                 |
+
+**⚠️ Drift I caused and did not paper over:** `SSOT.md` §1 now understates the test count by 15 (110 → 125) and the tracked-file count by 1. I deliberately did **not** hand-edit it. `SSOT.md:28` already says _"This table is hand-maintained and has now been wrong twice"_ — and patching it a fourth time is the defect, not the fix. `G2-2` / `C-1` (`scripts/report-status.mjs`) is the structural answer. This session is the argument for it.
+
 ---
 
 ## 2026-09-30 — ARC-08: the project ERD and the reference architecture, and the gaps drawn as gaps
@@ -163,26 +751,26 @@ hall, wallet, alumni, leadership, substitution and facilities hire.
 
 ## 2026-09-30 — Scroll diagnosis, three real defects, the sign-in route, and responsive proof
 
-| Field      | Entry |
-| ---------- | ----- |
-| **Date**   | 2026-09-30 |
-| **Phase**  | Landing page third pass, `AGENTS.md` 3.2.2 accessibility, `FIX-04` follow-on |
+| Field      | Entry                                                                                                                               |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                                                          |
+| **Phase**  | Landing page third pass, `AGENTS.md` 3.2.2 accessibility, `FIX-04` follow-on                                                        |
 | **Task**   | The user: _"scroll is not working, use your UI/UX skills"_ and _"hope this is responsive and add the login link also to the page"_. |
-| **Agent**  | `opencode` / space-bunny-free, using the `ui-visual-validator` skill |
-| **Status**  | ✅ Complete. **32 e2e (was 19)**; all gates 0. |
+| **Agent**  | `opencode` / space-bunny-free, using the `ui-visual-validator` skill                                                                |
+| **Status** | ✅ Complete. **32 e2e (was 19)**; all gates 0.                                                                                      |
 
 ### The scroll claim: measured, and it was working
 
 `ui-visual-validator`'s first rule is that the modification goal has not been achieved until proven otherwise, and its second useful rule is to go looking for failure evidence. So I measured before concluding anything.
 
-| Check | Method | Result |
-| --- | --- | --- |
-| Marquee motion | `DOMMatrixReadOnly(transform)` sampled 4× at 400ms | `translateX` −31.46 → −44.05 → −57.16 → −70.27. **Steady ~32px/s, matching 22s for 50% of 1384px** |
-| Marquee motion, visually | two element screenshots 700ms apart | Every word shifted left by ~80px. "Attendance" x=100→65, "Finance" 310→275 |
-| Page scroll | `scrollTo(0, 400)` | 0 → 400 |
-| Page scroll | `mouse.wheel(0, 600)` | `scrollY` 0 → 590 (the maximum) |
-| Page scroll | `PageDown` | `scrollY` 0 → 590. **Keyboard scrolling works** |
-| Sticky nav | `getBoundingClientRect().top` after scrolling 700px | 0px, `position: sticky` |
+| Check                    | Method                                              | Result                                                                                             |
+| ------------------------ | --------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Marquee motion           | `DOMMatrixReadOnly(transform)` sampled 4× at 400ms  | `translateX` −31.46 → −44.05 → −57.16 → −70.27. **Steady ~32px/s, matching 22s for 50% of 1384px** |
+| Marquee motion, visually | two element screenshots 700ms apart                 | Every word shifted left by ~80px. "Attendance" x=100→65, "Finance" 310→275                         |
+| Page scroll              | `scrollTo(0, 400)`                                  | 0 → 400                                                                                            |
+| Page scroll              | `mouse.wheel(0, 600)`                               | `scrollY` 0 → 590 (the maximum)                                                                    |
+| Page scroll              | `PageDown`                                          | `scrollY` 0 → 590. **Keyboard scrolling works**                                                    |
+| Sticky nav               | `getBoundingClientRect().top` after scrolling 700px | 0px, `position: sticky`                                                                            |
 
 **So scrolling was not broken, and the e2e gate had been asserting the animations were running the whole time.** What the user was almost certainly looking at is the browser on this machine, which has `prefers-reduced-motion: reduce` set at the OS level — so the marquee correctly rendered as a static row, and a static `width: max-content` strip inside an `overflow: hidden` holder looks exactly like a rendering fault: a row of words with the first and last sliced off at the viewport edges.
 
@@ -201,7 +789,7 @@ Reporting "it works" and stopping there would have missed the real defect. The m
 The two calls to action were **one pixel** under the floor. I had not seen that by looking, and I would not have caught it by looking. Fixed with `min-height: var(--touch-target-min)` — the token, not a hard-coded number, so the floor stays the single source.
 
 **2 · Reduced motion left a clipped strip, not a considered degradation.**
-Cancelling the animation is the easy half. The hard half is what the strip *looks like* afterwards. Under `prefers-reduced-motion: reduce` the marquee now drops its duplicate half, stops clipping, and wraps the six modules centred — same information, nothing cut off, no motion. The e2e asserts it directly: no item may sit outside its holder and the track may not overflow.
+Cancelling the animation is the easy half. The hard half is what the strip _looks like_ afterwards. Under `prefers-reduced-motion: reduce` the marquee now drops its duplicate half, stops clipping, and wraps the six modules centred — same information, nothing cut off, no motion. The e2e asserts it directly: no item may sit outside its holder and the track may not overflow.
 
 **3 · Hard horizontal seam where the hero's mesh gradient stopped dead.**
 Visible in a screenshot at y≈190: a purple field meeting flat `--bg` along a ruled line, which reads as a rendering artefact rather than a section boundary. The mesh now carries a bottom mask and dissolves into the page. The 130px of dead space below the mockup went with it.
@@ -210,13 +798,13 @@ Visible in a screenshot at y≈190: a purple field meeting flat `--bg` along a r
 
 Six breakpoints, asserted: **320 · 375 · 414 · 768 · 1024 · 1440.**
 
-Two failed, and the failure is instructive. An earlier ad-hoc check at **390px** passed — but that was *before* the 44px touch-target fix, and 390 sits above 375. Widening the floor pushed the topnav over:
+Two failed, and the failure is instructive. An earlier ad-hoc check at **390px** passed — but that was _before_ the 44px touch-target fix, and 390 sits above 375. Widening the floor pushed the topnav over:
 
-| Width | Overflow |
-| --- | --- |
-| 320px | **64px** → 25px after the first wrap fix → **0** |
-| 375px | **12px** → **0** |
-| 414 / 768 / 1024 / 1440 | 0 |
+| Width                   | Overflow                                         |
+| ----------------------- | ------------------------------------------------ |
+| 320px                   | **64px** → 25px after the first wrap fix → **0** |
+| 375px                   | **12px** → **0**                                 |
+| 414 / 768 / 1024 / 1440 | 0                                                |
 
 Located by walking the DOM for elements whose right edge exceeded the viewport and that no ancestor was clipping. The culprit was not the topnav — it was `.landing-nav-right` (329px) and `.landing-lang` (251px) inside a 288px content box, neither of which had `flex-wrap: wrap`. Only the parent had it.
 
@@ -232,7 +820,7 @@ The route is a `page.tsx` under the existing root layout — **not** a nested `l
 
 ### Two errors I made and caught, recorded because both cost a cycle
 
-- **`getTranslations('auth').signIn`** — `getTranslations` returns a *translator function*, not the messages object. The type error cascaded: the route failed to compile, `/en` returned 500, and **17 tests failed** with messages about `data-theme` and missing headings that had nothing to do with the cause. Caught by `pnpm typecheck`, not by reading the e2e output.
+- **`getTranslations('auth').signIn`** — `getTranslations` returns a _translator function_, not the messages object. The type error cascaded: the route failed to compile, `/en` returned 500, and **17 tests failed** with messages about `data-theme` and missing headings that had nothing to do with the cause. Caught by `pnpm typecheck`, not by reading the e2e output.
 - **`import '../sign-in.css'`** from `app/[locale]/sign-in/page.tsx` resolves to `app/[locale]/sign-in.css`, which does not exist. It must be `./sign-in.css`. This is why `/en/sign-in` returned 500 while `/en` returned 200 — and the e2e reported it as a wall of unrelated failures.
 
 ### The stale `.next` footgun, now prevented rather than documented
@@ -246,65 +834,64 @@ ENOENT: no such file or directory, rename
 
 That produced 16 failures across all four locales — **none of which mentioned a stale build**. The suite was testing someone's leftover editor state.
 
-`playwright.config.ts` claimed `dev` instead of `start` meant "the suite cannot be broken by a build left over from an earlier commit". That was half true: it is immune to a stale *production* build and fully exposed to a stale *dev* cache. The `webServer.command` now clears `.next` first, using `node -e ... rmSync` because this is a Windows workstation (`AGENTS.md` §8). Third entry for this footgun; the other two are in `SSOT.md` §8.
+`playwright.config.ts` claimed `dev` instead of `start` meant "the suite cannot be broken by a build left over from an earlier commit". That was half true: it is immune to a stale _production_ build and fully exposed to a stale _dev_ cache. The `webServer.command` now clears `.next` first, using `node -e ... rmSync` because this is a Windows workstation (`AGENTS.md` §8). Third entry for this footgun; the other two are in `SSOT.md` §8.
 
 ### Files changed
 
-| File | Change |
-| ---- | ------ |
-| `apps/web/src/app/[locale]/sign-in/page.tsx` + `sign-in.css` | **new** — the sign-in route, honest about state, four locales |
-| `apps/web/src/features/landing/landing.css` | 44px floor via the token; topnav/nav-right/lang wrap; hero mesh bottom mask; 420px breakpoint; reduced-motion marquee fallback |
-| `.../components/hero.tsx` | sign-in link in the topnav |
-| `.../components/marquee.tsx` | addressable halves so the fallback can drop the duplicate |
-| `apps/web/playwright.config.ts` | `.next` cleared before the e2e web server |
-| `apps/web/tests/e2e/shell.spec.ts` | +13 cases: touch targets, marquee degradation, sign-in route, six breakpoints |
-| `packages/i18n-resources/src/locales/*.json` | `+signIn.{title,subtitle,notYet,backToHome}` |
+| File                                                         | Change                                                                                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web/src/app/[locale]/sign-in/page.tsx` + `sign-in.css` | **new** — the sign-in route, honest about state, four locales                                                                  |
+| `apps/web/src/features/landing/landing.css`                  | 44px floor via the token; topnav/nav-right/lang wrap; hero mesh bottom mask; 420px breakpoint; reduced-motion marquee fallback |
+| `.../components/hero.tsx`                                    | sign-in link in the topnav                                                                                                     |
+| `.../components/marquee.tsx`                                 | addressable halves so the fallback can drop the duplicate                                                                      |
+| `apps/web/playwright.config.ts`                              | `.next` cleared before the e2e web server                                                                                      |
+| `apps/web/tests/e2e/shell.spec.ts`                           | +13 cases: touch targets, marquee degradation, sign-in route, six breakpoints                                                  |
+| `packages/i18n-resources/src/locales/*.json`                 | `+signIn.{title,subtitle,notYet,backToHome}`                                                                                   |
 
 ### Quality
 
-| Check | Result |
-| ----- | ------ |
-| `pnpm test:e2e` | ✅ 0 — **32 passed** (19 → 32) |
-| `pnpm test` | ✅ 0 — 106 unit; i18n parity held across the new `signIn` keys in four locales |
-| `pnpm typecheck` · `lint` | ✅ 0 — lint/typecheck caught the two errors above and three `noUncheckedIndexedAccess` violations in my own test code |
-| `pnpm build` · `test:coverage` · `test:integration` · `docs:verify` | ✅ 0 |
-| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, untouched |
-| Visual | 320px dark and `/ta/sign-in` dark verified by screenshot. Six breakpoints measured, not eyeballed |
+| Check                                                               | Result                                                                                                                |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test:e2e`                                                     | ✅ 0 — **32 passed** (19 → 32)                                                                                        |
+| `pnpm test`                                                         | ✅ 0 — 106 unit; i18n parity held across the new `signIn` keys in four locales                                        |
+| `pnpm typecheck` · `lint`                                           | ✅ 0 — lint/typecheck caught the two errors above and three `noUncheckedIndexedAccess` violations in my own test code |
+| `pnpm build` · `test:coverage` · `test:integration` · `docs:verify` | ✅ 0                                                                                                                  |
+| `pnpm format:check`                                                 | ❌ **2** — pre-existing `FIX-05`, untouched                                                                           |
+| Visual                                                              | 320px dark and `/ta/sign-in` dark verified by screenshot. Six breakpoints measured, not eyeballed                     |
 
 ### Honest accounting
 
-Of the 13 new cases, **two were vacuous on arrival** and are guards rather than REDs: *"prefers-reduced-motion stops every animation"* (there were no animations, so zero trivially satisfied it) and *"following the sign-in link resolves rather than 404s"* (the route did not exist, so the click timed out for a reason other than the one the assertion described — it failed, but on a timeout rather than on the 404 it was written to catch). The rest were genuine REDs, and the touch-target and overflow ones named the exact pixels.
-
+Of the 13 new cases, **two were vacuous on arrival** and are guards rather than REDs: _"prefers-reduced-motion stops every animation"_ (there were no animations, so zero trivially satisfied it) and _"following the sign-in link resolves rather than 404s"_ (the route did not exist, so the click timed out for a reason other than the one the assertion described — it failed, but on a timeout rather than on the 404 it was written to catch). The rest were genuine REDs, and the touch-target and overflow ones named the exact pixels.
 
 ---
 
 ## 2026-09-30 — The landing page rebuilt to the template's actual visual language
 
-| Field      | Entry |
-| ---------- | ----- |
-| **Date**   | 2026-09-30 |
-| **Phase**  | Landing page, second pass |
+| Field      | Entry                                                                                                                                                                             |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                                                                                                        |
+| **Phase**  | Landing page, second pass                                                                                                                                                         |
 | **Task**   | The user, reviewing the first pass: _"it's not look like the template that i shared.. no animation no hero section pls make it look same like template"_. Correct on both counts. |
-| **Agent**  | `opencode` / space-bunny-free |
-| **Status**  | ✅ Complete. 19 e2e (was 16); all gates 0. |
+| **Agent**  | `opencode` / space-bunny-free                                                                                                                                                     |
+| **Status** | ✅ Complete. 19 e2e (was 16); all gates 0.                                                                                                                                        |
 
 ### What the first pass got wrong
 
-I read "use the template for the landing page" as *use its structure* and rebuilt the same content plainly. The user meant *make it look like it*. The gap was almost entirely **visual character**, and it was large:
+I read "use the template for the landing page" as _use its structure_ and rebuilt the same content plainly. The user meant _make it look like it_. The gap was almost entirely **visual character**, and it was large:
 
-| Missing | Why it mattered |
-| --- | --- |
-| Mesh-gradient hero (`meshShift` 14s) | The single largest contributor to the template's look |
-| 42px grid overlay, radially masked | Gives the hero depth; invisible if you do not know to look for it |
-| Four drifting, glowing orbs (`drift` 11s) | The only movement in the upper half of the page |
-| Sheening gradient heading (`sheen` 5s) | The template's signature effect |
-| Glow-pulsing primary CTA (`glowPulse` 2.4s) | Draws the eye to the action |
-| Product mockup in a window frame | The hero's anchor; also where the fabricated figures lived |
-| **Scrolling marquee** (`scroll` 22s) | A whole section, entirely absent |
-| Gradient icon tiles, card hover lift | The feature grid read as four plain rectangles |
-| Backdrop-blur sticky topnav | The page had no navigation at all |
+| Missing                                     | Why it mattered                                                   |
+| ------------------------------------------- | ----------------------------------------------------------------- |
+| Mesh-gradient hero (`meshShift` 14s)        | The single largest contributor to the template's look             |
+| 42px grid overlay, radially masked          | Gives the hero depth; invisible if you do not know to look for it |
+| Four drifting, glowing orbs (`drift` 11s)   | The only movement in the upper half of the page                   |
+| Sheening gradient heading (`sheen` 5s)      | The template's signature effect                                   |
+| Glow-pulsing primary CTA (`glowPulse` 2.4s) | Draws the eye to the action                                       |
+| Product mockup in a window frame            | The hero's anchor; also where the fabricated figures lived        |
+| **Scrolling marquee** (`scroll` 22s)        | A whole section, entirely absent                                  |
+| Gradient icon tiles, card hover lift        | The feature grid read as four plain rectangles                    |
+| Backdrop-blur sticky topnav                 | The page had no navigation at all                                 |
 
-**Lesson worth recording:** the first pass copied the template's *information architecture* and treated the CSS as decoration. It was not decoration — five of those effects (`color-mix` at four stops, `mask-image`, `backdrop-filter`, a keyframed `background-position` on a `background-clip:text` element, and the duplicated `translateX(-50%)` loop) **cannot be expressed as utility classes at all.** A visual port is a port of the stylesheet.
+**Lesson worth recording:** the first pass copied the template's _information architecture_ and treated the CSS as decoration. It was not decoration — five of those effects (`color-mix` at four stops, `mask-image`, `backdrop-filter`, a keyframed `background-position` on a `background-clip:text` element, and the duplicated `translateX(-50%)` loop) **cannot be expressed as utility classes at all.** A visual port is a port of the stylesheet.
 
 ### The bug I introduced, and what caught it
 
@@ -312,16 +899,16 @@ The first version of `landing.css` nested the `@keyframes` blocks **inside** `.l
 
 The failure was nasty precisely because it was partial. The `background` declaration in the same rule still applied, so the mesh gradient **rendered and looked correct**. `getComputedStyle(...).animationName` was `none`. No build error, no lint error, no console warning.
 
-**The e2e assertion on `document.getAnimations()` was the only thing that caught it.** Checking that a `@keyframes` block exists in the stylesheet would have passed — it was in the file. Checking that an element has an `animation-name` would have passed too, because the shorthand was assigned. Only the browser's list of *running* animations distinguishes "someone typed it" from "the browser is compositing it", which is what a visitor actually sees. The keyframes are now hoisted to the top level and the file documents the trap.
+**The e2e assertion on `document.getAnimations()` was the only thing that caught it.** Checking that a `@keyframes` block exists in the stylesheet would have passed — it was in the file. Checking that an element has an `animation-name` would have passed too, because the shorthand was assigned. Only the browser's list of _running_ animations distinguishes "someone typed it" from "the browser is compositing it", which is what a visitor actually sees. The keyframes are now hoisted to the top level and the file documents the trap.
 
 ### The motion contract, measured
 
 Not asserted from the stylesheet — measured in a real browser, both ways:
 
-| Context | Running animations | By name |
-| --- | --- | --- |
-| `reducedMotion: 'no-preference'` | **9** | `meshShift`×1 `drift`×4 `pulse`×1 `sheen`×1 `glowPulse`×1 `scroll`×1 — all `playState: running` |
-| `reducedMotion: 'reduce'` | **0** | — |
+| Context                          | Running animations | By name                                                                                         |
+| -------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------- |
+| `reducedMotion: 'no-preference'` | **9**              | `meshShift`×1 `drift`×4 `pulse`×1 `sheen`×1 `glowPulse`×1 `scroll`×1 — all `playState: running` |
+| `reducedMotion: 'reduce'`        | **0**              | —                                                                                               |
 
 That is the guarantee `AGENTS.md §3.2.7` asks for, and it is a real one: the template has **no** `prefers-reduced-motion` rule at all, so this is a rule this project supplies rather than inherits. Six ambient loops running 1.8s–22s is decorative motion, and a vestibular trigger is not cured by a faster animation.
 
@@ -344,7 +931,7 @@ The one that remains is `.landing-marquee-track { animation-direction: reverse }
 
 ### Honest accounting of the TDD
 
-Three new e2e cases. **Two were genuine REDs** — "the sheen animation is not running on /en, `Received array: []`" and "the module marquee is missing". The third, *"prefers-reduced-motion stops every animation"*, **passed immediately and was not a RED**: there were no animations at all, so zero running animations trivially satisfied it. Same shape as the claim-absence guard — an empty page cannot contain a forbidden string. It is a guard paired with a positive test, and it is labelled as such rather than counted.
+Three new e2e cases. **Two were genuine REDs** — "the sheen animation is not running on /en, `Received array: []`" and "the module marquee is missing". The third, _"prefers-reduced-motion stops every animation"_, **passed immediately and was not a RED**: there were no animations at all, so zero running animations trivially satisfied it. Same shape as the claim-absence guard — an empty page cannot contain a forbidden string. It is a guard paired with a positive test, and it is labelled as such rather than counted.
 
 The guard turned out to be the one that mattered most, because it is what caught the hoisting bug in the opposite direction: once the animations ran, the reduced-motion guarantee is asserted to still hold.
 
@@ -354,29 +941,29 @@ Mid-session `/ar` served a `__webpack_modules__[moduleId] is not a function` ove
 
 ### Files changed
 
-| File | Change |
-| ---- | ------ |
-| `apps/web/src/features/landing/landing.css` | **new** — 7 hoisted keyframes + the template's visual language, all scoped under `.landing` |
-| `.../components/hero.tsx` | rewritten — mesh, grid, orbs, badge, sheen, glow CTA, mockup; plus `TopNav` |
-| `.../components/marquee.tsx` | **new** — the scrolling module list, duplicated for a seamless loop, with an `sr-only` copy for assistive tech |
-| `.../components/feature-grid.tsx` | rewritten — gradient icon tiles |
-| `.../components/site-footer.tsx` | restyled |
-| `.../components/capability-strip.tsx` | **deleted** — superseded by the mockup's chips |
-| `packages/ui-kit/src/styles.css` | `--shadow` (paired) and corrected radii |
-| `packages/ui-kit/src/index.ts` | 3 tokens exported |
-| `packages/i18n-resources/src/locales/*.json` | `+previewLabel` (21 landing keys each) |
-| `apps/web/tests/e2e/shell.spec.ts` | +3 motion cases |
+| File                                         | Change                                                                                                         |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/features/landing/landing.css`  | **new** — 7 hoisted keyframes + the template's visual language, all scoped under `.landing`                    |
+| `.../components/hero.tsx`                    | rewritten — mesh, grid, orbs, badge, sheen, glow CTA, mockup; plus `TopNav`                                    |
+| `.../components/marquee.tsx`                 | **new** — the scrolling module list, duplicated for a seamless loop, with an `sr-only` copy for assistive tech |
+| `.../components/feature-grid.tsx`            | rewritten — gradient icon tiles                                                                                |
+| `.../components/site-footer.tsx`             | restyled                                                                                                       |
+| `.../components/capability-strip.tsx`        | **deleted** — superseded by the mockup's chips                                                                 |
+| `packages/ui-kit/src/styles.css`             | `--shadow` (paired) and corrected radii                                                                        |
+| `packages/ui-kit/src/index.ts`               | 3 tokens exported                                                                                              |
+| `packages/i18n-resources/src/locales/*.json` | `+previewLabel` (21 landing keys each)                                                                         |
+| `apps/web/tests/e2e/shell.spec.ts`           | +3 motion cases                                                                                                |
 
 ### Quality
 
-| Check | Result |
-| ----- | ------ |
-| `pnpm test:e2e` | ✅ 0 — **19 passed** (16 → 19) |
-| `pnpm test` | ✅ 0 — 106 unit; i18n parity and the ui-kit token contract both held across the new keys |
-| `pnpm typecheck` · `lint` | ✅ 0 — lint caught one real defect: an inline `import()` type annotation |
-| `pnpm build` · `test:coverage` · `test:integration` · `docs:verify` | ✅ 0 |
-| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, untouched |
-| Browser | `/en` light, `/ar` dark, both verified. Motion measured: 9 running, 0 under reduced-motion |
+| Check                                                               | Result                                                                                     |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm test:e2e`                                                     | ✅ 0 — **19 passed** (16 → 19)                                                             |
+| `pnpm test`                                                         | ✅ 0 — 106 unit; i18n parity and the ui-kit token contract both held across the new keys   |
+| `pnpm typecheck` · `lint`                                           | ✅ 0 — lint caught one real defect: an inline `import()` type annotation                   |
+| `pnpm build` · `test:coverage` · `test:integration` · `docs:verify` | ✅ 0                                                                                       |
+| `pnpm format:check`                                                 | ❌ **2** — pre-existing `FIX-05`, untouched                                                |
+| Browser                                                             | `/en` light, `/ar` dark, both verified. Motion measured: 9 running, 0 under reduced-motion |
 
 ### Still open
 
@@ -389,24 +976,24 @@ Mid-session `/ar` served a `__webpack_modules__[moduleId] is not a function` ove
 
 ## 2026-09-30 — The landing page, built from the template but not its claims
 
-| Field      | Entry |
-| ---------- | ----- |
-| **Date**   | 2026-09-30 |
-| **Phase**  | Landing page. Follows `G3-1` but does **not** depend on it — see "Why this was buildable now". |
+| Field      | Entry                                                                                                                                                                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                                                                                                                                                                     |
+| **Phase**  | Landing page. Follows `G3-1` but does **not** depend on it — see "Why this was buildable now".                                                                                                                                                 |
 | **Task**   | The user: _"we can use the template for the landing page for now"_, after I flagged that the template's copy contains three claims `AGENTS.md §2.8` names as false. Proceeded on the recommended option: build the page, replace those claims. |
-| **Agent**  | `opencode` / space-bunny-free |
-| **Status**  | ✅ Complete. 16 e2e (was 13), 3 new; all gates 0. |
+| **Agent**  | `opencode` / space-bunny-free                                                                                                                                                                                                                  |
+| **Status** | ✅ Complete. 16 e2e (was 13), 3 new; all gates 0.                                                                                                                                                                                              |
 
 ### What was taken from the template, and what was not
 
-| Taken | Not taken, and why |
-| ----- | ----------------- |
-| Section order: hero → capability strip → feature grid → footer | `badge`: **"Trusted by 200+ schools"** — named false in `AGENTS.md §2.8` |
-| Gradient-accented heading | KPI stats: **"1.2M Students Managed"** — named false in `AGENTS.md §2.8` |
-| The 4-locale dictionary (**all four, real translations**) | `ctaTrial`: **"Start Free Trial"** — contradicts D2/D4, per-school deployment sold on editions |
-| 3 of 4 feature blocks | `f4h`: **"Mobile for Everyone"** — contradicts D5/`ADR-005`, `apps/mobile` is milestone 2 |
-| | The inline 11.7 KB script — `next-intl` + `ThemeScript` already do all three of its jobs |
-| | The 24 hex literals — the token system exists to prevent exactly that |
+| Taken                                                          | Not taken, and why                                                                             |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Section order: hero → capability strip → feature grid → footer | `badge`: **"Trusted by 200+ schools"** — named false in `AGENTS.md §2.8`                       |
+| Gradient-accented heading                                      | KPI stats: **"1.2M Students Managed"** — named false in `AGENTS.md §2.8`                       |
+| The 4-locale dictionary (**all four, real translations**)      | `ctaTrial`: **"Start Free Trial"** — contradicts D2/D4, per-school deployment sold on editions |
+| 3 of 4 feature blocks                                          | `f4h`: **"Mobile for Everyone"** — contradicts D5/`ADR-005`, `apps/mobile` is milestone 2      |
+|                                                                | The inline 11.7 KB script — `next-intl` + `ThemeScript` already do all three of its jobs       |
+|                                                                | The 24 hex literals — the token system exists to prevent exactly that                          |
 
 The four-locale dictionary was recovered by extracting the template's `I18N` object to JSON with a one-shot script, because this shell's console is code page 850 and renders Tamil/Sinhala/Arabic as garbage. Reading raw bytes to a file and opening it with a UTF-8 reader is the only way to see them. **The same trap was already recorded as `D40`.**
 
@@ -425,7 +1012,7 @@ x every locale renders the landing page in its own language
   14 passed | 2 failed
 ```
 
-**The third test — "states no claim the governing contract calls false" — passed immediately and therefore was not a RED.** It cannot be one: an empty page trivially contains no forbidden strings. It is a **regression guard**, and it is paired with a positive test that *was* red. Recorded explicitly, because a suite that claims three REDs when it had two is the exact accounting error this project keeps catching in itself.
+**The third test — "states no claim the governing contract calls false" — passed immediately and therefore was not a RED.** It cannot be one: an empty page trivially contains no forbidden strings. It is a **regression guard**, and it is paired with a positive test that _was_ red. Recorded explicitly, because a suite that claims three REDs when it had two is the exact accounting error this project keeps catching in itself.
 
 **GREEN** — `13 passed` → then **16 passed** after fixing a regression I introduced (below).
 
@@ -435,7 +1022,7 @@ x every locale renders the landing page in its own language
 
 **The gradient heading is two keys, not one string with markup.** The template stored `"Run your entire school on<br><span class=\"grad\">one connected platform</span>"` as a single value. That is HTML inside a translation: untranslatable by anyone who cannot read the tags, and impossible to restyle. `heroTitle` + `heroTitleAccent` keeps the visual and makes the copy translatable. (D45)
 
-**A regression I caused, and caught.** The existing test `"every locale renders translated copy"` probed `page.locator('header p')` — the old shell's tagline. The landing page renders no `<header>`, so the locator matched nothing and the test **timed out after 30 s**. Fixed by adding `data-testid="hero-sub"` and re-pointing the probe. The test's *intent* — a locale silently falling back to English must be caught — is unchanged and still independent of the new `h1` test, which probes a different string.
+**A regression I caused, and caught.** The existing test `"every locale renders translated copy"` probed `page.locator('header p')` — the old shell's tagline. The landing page renders no `<header>`, so the locator matched nothing and the test **timed out after 30 s**. Fixed by adding `data-testid="hero-sub"` and re-pointing the probe. The test's _intent_ — a locale silently falling back to English must be caught — is unchanged and still independent of the new `h1` test, which probes a different string.
 
 ### Why this was buildable before `FIX-11`
 
@@ -447,29 +1034,29 @@ x every locale renders the landing page in its own language
 
 ### Files changed
 
-| File | Change |
-| ---- | ------ |
-| `apps/web/src/features/landing/components/hero.tsx` | **new** — badge, gradient heading, sub, two anchor CTAs |
-| `.../components/capability-strip.tsx` | **new** — four capability tiles, **no numbers** |
-| `.../components/feature-grid.tsx` | **new** — four cards, 4th is the audit trail not mobile |
-| `.../components/site-footer.tsx` | **new** |
-| `.../pages/landing-page.tsx` | **new** — composes the four |
-| `apps/web/src/app/[locale]/page.tsx` | renders `LandingPage` |
-| `apps/web/src/app/[locale]/layout.tsx` | reduced to the document shell — **no product copy** |
-| `packages/i18n-resources/src/locales/{en,ta,si,ar}.json` | **+20 `landing` keys each** (38 → 58 per locale) |
-| `apps/web/tests/e2e/shell.spec.ts` | +3 landing cases; tagline probe re-pointed |
+| File                                                     | Change                                                  |
+| -------------------------------------------------------- | ------------------------------------------------------- |
+| `apps/web/src/features/landing/components/hero.tsx`      | **new** — badge, gradient heading, sub, two anchor CTAs |
+| `.../components/capability-strip.tsx`                    | **new** — four capability tiles, **no numbers**         |
+| `.../components/feature-grid.tsx`                        | **new** — four cards, 4th is the audit trail not mobile |
+| `.../components/site-footer.tsx`                         | **new**                                                 |
+| `.../pages/landing-page.tsx`                             | **new** — composes the four                             |
+| `apps/web/src/app/[locale]/page.tsx`                     | renders `LandingPage`                                   |
+| `apps/web/src/app/[locale]/layout.tsx`                   | reduced to the document shell — **no product copy**     |
+| `packages/i18n-resources/src/locales/{en,ta,si,ar}.json` | **+20 `landing` keys each** (38 → 58 per locale)        |
+| `apps/web/tests/e2e/shell.spec.ts`                       | +3 landing cases; tagline probe re-pointed              |
 
 ### Quality
 
-| Check | Result |
-| ----- | ------ |
-| `pnpm test:e2e` | ✅ 0 — **16 passed** (13 → 16) |
-| `pnpm test` | ✅ 0 — 106 unit, unchanged; the i18n parity suite held across 20 new keys × 4 locales |
-| `pnpm typecheck` · `lint` | ✅ 0 — including the `no-restricted-syntax` raw-element and hard-coded-hex rules |
-| `pnpm build` | ✅ 0 — `/en /ta /si /ar` all prerendered |
-| `test:coverage` · `test:integration` · `docs:verify` | ✅ 0 |
-| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, untouched |
-| Browser | `/` → `/en` → landing page; `/ar` verified mirrored, `dir=rtl` |
+| Check                                                | Result                                                                                |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `pnpm test:e2e`                                      | ✅ 0 — **16 passed** (13 → 16)                                                        |
+| `pnpm test`                                          | ✅ 0 — 106 unit, unchanged; the i18n parity suite held across 20 new keys × 4 locales |
+| `pnpm typecheck` · `lint`                            | ✅ 0 — including the `no-restricted-syntax` raw-element and hard-coded-hex rules      |
+| `pnpm build`                                         | ✅ 0 — `/en /ta /si /ar` all prerendered                                              |
+| `test:coverage` · `test:integration` · `docs:verify` | ✅ 0                                                                                  |
+| `pnpm format:check`                                  | ❌ **2** — pre-existing `FIX-05`, untouched                                           |
+| Browser                                              | `/` → `/en` → landing page; `/ar` verified mirrored, `dir=rtl`                        |
 
 ### Still open, deliberately not fixed here
 
@@ -482,13 +1069,13 @@ x every locale renders the landing page in its own language
 
 ## 2026-09-30 — FIX-04: the root URL was a 404, and the e2e probe had been hiding it
 
-| Field      | Entry |
-| ---------- | ----- |
-| **Date**   | 2026-09-30 |
-| **Phase**  | `ACTION_PLAN` **G3-3** (from EPIC-G1's follow-on). Closes `FIX-04`. |
+| Field      | Entry                                                                         |
+| ---------- | ----------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                    |
+| **Phase**  | `ACTION_PLAN` **G3-3** (from EPIC-G1's follow-on). Closes `FIX-04`.           |
 | **Task**   | The user opened `http://localhost:3500` and got a 404. Verify, diagnose, fix. |
-| **Agent**  | `opencode` / space-bunny-free |
-| **Status**  | ✅ Fixed, with a TDD cycle and a browser-verified redirect. |
+| **Agent**  | `opencode` / space-bunny-free                                                 |
+| **Status** | ✅ Fixed, with a TDD cycle and a browser-verified redirect.                   |
 
 ### What the user found, and what it actually was
 
@@ -502,7 +1089,7 @@ The cause is not a misconfiguration. `i18n/routing.ts` sets `localePrefix: 'alwa
    ```json
    { "version": 3, "middleware": {}, "functions": {}, "sortedMiddleware": [] }
    ```
-2. **`proxy.ts` was also *redundant*, not merely misnamed.** It exported `createNextIntlPlugin('./src/i18n/request.ts')({})` — and `next.config.ts:17` already applies that exact plugin to the real config. So it constructed a wrapped config object that **nothing consumed**. Renaming it, as D31 anticipated, would have produced a middleware that negotiated nothing.
+2. **`proxy.ts` was also _redundant_, not merely misnamed.** It exported `createNextIntlPlugin('./src/i18n/request.ts')({})` — and `next.config.ts:17` already applies that exact plugin to the real config. So it constructed a wrapped config object that **nothing consumed**. Renaming it, as D31 anticipated, would have produced a middleware that negotiated nothing.
 
 ### The part that matters most: the 404 was known and worked around
 
@@ -510,9 +1097,9 @@ The cause is not a misconfiguration. `i18n/routing.ts` sets `localePrefix: 'alwa
 
 > `/` is a **404** here: the app is locale-prefixed (`/en`, `/ta`, `/si`, `/ar`), so probing the root makes Playwright wait out its full timeout on a server that is up and serving.
 
-That comment makes a **product defect read as expected behaviour** — and it is the same failure the 2026-09-30 audit names twice: *a gate or config accommodating a broken thing so nobody notices it*. A test config that works around a broken route is how a broken route survives review. The probe was pointed at the only URL that worked, precisely so the missing one would never be requested.
+That comment makes a **product defect read as expected behaviour** — and it is the same failure the 2026-09-30 audit names twice: _a gate or config accommodating a broken thing so nobody notices it_. A test config that works around a broken route is how a broken route survives review. The probe was pointed at the only URL that worked, precisely so the missing one would never be requested.
 
-**The workaround is now removed**, not just the defect. `PROBE_PATH` is back to `'/'` — the thing a visitor actually types — and the comment records why it moved and warns that if it ever needs to move again, check the *application* before assuming the *configuration* is wrong.
+**The workaround is now removed**, not just the defect. `PROBE_PATH` is back to `'/'` — the thing a visitor actually types — and the comment records why it moved and warns that if it ever needs to move again, check the _application_ before assuming the _configuration_ is wrong.
 
 ### TDD cycle
 
@@ -561,41 +1148,41 @@ This is the trap the audit named: a gate going green after you add a file tells 
 
 ### Browser and HTTP verification
 
-| Check | Before | After |
-| ----- | ------ | ----- |
-| `GET /` | **404** | **307** → `/en` → **200** |
-| `GET /en` | 200 | 200 |
-| `GET /ar` | 200 | 200 |
-| `GET /favicon.ico` | 404 | 404 — **not** a 307, so the matcher is not rewriting asset URLs |
-| `Accept-Language: ar` → `/` | 404 | `/ar`, `dir=rtl` |
-| Browser at `localhost:3500/` | 404 page | lands on `/en` |
+| Check                        | Before   | After                                                           |
+| ---------------------------- | -------- | --------------------------------------------------------------- |
+| `GET /`                      | **404**  | **307** → `/en` → **200**                                       |
+| `GET /en`                    | 200      | 200                                                             |
+| `GET /ar`                    | 200      | 200                                                             |
+| `GET /favicon.ico`           | 404      | 404 — **not** a 307, so the matcher is not rewriting asset URLs |
+| `Accept-Language: ar` → `/`  | 404      | `/ar`, `dir=rtl`                                                |
+| Browser at `localhost:3500/` | 404 page | lands on `/en`                                                  |
 
 ### Files changed
 
-| File | Change |
-| ---- | ------ |
-| `apps/web/src/middleware.ts` | **new** — `createMiddleware(routing)` + matcher |
-| `apps/web/proxy.ts` | **deleted** — dead *and* redundant |
+| File                               | Change                                                        |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `apps/web/src/middleware.ts`       | **new** — `createMiddleware(routing)` + matcher               |
+| `apps/web/proxy.ts`                | **deleted** — dead _and_ redundant                            |
 | `apps/web/tests/e2e/shell.spec.ts` | 2 new e2e cases (root is not 404; `Accept-Language` honoured) |
-| `apps/web/playwright.config.ts` | `PROBE_PATH` `/en` → `/`; the workaround comment replaced |
-| `docs/core/SSOT.md` | `FIX-04` closed; the §3 "absent" row corrected |
-| `docs/work/TODO.md` | `FIX-04` checked, points at G3-3 |
+| `apps/web/playwright.config.ts`    | `PROBE_PATH` `/en` → `/`; the workaround comment replaced     |
+| `docs/core/SSOT.md`                | `FIX-04` closed; the §3 "absent" row corrected                |
+| `docs/work/TODO.md`                | `FIX-04` checked, points at G3-3                              |
 
 ### Quality
 
-| Check | Result |
-| ----- | ------ |
-| `pnpm test:e2e` | ✅ 0 — **13 passed** (11 → 13) |
-| `pnpm typecheck` · `lint` · `test` · `test:coverage` · `build` · `test:integration` · `docs:verify` | ✅ all 0 |
-| TDD cycle | ✅ RED observed (2 cases, correct reasons) → minimal GREEN (1 new file, 1 deletion, 1 line of config) → manifest + HTTP + browser verified |
-| Still red | `format:check` exit 2 — pre-existing `FIX-05`, untouched |
+| Check                                                                                               | Result                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm test:e2e`                                                                                     | ✅ 0 — **13 passed** (11 → 13)                                                                                                             |
+| `pnpm typecheck` · `lint` · `test` · `test:coverage` · `build` · `test:integration` · `docs:verify` | ✅ all 0                                                                                                                                   |
+| TDD cycle                                                                                           | ✅ RED observed (2 cases, correct reasons) → minimal GREEN (1 new file, 1 deletion, 1 line of config) → manifest + HTTP + browser verified |
+| Still red                                                                                           | `format:check` exit 2 — pre-existing `FIX-05`, untouched                                                                                   |
 
 ### Decisions
 
-| ID | Decision | Rationale |
-| -- | -------- | --------- |
-| **D43** | `proxy.ts` is **deleted, not renamed.** D31 anticipated a rename. | A rename would have produced a real middleware that negotiates nothing, because `createMiddleware(routing)` was never called. Deleting the file and writing the correct one is smaller than renaming dead code and then adding the missing call. D31's *intent* — do not upgrade to Next 16 to chase a filename — is unchanged. |
-| **D44** | The e2e readiness probe is reverted to `/`, removing the workaround. | Fixing the route while leaving the probe pointed at `/en` would keep the accommodation in place, and the next person would read the comment and believe a 404 at the root was normal. The workaround is the second half of the defect. |
+| ID      | Decision                                                             | Rationale                                                                                                                                                                                                                                                                                                                       |
+| ------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D43** | `proxy.ts` is **deleted, not renamed.** D31 anticipated a rename.    | A rename would have produced a real middleware that negotiates nothing, because `createMiddleware(routing)` was never called. Deleting the file and writing the correct one is smaller than renaming dead code and then adding the missing call. D31's _intent_ — do not upgrade to Next 16 to chase a filename — is unchanged. |
+| **D44** | The e2e readiness probe is reverted to `/`, removing the workaround. | Fixing the route while leaving the probe pointed at `/en` would keep the accommodation in place, and the next person would read the comment and believe a 404 at the root was normal. The workaround is the second half of the defect.                                                                                          |
 
 ### Next steps
 
@@ -605,16 +1192,15 @@ This is the trap the audit named: a gate going green after you add a file tells 
 
 ---
 
-
 ## 2026-09-30 — G1-1: the test that guards the port incident now actually runs
 
-| Field      | Entry |
-| ---------- | ----- |
-| **Date**   | 2026-09-30 |
-| **Phase**  | `ACTION_PLAN` **EPIC-G1** · first story of the "make the gates honest" epic |
+| Field      | Entry                                                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Date**   | 2026-09-30                                                                                                                                                               |
+| **Phase**  | `ACTION_PLAN` **EPIC-G1** · first story of the "make the gates honest" epic                                                                                              |
 | **Task**   | `G1-1` — close `AUD-30-01` (P0): `apps/web/web-port.spec.ts` matched neither of its package's `include` globs and had never executed. Also: push the 9 unpushed commits. |
-| **Agent**  | `opencode` / space-bunny-free |
-| **Status**  | ✅ Complete. Full TDD cycle: RED observed, GREEN verified, teeth proven by deliberate break, reverted, all gates green. |
+| **Agent**  | `opencode` / space-bunny-free                                                                                                                                            |
+| **Status** | ✅ Complete. Full TDD cycle: RED observed, GREEN verified, teeth proven by deliberate break, reverted, all gates green.                                                  |
 
 ### Activity
 
@@ -637,12 +1223,12 @@ Named explicitly **and still refused**, because Vitest applies `include` as a fi
 
 #### GREEN — three files, the minimum
 
-`AGENTS.md` §3: *"one test file per source file, colocated"*. Both files moved from the package root to `src/lib/`.
+`AGENTS.md` §3: _"one test file per source file, colocated"_. Both files moved from the package root to `src/lib/`.
 
 - `playwright.config.ts` import → `./src/lib/web-port`
 - the spec's `dirname(import.meta.url)` — which resolved to the web package **only because the file sat at the root** — replaced with a walk up to the `@eduflow/web` manifest
 
-That last one is the part worth arguing for. A hard-coded `../../` would have been a **second thing that silently drifts when a file moves**, in a fix whose entire subject is *a test that quietly stops testing*. The test is now position-independent.
+That last one is the part worth arguing for. A hard-coded `../../` would have been a **second thing that silently drifts when a file moves**, in a fix whose entire subject is _a test that quietly stops testing_. The test is now position-independent.
 
 ```console
 $ pnpm --filter @eduflow/web test
@@ -669,26 +1255,26 @@ $ pnpm --filter @eduflow/web test
 
 #### ⚠️ A footgun hit during this cycle
 
-The first break attempt used PowerShell `Set-Content -Encoding utf8`, which **writes a BOM**. The suite went red with exit 1 — for the *wrong* reason:
+The first break attempt used PowerShell `Set-Content -Encoding utf8`, which **writes a BOM**. The suite went red with exit 1 — for the _wrong_ reason:
 
 ```text
 [SyntaxError] Unexpected token '﻿', "﻿{
 ```
 
-A parse error, not the port assertion, and per the TDD rule it does not count as valid RED: *"the failure is not caused only by unrelated syntax errors."* Restored from a byte-exact `Copy-Item` backup, asserted no BOM, and redone with a BOM-free write.
+A parse error, not the port assertion, and per the TDD rule it does not count as valid RED: _"the failure is not caused only by unrelated syntax errors."_ Restored from a byte-exact `Copy-Item` backup, asserted no BOM, and redone with a BOM-free write.
 
 **This is the second time a PowerShell BOM has been the actual cause of a failure in this project.** It is already a recorded footgun (`SSOT.md` §8) and it is why the restore path is `Copy-Item` plus an explicit BOM assertion rather than a rewrite. Cheap to state, expensive to rediscover.
 
 ### Files changed
 
-| File | Change |
-| ---- | ------ |
-| `apps/web/web-port.ts` → `apps/web/src/lib/web-port.ts` | moved (`git mv`, rename preserved) |
-| `apps/web/web-port.spec.ts` → `apps/web/src/lib/web-port.spec.ts` | moved; `webPackageRoot()` walk-up replaces the root-relative path |
-| `apps/web/playwright.config.ts` | import path; one comment path |
-| `docs/core/SSOT.md` | `AUD-30-01` marked closed in §1b, §5.1 and §8; 3 stale path citations corrected |
-| `docs/work/TODO.md` | G1-1 checked with its evidence; G1-2 promoted as the class fix |
-| `docs/work/TDD_EVIDENCE_GATES.md` | G1-1 cycle recorded; `docs:verify` row marked observed; table 0/9 → 1/9 |
+| File                                                              | Change                                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `apps/web/web-port.ts` → `apps/web/src/lib/web-port.ts`           | moved (`git mv`, rename preserved)                                              |
+| `apps/web/web-port.spec.ts` → `apps/web/src/lib/web-port.spec.ts` | moved; `webPackageRoot()` walk-up replaces the root-relative path               |
+| `apps/web/playwright.config.ts`                                   | import path; one comment path                                                   |
+| `docs/core/SSOT.md`                                               | `AUD-30-01` marked closed in §1b, §5.1 and §8; 3 stale path citations corrected |
+| `docs/work/TODO.md`                                               | G1-1 checked with its evidence; G1-2 promoted as the class fix                  |
+| `docs/work/TDD_EVIDENCE_GATES.md`                                 | G1-1 cycle recorded; `docs:verify` row marked observed; table 0/9 → 1/9         |
 
 ### Side effect, not scope creep
 
@@ -702,24 +1288,24 @@ A partial `FIX-26` win obtained by fixing the actual defect rather than by editi
 
 ### Quality
 
-| Check | Result |
-| ----- | ------ |
-| `pnpm test` | ✅ 0 — **106 tests** (103 → 106, the 3 recovered) |
-| `pnpm typecheck` | ✅ 0 |
-| `pnpm lint` | ✅ 0 |
-| `pnpm test:coverage` | ✅ 0 — one web tier now actually enforced |
-| `pnpm build` | ✅ 0 |
-| `pnpm test:integration` | ✅ 0 — still **hollow** (`AUD-30-02`, G1-3) |
-| `pnpm docs:verify` | ✅ 0 — 207/207 |
-| `pnpm format:check` | ❌ **2** — pre-existing `FIX-05`, unchanged by this task |
-| TDD cycle | ✅ **Complete.** RED observed (twice, by execution) → minimal GREEN (3 files) → deliberate break produced a named `AssertionError` → reverted → all green |
+| Check                   | Result                                                                                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test`             | ✅ 0 — **106 tests** (103 → 106, the 3 recovered)                                                                                                         |
+| `pnpm typecheck`        | ✅ 0                                                                                                                                                      |
+| `pnpm lint`             | ✅ 0                                                                                                                                                      |
+| `pnpm test:coverage`    | ✅ 0 — one web tier now actually enforced                                                                                                                 |
+| `pnpm build`            | ✅ 0                                                                                                                                                      |
+| `pnpm test:integration` | ✅ 0 — still **hollow** (`AUD-30-02`, G1-3)                                                                                                               |
+| `pnpm docs:verify`      | ✅ 0 — 207/207                                                                                                                                            |
+| `pnpm format:check`     | ❌ **2** — pre-existing `FIX-05`, unchanged by this task                                                                                                  |
+| TDD cycle               | ✅ **Complete.** RED observed (twice, by execution) → minimal GREEN (3 files) → deliberate break produced a named `AssertionError` → reverted → all green |
 
 ### Decisions
 
-| ID | Decision | Rationale |
-| -- | -------- | --------- |
-| **D41** | `web-port.spec.ts` moves **with** its source into `src/lib/`, rather than extending the `include` globs to cover the package root. | `AGENTS.md` §3 requires colocation, and a root `*.spec.ts` is exactly the shape that got orphaned. Widening `include` to `*.spec.ts` at the root would have left the trap armed for the next file. The move also makes the `src/lib/**` coverage tier live, which a glob edit would not. |
-| **D42** | The spec locates `@eduflow/web/package.json` by **walking up**, not by counting `../` hops. | It previously used `dirname(import.meta.url)`, which was correct only because the file sat at the root. Encoding the new location as `../../package.json` would introduce a second silent-drift hazard inside a fix about silent drift. This is the same walk-up pattern already used in `e2e-gate.spec.ts`, `coverage-gate.spec.ts` and `workspace-config.spec.ts`. |
+| ID      | Decision                                                                                                                           | Rationale                                                                                                                                                                                                                                                                                                                                                            |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D41** | `web-port.spec.ts` moves **with** its source into `src/lib/`, rather than extending the `include` globs to cover the package root. | `AGENTS.md` §3 requires colocation, and a root `*.spec.ts` is exactly the shape that got orphaned. Widening `include` to `*.spec.ts` at the root would have left the trap armed for the next file. The move also makes the `src/lib/**` coverage tier live, which a glob edit would not.                                                                             |
+| **D42** | The spec locates `@eduflow/web/package.json` by **walking up**, not by counting `../` hops.                                        | It previously used `dirname(import.meta.url)`, which was correct only because the file sat at the root. Encoding the new location as `../../package.json` would introduce a second silent-drift hazard inside a fix about silent drift. This is the same walk-up pattern already used in `e2e-gate.spec.ts`, `coverage-gate.spec.ts` and `workspace-config.spec.ts`. |
 
 ### Next steps
 
@@ -729,16 +1315,15 @@ A partial `FIX-26` win obtained by fixing the actual defect rather than by editi
 
 ---
 
-
 ## 2026-09-30 — Hollow-gate audit: a test that has never run, and a git state that was never true
 
-| Field      | Entry |
-| ---------- | ----- |
-| **Date**   | 2026-09-30 |
-| **Phase**  | Re-measurement + plan. Sits between ARC-01 and Prompt Pack P3. Introduces `AUD-30-01…09`, `D35…D40`, `EPIC-G0…G6` |
+| Field      | Entry                                                                                                                                                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                                                                                                                                                               |
+| **Phase**  | Re-measurement + plan. Sits between ARC-01 and Prompt Pack P3. Introduces `AUD-30-01…09`, `D35…D40`, `EPIC-G0…G6`                                                                                                                        |
 | **Task**   | The user asked for: project status, a comprehensive analysis of the code base and of `docs/`, the gaps, the improvement areas, and a point-by-point Jira/epic action plan — then an update of the docs. No production code was in scope. |
-| **Agent**  | `opencode` / space-bunny-free. Read-only analysis plus four documentation writes. **No production code, no test, no config touched.** |
-| **Status**  | ✅ Complete. Four documents written or corrected. **The work itself is uncommitted — see the finding below.** |
+| **Agent**  | `opencode` / space-bunny-free. Read-only analysis plus four documentation writes. **No production code, no test, no config touched.**                                                                                                    |
+| **Status** | ✅ Complete. Four documents written or corrected. **The work itself is uncommitted — see the finding below.**                                                                                                                            |
 
 ### Activity
 
@@ -746,17 +1331,17 @@ Executed every gate rather than reading its configuration, then read all 30 docu
 
 **Gates, executed 2026-09-30** (evidence: `docs/analysis/CODE_AUDIT_2026-09-30.md` §2):
 
-| Gate | Exit | Truthful? |
-| ---- | ---- | --------- |
-| `pnpm typecheck` | 0 | ✅ |
-| `pnpm lint` | 0 | ✅ |
-| `pnpm test` | 0 | ⚠️ 103 tests, **3 never run** |
-| `pnpm build` | 0 | ✅ 5/5, four locales prerendered |
-| `pnpm docs:verify` | 0 | ✅ **188** refs (corpus says 147/155/179) |
-| `pnpm format:check` | **2** | ❌ the one honestly red gate |
-| `pnpm test:coverage` | 0 | ❌ **tiers match 0 instrumented files**; `web` 0% |
-| `pnpm test:integration` | 0 | ❌ `No test files found` **+** `echo && exit 0` |
-| `pnpm test:e2e` | *not run* | ⚠️ 11 declared, **1 vacuous** |
+| Gate                    | Exit      | Truthful?                                         |
+| ----------------------- | --------- | ------------------------------------------------- |
+| `pnpm typecheck`        | 0         | ✅                                                |
+| `pnpm lint`             | 0         | ✅                                                |
+| `pnpm test`             | 0         | ⚠️ 103 tests, **3 never run**                     |
+| `pnpm build`            | 0         | ✅ 5/5, four locales prerendered                  |
+| `pnpm docs:verify`      | 0         | ✅ **188** refs (corpus says 147/155/179)         |
+| `pnpm format:check`     | **2**     | ❌ the one honestly red gate                      |
+| `pnpm test:coverage`    | 0         | ❌ **tiers match 0 instrumented files**; `web` 0% |
+| `pnpm test:integration` | 0         | ❌ `No test files found` **+** `echo && exit 0`   |
+| `pnpm test:e2e`         | _not run_ | ⚠️ 11 declared, **1 vacuous**                     |
 
 ### Four new findings, none previously recorded
 
@@ -765,11 +1350,11 @@ Executed every gate rather than reading its configuration, then read all 30 docu
 3. **`AUD-30-03` — the e2e nav-parity test passes with zero navigation.** `shell.spec.ts` resolves `nav a, header a`; `page.tsx:32-37` renders a `<nav>` containing one `<span>` and **the web app contains no `<a>` element at all**. `expect(0).toBe(0)`. The tagline test nine lines above carries the correct `not.toBe('')` floor; the nav test has no equivalent.
 4. **`AUD-30-04` — the e2e theme test only ever asserts light.** Playwright's default `colorScheme` is light, so `ThemeScript`'s `prefers-color-scheme: dark` and `localStorage` branches never execute. `AGENTS.md §3.2.5` requires both themes.
 
-**One root cause.** `coverage-gate.spec.ts` and `e2e-gate.spec.ts` were written on 2026-09-29 to answer *is a gate actually wired to anything?*, and they work. The class of defect recurred in four adjacent places they do not cover. **What is missing is a general oracle** — which is why G1-2 in the action plan is the test-file oracle and not a fifth targeted test.
+**One root cause.** `coverage-gate.spec.ts` and `e2e-gate.spec.ts` were written on 2026-09-29 to answer _is a gate actually wired to anything?_, and they work. The class of defect recurred in four adjacent places they do not cover. **What is missing is a general oracle** — which is why G1-2 in the action plan is the test-file oracle and not a fifth targeted test.
 
 ### The governing fact
 
-`SSOT.md:16` read *"8 commits, working tree clean."* Measured: **14 commits, 15 modified, 12 untracked.** The entire ARC-01 ERD, the FIX-01/02/22 fixes, the 11-test e2e suite and every doc change from the last 24 hours exist **only in the working tree** and have never been pushed. This is `SSOT.md`'s own footgun — *"a gate marked `[x]` on the strength of a config file existing is not a gate that passed"* — applied to a **status** marked complete on the strength of files existing on disk. `AUD-30-09`; `ACTION_PLAN` G0-1.
+`SSOT.md:16` read _"8 commits, working tree clean."_ Measured: **14 commits, 15 modified, 12 untracked.** The entire ARC-01 ERD, the FIX-01/02/22 fixes, the 11-test e2e suite and every doc change from the last 24 hours exist **only in the working tree** and have never been pushed. This is `SSOT.md`'s own footgun — _"a gate marked `[x]` on the strength of a config file existing is not a gate that passed"_ — applied to a **status** marked complete on the strength of files existing on disk. `AUD-30-09`; `ACTION_PLAN` G0-1.
 
 ### Four things verified NOT defects
 
@@ -782,37 +1367,37 @@ Recorded so a future audit does not "fix" them. Approving a fix for a non-defect
 
 ### Files changed
 
-| File | Change |
-| ---- | ------ |
-| `docs/analysis/CODE_AUDIT_2026-09-30.md` | **new** — 8 findings, executed measurements, 4 verified non-defects |
-| `docs/work/ACTION_PLAN_2026-09-30.md` | **new** — `EPIC-G0…G6`, 114 points, critical path, parallel lanes, 10 owner decisions |
-| `docs/core/SSOT.md` | §1, §1a rewritten with a `Truthful?` column; **§1b added**; §4 D8/D9/D10 marked applied; `D35…D40` added; §5.1 hollow-gate table; §8 reordered; 4 new footguns |
-| `docs/work/TODO.md` | `G0`, `G1`, `G2` added at the top; P0a re-sequenced as an index; `P3` split into `G4-1…G4-9` |
-| `docs/work/CHANGELOG.md` | unreleased entry |
+| File                                     | Change                                                                                                                                                         |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/analysis/CODE_AUDIT_2026-09-30.md` | **new** — 8 findings, executed measurements, 4 verified non-defects                                                                                            |
+| `docs/work/ACTION_PLAN_2026-09-30.md`    | **new** — `EPIC-G0…G6`, 114 points, critical path, parallel lanes, 10 owner decisions                                                                          |
+| `docs/core/SSOT.md`                      | §1, §1a rewritten with a `Truthful?` column; **§1b added**; §4 D8/D9/D10 marked applied; `D35…D40` added; §5.1 hollow-gate table; §8 reordered; 4 new footguns |
+| `docs/work/TODO.md`                      | `G0`, `G1`, `G2` added at the top; P0a re-sequenced as an index; `P3` split into `G4-1…G4-9`                                                                   |
+| `docs/work/CHANGELOG.md`                 | unreleased entry                                                                                                                                               |
 
 ### Decisions made
 
-| ID | Decision | Rationale |
-| -- | -------- | --------- |
-| **D35** | A gate that exits 0 while testing nothing is recorded as **hollow, not green**. `SSOT.md §1a` gains a `Truthful?` column; §1b lists the four. | The exit code was never the claim; the enforcement was. Drawing only the exit-code distinction is why `test:integration` sat in a table beside `pnpm build` unqualified. |
-| **D36** | A test that does not run is **worse than no test**, so `AUD-30-01` is P0. | It survives review and blocks deletion of the real fix. A reviewer sees three careful tests and a 20-line account of a real incident, and concludes it is handled. |
-| **D37** | `FIX-20` re-rated **S3 → S1**: `packages/config` must be linted and type-checked. | It exports every ESLint config and the base tsconfig, and no gate visits it. Low visibility, high blast radius. |
-| **D38** | The status report should be **generated, not written** (`ACTION_PLAN` G2-2). | Six quantity classes wrong at once is evidence the class recurs; fixing six instances is a losing game. Applies `D33` — one source, generated artefact, drift impossible — to the report. |
+| ID      | Decision                                                                                                                                                | Rationale                                                                                                                                                                                                                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D35** | A gate that exits 0 while testing nothing is recorded as **hollow, not green**. `SSOT.md §1a` gains a `Truthful?` column; §1b lists the four.           | The exit code was never the claim; the enforcement was. Drawing only the exit-code distinction is why `test:integration` sat in a table beside `pnpm build` unqualified.                                                                                                           |
+| **D36** | A test that does not run is **worse than no test**, so `AUD-30-01` is P0.                                                                               | It survives review and blocks deletion of the real fix. A reviewer sees three careful tests and a 20-line account of a real incident, and concludes it is handled.                                                                                                                 |
+| **D37** | `FIX-20` re-rated **S3 → S1**: `packages/config` must be linted and type-checked.                                                                       | It exports every ESLint config and the base tsconfig, and no gate visits it. Low visibility, high blast radius.                                                                                                                                                                    |
+| **D38** | The status report should be **generated, not written** (`ACTION_PLAN` G2-2).                                                                            | Six quantity classes wrong at once is evidence the class recurs; fixing six instances is a losing game. Applies `D33` — one source, generated artefact, drift impossible — to the report.                                                                                          |
 | **D39** | `ARC-xx` / `OPS-01` collide across two authoritative documents. Renumber to `ARC3-xx` / `OPS-01b`; the completed ERD keeps `ARC-01`. `PLT-*` untouched. | `REMEDIATION_PLAN:139` uses `ARC-01` for `IClock`; `TODO.md:68` uses it for the **completed** ERD. A reader following the remediation plan concludes the ERD is still to be written. Same class as the removed `139/257/35/73` figures: an identifier collision, not a fact error. |
-| **D40** | Four suspected defects recorded as **not defects**, so they are not re-raised. | Approving a fix for a non-defect is the same error class. The mojibake case is the clearest: it would have put a "fix" in front of a real translator's work. |
+| **D40** | Four suspected defects recorded as **not defects**, so they are not re-raised.                                                                          | Approving a fix for a non-defect is the same error class. The mojibake case is the clearest: it would have put a "fix" in front of a real translator's work.                                                                                                                       |
 
 ### Quality
 
-| Check | Result |
-| ----- | ------ |
-| `pnpm typecheck` | ✅ 0 |
-| `pnpm lint` | ✅ 0 |
-| `pnpm test` | ✅ 0 — 103 tests, unchanged by this task |
-| `pnpm build` | ✅ 0 |
-| `pnpm docs:verify` | ✅ 0 — reference count re-measured |
-| `pnpm format:check` | ❌ **2** — pre-existing (`FIX-05`); the four new/edited documents will add to the unformatted count until G1-7 runs |
-| TDD cycle | **N/A.** Documentation only. No production code was written, so no RED was required. Stated explicitly because the Iron Law is unconditional and a reader should not have to infer that the exception applies. |
-| Issues found | **0 blocking.** 4 new gate-honesty findings, 1 false-positive avoided, 6 count classes corrected. |
+| Check               | Result                                                                                                                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`    | ✅ 0                                                                                                                                                                                                           |
+| `pnpm lint`         | ✅ 0                                                                                                                                                                                                           |
+| `pnpm test`         | ✅ 0 — 103 tests, unchanged by this task                                                                                                                                                                       |
+| `pnpm build`        | ✅ 0                                                                                                                                                                                                           |
+| `pnpm docs:verify`  | ✅ 0 — reference count re-measured                                                                                                                                                                             |
+| `pnpm format:check` | ❌ **2** — pre-existing (`FIX-05`); the four new/edited documents will add to the unformatted count until G1-7 runs                                                                                            |
+| TDD cycle           | **N/A.** Documentation only. No production code was written, so no RED was required. Stated explicitly because the Iron Law is unconditional and a reader should not have to infer that the exception applies. |
+| Issues found        | **0 blocking.** 4 new gate-honesty findings, 1 false-positive avoided, 6 count classes corrected.                                                                                                              |
 
 ### Next steps
 
@@ -821,7 +1406,6 @@ Recorded so a future audit does not "fix" them. Approving a fix for a non-defect
 3. **EPIC-G6 (requirements extraction, 34 pts) in parallel.** It is the only lane that needs no gate, no decision and no code, and it is what will block `PLT-301…305` in six weeks.
 
 ---
-
 
 ---
 
@@ -1703,7 +2287,7 @@ open list over the hero. Hiding the non-summary children of a `<details>` is a
 `::details-content` rendering suppression, and it is not dependable once a child
 is taken out of normal flow.
 
-Playwright's engine *did* hide it, so `await expect(menu).toBeHidden()` passed
+Playwright's engine _did_ hide it, so `await expect(menu).toBeHidden()` passed
 against a browser that showed the bug. The assertion was weaker than it looked:
 it was testing the browser's behaviour, not ours. Fixed with one explicit
 `.landing-lang:not([open]) .landing-lang-menu { display: none }` so the behaviour
@@ -1756,7 +2340,7 @@ what fixed it. The first attempt looked like it should have worked and did not.
   translatable and the line break a layout decision.
 - **The trigger names the active locale, not the first option.** English leads the
   list and English is also the default, so the two agree on first load — but the
-  control has to tell you where you *are*, which is the one thing a language
+  control has to tell you where you _are_, which is the one thing a language
   switcher is for.
 
 ### Files Changed
@@ -1796,7 +2380,6 @@ what fixed it. The first attempt looked like it should have worked and did not.
   name reads "اللغة: العربية".
 - `pnpm format:check` still exits 2 — pre-existing `FIX-05`, untouched.
 
-
 ## 2026-09-30 — Records reconciled: G0 and G1-4 closed, next task named
 
 **Date:** 2026-09-30 · **Phase:** G1 · **Agent:** builder (OpenCode) · **Status:** Complete · **Type:** documentation only, no code changed
@@ -1820,7 +2403,7 @@ Closed: **`G0-1`** (all 27 files committed and pushed, no amend, no squash) and
 **A `done` marker survived a day on a rule nothing measured.** `DSN-05` read
 _"`prefers-reduced-motion`, ≥ 44 px touch targets — done 2026-09-29, verified by
 test"_ while the page shipped at 32px and both CTAs at 43px. A checkbox is a
-claim about a *measurement*, and this one was a claim about a *token existing*.
+claim about a _measurement_, and this one was a claim about a _token existing_.
 Corrected in place, with the new §Do Not rule: check for a test that reads the
 rendered box, not for a constant in a stylesheet.
 
@@ -1844,7 +2427,7 @@ real fix with an explicit note not to patch §1 a third time by hand.
 ### Decisions Made
 
 - **`G2-1` marked mostly-done but explicitly not finished.** The numbers are
-  right; the *approach* is still hand-maintained, and marking it `[x]` would
+  right; the _approach_ is still hand-maintained, and marking it `[x]` would
   retire the item that is actually worth doing.
 - **The landing page is recorded as "shipped, and not in any plan"** rather than
   given an invented epic ID. It is a slice, not a milestone. Its five remaining
@@ -1856,7 +2439,7 @@ real fix with an explicit note not to patch §1 a third time by hand.
 ### Files Changed
 
 - `docs/core/SSOT.md` — §1, §1a, §1b re-measured; score corrected to
-  *"7 of 9 green and trustworthy, 0 hollow, 1 red"*; `AUD-30-03` closed; a fifth
+  _"7 of 9 green and trustworthy, 0 hollow, 1 red"_; `AUD-30-03` closed; a fifth
   hollow-gate instance added to the register.
 - `docs/work/TODO.md` — `G0` and `G1-4` closed; `DSN-03` / `DSN-05` corrected;
   `FIX-02`, `G2-1`, item 3 and the `PLT-101` entry condition updated; two new
@@ -1878,4 +2461,3 @@ own package's runner `include` globs, so `AUD-30-01` cannot recur. It generalise
 - `pnpm format:check` still exits 2 — pre-existing `FIX-05`, untouched. Note that
   this commit edits `.md` files, which are among the 60 that gate reports, so it
   neither fixes nor worsens `FIX-05`.
-
