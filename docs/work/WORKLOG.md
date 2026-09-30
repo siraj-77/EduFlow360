@@ -6,6 +6,84 @@
 
 ---
 
+---
+
+## 2026-09-30 — a real database, and the first defect only a database could find
+
+| Field      | Entry                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-09-30                                                                                                                |
+| **Phase**  | `ACTION_PLAN_2026-09-30-v2.md` — `F-7` (first real integration test), `A-4`, `ARC-09-9`                                   |
+| **Task**   | Owner: _"pls update the git, and proceed with recommends"_, then _"how are we going to check the login without the user"_ |
+| **Agent**  | `opencode` / space-bunny-free, using `test-driven-development` and `verification-before-completion`                       |
+| **Status** | ✅ `test:integration` **green with 9 real tests**. `format:check` **green for the first time**. All 11 FKs fixed.         |
+
+### The defect
+
+Creating `eduflowdb_new` and applying the schema failed immediately:
+
+```
+ERROR: foreign key constraint "users_role_id_fkey" cannot be implemented
+DETAIL: Key columns "role_id" ... and "id" ... are of incompatible types: text and uuid
+```
+
+**Every one of the 11 foreign keys was unbuildable.** Every model `id` carried `@db.Uuid`; no
+relation scalar did. `prisma-schema.spec.ts` had passed throughout, because Prisma _accepts_ such
+a schema and only refuses at apply time. Nothing had ever applied the schema to a real database —
+which is exactly what `test:integration` exists to prevent, and it had no test.
+
+Fixed in `schema-source.mjs`, never the generated `schema.prisma`. Now permanently guarded:
+`database-contract.integration.spec.ts` asserts 11 FKs exist, that `roles.id` is `uuid`, and —
+the part that matters — that a user with a missing role is **rejected**.
+
+### The bootstrap admin, and the answer to "how do we log in?"
+
+**We cannot, and the database says so.** `User.passwordHash` is nullable and status defaults to
+`INVITED` (_"an INVITED user has no password yet"_, ADR-007). Seeding a password would mean
+choosing an argon2id implementation, and `PLT-101` owns `IPasswordHasher` — two hashers in one
+repository cannot verify each other's output, so login could never be checked against the seeded
+hash. The seed therefore creates `SCHOOL_ADMIN` and its 8 permissions and **no credential**, and
+the integration suite asserts no account carries one. `PLT-107`'s one-time setup token is the
+production path.
+
+There is also no login endpoint at all: `PLT-101` is unstarted and `@node-rs/argon2` is not
+installed. "Can the seeded admin log in?" is unanswerable until then, and no amount of seeding
+changes that.
+
+### Two of my own regressions, both caught by gates that already existed
+
+| Regression                                                                                                                                             | Caught by             | Fix                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include: ['src/**/*.spec.ts']` is a _suffix_ match, so the unit runner began collecting the integration spec and `pnpm test` demanded a live database | the gate going red    | `vitest.config.ts` now **excludes** integration specs; the two suites are disjoint by construction                                                                                                                                       |
+| Fixing that made `test-file-oracle` report the integration spec as an orphan, because it read only `vitest.config.ts`                                  | **the oracle itself** | it now reads every vitest config in a package — and the first attempt broke `@eduflow/shared-types`/`i18n-resources`, which have _no_ config and rely on the default-include fallback. **The oracle's regression, caught by the oracle** |
+
+Also hit this repo's own recorded footgun a third time: a glob written inside a JSDoc comment
+contains a `*/` that silently terminates the block, and the error was reported on the _next_ line.
+
+### Gates
+
+| Gate               | Was         | Now                                                              |
+| ------------------ | ----------- | ---------------------------------------------------------------- |
+| `format:check`     | 2           | **0** — first time in the repository's history                   |
+| `test:integration` | 1 (no test) | **0** — 9 real tests                                             |
+| everything else    | 0           | 0                                                                |
+| `test:coverage`    | 1           | 1 — honest; needs `F-1`/`F-3` to create the first `domain/` file |
+
+**8 of 9 green, 0 hollow, 1 red.** 194 unit tests (api 127 · web 22 · ui-kit 28 · i18n 10 ·
+shared-types 7). ⚠️ The 194 was first written into `SSOT.md` as **203** and corrected after
+measuring — the exact failure `SSOT.md` §1a warns about, recorded as a demonstration of it.
+
+### Still open, not glossed
+
+- **`audit_records` is not immutable.** `UPDATE`/`DELETE`/`TRUNCATE` present, no trigger.
+  `prisma db push` applies the Prisma schema only; `prisma/hardening/audit-immutability.sql` is
+  never run by it. `TODO.md:128` has awaited this proof since the REVOKE shipped.
+- `G1-10` — compose never validated, `minio`/`mailpit` unpinned (no Docker).
+- `ARC-10` — 6 licence keys missing, blocks `F-2`'s entitlement guard.
+- `AUD-30-04` — e2e dark branch still never runs; `B-2` is unblocked and not done.
+
+**Refs:** `F-7` `A-4` `ARC-09-9` `D-4.3` `PLT-101` `PLT-107` `AUD-30-01` `AUD-30-02`
+
 ## 2026-09-30 — B-1 complete: 11 primitives, token-bound, and two RED→GREEN cycles
 
 | Field      | Entry                                                                                 |
@@ -598,12 +676,12 @@ A hand-rolled matcher would have been the weakest link in a test whose entire jo
 
 ## 2026-09-30 — ARC-08: the project ERD and the reference architecture, and the gaps drawn as gaps
 
-| Field      | Entry                                                                                                                                 |
+| Field      | Entry                                                                                                                                  |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **Date**   | 2026-09-30 (branch `siraj-77/ERD`)                                                                                                     |
-| **Phase**  | ARC-08 · extends ARC-01 (Platform Core), does not replace it                                                                            |
+| **Phase**  | ARC-08 · extends ARC-01 (Platform Core), does not replace it                                                                           |
 | **Task**   | Draw the system above the schema — what it looks like, and what is undesigned                                                          |
-| **Agent**  | opencode · `test-driven-development`, `tdd-workflow`, `diagram-design`, `using-superpowers`                                             |
+| **Agent**  | opencode · `test-driven-development`, `tdd-workflow`, `diagram-design`, `using-superpowers`                                            |
 | **Status** | ✅ **Complete.** 2 diagrams, 27 gate cases, geometry-checked. **No entity invented.** 1 pre-existing failure found and **not** patched |
 
 ### The problem ARC-08 actually solves
@@ -622,12 +700,12 @@ figure rather than replacing it with another number.
 So every row carries an **evidence tier**, and the tier is the most important
 column on the diagram:
 
-| Tier         | Means                                          | What may be drawn            |
-| ------------ | ---------------------------------------------- | ---------------------------- |
-| `SPECIFIED`  | corpus names the entity **and its fields**      | entity + fields              |
-| `NAMED`      | corpus names the entity, **not** its fields     | entity; fields marked as GAP |
-| `MODULE`     | capability exists, **no entity name**           | the module — never a table   |
-| `GAP`        | a documented `PC-xxx` hole                       | the hole, with its ticket    |
+| Tier        | Means                                       | What may be drawn            |
+| ----------- | ------------------------------------------- | ---------------------------- |
+| `SPECIFIED` | corpus names the entity **and its fields**  | entity + fields              |
+| `NAMED`     | corpus names the entity, **not** its fields | entity; fields marked as GAP |
+| `MODULE`    | capability exists, **no entity name**       | the module — never a table   |
+| `GAP`       | a documented `PC-xxx` hole                  | the hole, with its ticket    |
 
 All seven `PC-000`…`PC-006` gaps are drawn **in their own band**, not inside the
 modules they block — a gap drawn inside a module reads as handled; a gap drawn
@@ -678,7 +756,7 @@ silently.
 
 The most consequential: **`SRS` §6 names a `School` entity; `ADR-003` and the
 shipped `ARC-01` schema have no `School` table.** `AGENTS.md`/`ADR-003` win, and
-the discrepancy is *stated on the diagram* rather than resolved by omission —
+the discrepancy is _stated on the diagram_ rather than resolved by omission —
 because a reader who has just read `SRS` §6 needs to see it was decided.
 
 Also recorded: **six §3 capabilities have no key** in the signed certificate's
@@ -720,7 +798,7 @@ CI with default `autocrlf=false`.
 
 - **Drawn at module level, not field level, for everything outside Platform
   Core.** Drawing `NotificationDelivery`'s columns beside seven requirement gaps
-  would be unreadable *and* would imply the undesigned modules are as settled as
+  would be unreadable _and_ would imply the undesigned modules are as settled as
   the designed one. Fields belong in the generated schema; modules belong here.
 - **Gaps in their own band, not inside their modules.** Drawn inside, a gap reads
   as handled.
