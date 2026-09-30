@@ -1,0 +1,41 @@
+# Git's line-ending behaviour must not be able to decide whether a gate passes.
+#
+# Prettier sets endOfLine: lf. core.autocrlf is true on Windows. Without this
+# file, git checks out CRLF for every text file, Prettier then rejects all of
+# them, and the resulting failure is indistinguishable from a real formatting
+# problem.
+#
+# Two symptoms, one cause, both machine-dependent:
+#   - format:check is green on whoever last ran prettier --write and red on
+#     every fresh Windows clone.
+#   - schema-generation.spec.ts compares the checked-in schema.prisma against
+#     what the generator writes. Content is byte-identical; the line endings are
+#     not. Tracked as TODO.md ARC-09-9, which recorded it for the ERD work and
+#     reached the same conclusion from the format:check side.
+#
+# The failure is invisible on a machine whose working tree happens to hold LF,
+# which is why it survived. It is only ever observed on someone else's checkout.
+
+* text=auto eol=lf
+
+# Binary: never line-ending translated, never diffed as text.
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.webp     binary
+*.woff     binary
+*.woff2    binary
+*.ttf      binary
+*.eot      binary
+*.pdf      binary
+*.zip      binary
+*.gz       binary
+
+# Excalidraw and Prisma sources are text and must stay LF. They are listed
+# explicitly because a future contributor editing .gitattributes could
+# reasonably decide a "diagram" or a "generated schema" is binary, and that
+# decision would silently reintroduce the failure above.
+*.excalidraw text eol=lf
+*.prisma    text eol=lf
