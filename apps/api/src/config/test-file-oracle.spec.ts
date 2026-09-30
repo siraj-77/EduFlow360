@@ -143,14 +143,44 @@ function ownersFor(dir: string): Owner[] {
   const pkgDir = join(ROOT, dir);
   const owners: Owner[] = [];
 
-  const vitestConfig = configPathFor(dir, 'vitest');
-  const raw = vitestConfig ? readFileSync(vitestConfig, 'utf8') : '';
-  const include = (vitestConfig && stringArrayIn(raw, 'include')) ?? VITEST_DEFAULT_INCLUDE;
-  const exclude = (vitestConfig && stringArrayIn(raw, 'exclude')) ?? VITEST_DEFAULT_EXCLUDE;
-  const excluded = expand(pkgDir, exclude);
-  const collected = new Set([...expand(pkgDir, include)].filter((f) => !excluded.has(f)));
-  if (collected.size > 0) {
-    owners.push({ runner: 'vitest', globs: [...collected].sort() });
+  /**
+   * EVERY Vitest config in the package, not just the default one.
+   *
+   * `apps/api` has two: `vitest.config.ts` (unit) and
+   * `vitest.integration.config.ts`. Reading only the default reported
+   * `database-contract.integration.spec.ts` as "exists on disk but no runner
+   * collects it" once the unit config began excluding integration specs - which
+   * is this oracle working, but the oracle was the thing that was wrong. A
+   * separate integration config is a normal arrangement, and an owner list that
+   * ignores it reports a false orphan.
+   */
+  let sawVitestConfig = false;
+  for (const name of ['vitest', 'vitest.integration']) {
+    const config = configPathFor(dir, name);
+    if (!config) continue;
+    sawVitestConfig = true;
+    const raw = readFileSync(config, 'utf8');
+    const include = stringArrayIn(raw, 'include') ?? VITEST_DEFAULT_INCLUDE;
+    const exclude = stringArrayIn(raw, 'exclude') ?? VITEST_DEFAULT_EXCLUDE;
+    const excluded = expand(pkgDir, exclude);
+    const collected = new Set([...expand(pkgDir, include)].filter((f) => !excluded.has(f)));
+    if (collected.size > 0) {
+      owners.push({ runner: name, globs: [...collected].sort() });
+    }
+  }
+
+  // A package with no vitest config at all still runs Vitest, on the defaults.
+  // `@eduflow/shared-types` and `@eduflow/i18n-resources` are both in that
+  // position, and dropping this fallback made the oracle report their specs as
+  // orphans - the oracle's own regression, caught by the oracle.
+  if (!sawVitestConfig) {
+    const excluded = expand(pkgDir, VITEST_DEFAULT_EXCLUDE);
+    const collected = new Set(
+      [...expand(pkgDir, VITEST_DEFAULT_INCLUDE)].filter((f) => !excluded.has(f)),
+    );
+    if (collected.size > 0) {
+      owners.push({ runner: 'vitest', globs: [...collected].sort() });
+    }
   }
 
   const playwrightConfig = configPathFor(dir, 'playwright');

@@ -28,7 +28,9 @@
     },
     "test:integration": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": ["DATABASE_URL"],
+      "cache": false
     },
     "test:e2e": {
       "dependsOn": ["^build"],
