@@ -1,4 +1,9 @@
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type IntlMessages, type SupportedLocale } from '@eduflow/shared-types';
+import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+  type IntlMessages,
+  type SupportedLocale,
+} from '@eduflow/shared-types';
 import { describe, expect, it } from 'vitest';
 import ar from './locales/ar.json' with { type: 'json' };
 import en from './locales/en.json' with { type: 'json' };
@@ -70,7 +75,9 @@ describe('locale key parity', () => {
       const nav = readPath(RAW[locale as SupportedLocale], 'nav.dashboard');
       const englishNav = readPath(en, 'nav.dashboard');
       if (locale === 'ta' || locale === 'si' || locale === 'ar') {
-        expect(nav, `${locale}.nav.dashboard must not equal the English string`).not.toBe(englishNav);
+        expect(nav, `${locale}.nav.dashboard must not equal the English string`).not.toBe(
+          englishNav,
+        );
       }
     }
   });
@@ -78,4 +85,3 @@ describe('locale key parity', () => {
 
 /** Compile-time proof that a locale object satisfies the i18n contract. */
 export type _LocaleShapeCheck = Record<SupportedLocale, IntlMessages>;
-

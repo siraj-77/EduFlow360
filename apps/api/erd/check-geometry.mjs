@@ -59,7 +59,11 @@ for (const name of FILES) {
   let escapes = 0;
   for (const card of cards) {
     for (const t of texts) {
-      const inside = t.x >= card.x - 2 && t.x < card.x + card.width && t.y >= card.y - 2 && t.y < card.y + card.height;
+      const inside =
+        t.x >= card.x - 2 &&
+        t.x < card.x + card.width &&
+        t.y >= card.y - 2 &&
+        t.y < card.y + card.height;
       if (inside && t.y + t.height > card.y + card.height) {
         escapes += 1;
         if (escapes <= 3) {

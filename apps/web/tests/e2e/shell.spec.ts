@@ -48,10 +48,9 @@ test.describe('locale negotiation at the root', () => {
       'the bare root 404s. A visitor who types the site address sees "This page could not be found"',
     ).not.toBe(404);
 
-    expect(
-      page.url(),
-      'the bare root did not land on a locale-prefixed URL',
-    ).toMatch(/\/(en|ta|si|ar)$/);
+    expect(page.url(), 'the bare root did not land on a locale-prefixed URL').toMatch(
+      /\/(en|ta|si|ar)$/,
+    );
   });
 
   test.describe('with an Arabic browser preference', () => {
@@ -95,10 +94,7 @@ test.describe('landing page', () => {
     ).toBeVisible();
 
     const features = page.locator('[data-testid="feature"]');
-    await expect(
-      features,
-      'the landing page renders no feature blocks',
-    ).toHaveCount(4);
+    await expect(features, 'the landing page renders no feature blocks').toHaveCount(4);
 
     await expect(
       features.first(),
@@ -116,7 +112,10 @@ test.describe('landing page', () => {
     const FORBIDDEN: ReadonlyArray<readonly [string, string]> = [
       ['200+', 'AGENTS.md 2.8: "Trusted by 200+ schools" is not true of this product'],
       ['1.2M', 'AGENTS.md 2.8: "1.2M Students Managed" is not true of this product'],
-      ['Free Trial', 'D2/D4: one deployment per school, sold on editions. There is no trial to start.'],
+      [
+        'Free Trial',
+        'D2/D4: one deployment per school, sold on editions. There is no trial to start.',
+      ],
       ['Mobile for Everyone', 'D5/ADR-005: apps/mobile is milestone 2, not a shipped feature'],
     ];
 
@@ -162,7 +161,9 @@ test.describe('landing page motion', () => {
     page.evaluate(() =>
       document
         .getAnimations()
-        .map((a) => ((a as CSSAnimation).animationName as string | undefined) ?? a.constructor.name),
+        .map(
+          (a) => ((a as CSSAnimation).animationName as string | undefined) ?? a.constructor.name,
+        ),
     );
 
   test('the hero runs the template signature animations', async ({ page }) => {
@@ -184,7 +185,10 @@ test.describe('landing page motion', () => {
     // The track is duplicated so the -50% translate loops seamlessly. Both
     // halves must be present or the seam is visible.
     const items = page.locator('[data-testid="marquee-item"]');
-    expect(await items.count(), 'the marquee needs two identical halves to loop').toBeGreaterThanOrEqual(12);
+    expect(
+      await items.count(),
+      'the marquee needs two identical halves to loop',
+    ).toBeGreaterThanOrEqual(12);
   });
 
   test('prefers-reduced-motion stops every animation', async ({ page }) => {
@@ -273,7 +277,9 @@ test.describe('touch targets and reduced-motion degradation', () => {
    * So under reduced motion the track must become an ordinary wrapping row: no
    * overflow, no clipping, everything fully legible.
    */
-  test('under reduced motion the module list is fully legible, not a clipped strip', async ({ page }) => {
+  test('under reduced motion the module list is fully legible, not a clipped strip', async ({
+    page,
+  }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/en');
     await page.waitForLoadState('networkidle');
@@ -285,12 +291,12 @@ test.describe('touch targets and reduced-motion degradation', () => {
       const nodes = [...track.querySelectorAll('[data-testid="marquee-item"]')] as HTMLElement[];
 
       return {
-        clipped: getComputedStyle(holder).overflowX === 'hidden' && nodes.some(
-          (n) => {
+        clipped:
+          getComputedStyle(holder).overflowX === 'hidden' &&
+          nodes.some((n) => {
             const r = n.getBoundingClientRect();
             return r.left < holderBox.left - 0.5 || r.right > holderBox.right + 0.5;
-          },
-        ),
+          }),
         overflowing: track.scrollWidth > holder.clientWidth + 1,
         items: nodes.length,
       };
@@ -335,7 +341,10 @@ test.describe('sign-in route', () => {
     // link that worked.
     const documentResponse = page.waitForResponse((r) => r.request().resourceType() === 'document');
 
-    await page.getByRole('link', { name: /sign in/i }).first().click();
+    await page
+      .getByRole('link', { name: /sign in/i })
+      .first()
+      .click();
     await documentResponse;
 
     expect(
@@ -403,14 +412,20 @@ test.describe('responsive layout', () => {
       ].filter((c): c is HTMLElement => c instanceof HTMLElement);
 
       const rendered = controls
-        .map((c) => ({ label: (c.textContent ?? '').trim().slice(0, 20), height: Math.round(c.getBoundingClientRect().height) }))
+        .map((c) => ({
+          label: (c.textContent ?? '').trim().slice(0, 20),
+          height: Math.round(c.getBoundingClientRect().height),
+        }))
         .filter((c) => c.height > 0);
 
       return {
         wraps: el.getBoundingClientRect().height > 60,
         linkCount: rendered.length,
         minHeight: rendered.length ? Math.min(...rendered.map((c) => c.height)) : 0,
-        offender: rendered.reduce((w, c) => (c.height < (w?.height ?? Infinity) ? c : w), rendered[0]),
+        offender: rendered.reduce(
+          (w, c) => (c.height < (w?.height ?? Infinity) ? c : w),
+          rendered[0],
+        ),
       };
     });
 
@@ -453,10 +468,7 @@ test.describe('language picker', () => {
     await page.goto('/en');
 
     const trigger = page.locator('.landing-lang > summary');
-    await expect(
-      trigger,
-      'the language control is not a disclosure trigger',
-    ).toBeVisible();
+    await expect(trigger, 'the language control is not a disclosure trigger').toBeVisible();
 
     await expect(trigger, 'the trigger does not name the active locale').toContainText('English');
 
@@ -473,7 +485,9 @@ test.describe('language picker', () => {
     expect(display, 'the open menu is laid out while the picker is closed').toBe('none');
   });
 
-  test('offers the four locales as links in English, Sinhala, Tamil, Arabic order', async ({ page }) => {
+  test('offers the four locales as links in English, Sinhala, Tamil, Arabic order', async ({
+    page,
+  }) => {
     await page.goto('/en');
     await page.locator('.landing-lang > summary').click();
 
@@ -489,7 +503,9 @@ test.describe('language picker', () => {
 
     // The href is the contract, not the label: the labels are translated and
     // would make this test fail for a translator doing their job.
-    const hrefs = await options.evaluateAll((els) => els.map((e) => (e as HTMLAnchorElement).getAttribute('href')));
+    const hrefs = await options.evaluateAll((els) =>
+      els.map((e) => (e as HTMLAnchorElement).getAttribute('href')),
+    );
 
     expect(hrefs, 'the picker order is wrong').toEqual(['/en', '/si', '/ta', '/ar']);
   });
@@ -500,10 +516,7 @@ test.describe('language picker', () => {
 
     const current = page.locator('[data-testid="lang-option"][aria-current="page"]');
 
-    await expect(
-      current,
-      'the active locale is not marked in the menu',
-    ).toHaveCount(1);
+    await expect(current, 'the active locale is not marked in the menu').toHaveCount(1);
     await expect(current).toHaveAttribute('href', '/ta');
 
     // The trigger follows the route, not a stored preference.
@@ -528,10 +541,15 @@ test.describe('language picker', () => {
       .locator('[data-testid="lang-option"]')
       .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
 
-    expect(heights.some((h) => h === 0), 'an option was measured while collapsed').toBe(false);
+    expect(
+      heights.some((h) => h === 0),
+      'an option was measured while collapsed',
+    ).toBe(false);
 
     for (const h of heights) {
-      expect(h, `a language option is ${h}px tall, under the 44px floor`).toBeGreaterThanOrEqual(44);
+      expect(h, `a language option is ${h}px tall, under the 44px floor`).toBeGreaterThanOrEqual(
+        44,
+      );
     }
   });
 });
@@ -569,11 +587,16 @@ test.describe('locale shell', () => {
     };
 
     const en = await readHeroSub('en');
-    expect(en, 'the English hero sub did not render, so this test cannot prove anything').not.toBe('');
+    expect(en, 'the English hero sub did not render, so this test cannot prove anything').not.toBe(
+      '',
+    );
 
     for (const locale of ['ta', 'si', 'ar']) {
       const sub = await readHeroSub(locale);
-      expect(sub, `/${locale} rendered the English hero sub, so the locale is falling back to en`).not.toBe(en);
+      expect(
+        sub,
+        `/${locale} rendered the English hero sub, so the locale is falling back to en`,
+      ).not.toBe(en);
       expect(sub, `/${locale} rendered an empty hero sub`).not.toBe('');
     }
   });
@@ -593,7 +616,10 @@ test.describe('locale shell', () => {
 
     for (const locale of ['ta', 'si', 'ar']) {
       const nav = await readNav(locale);
-      expect(nav.length, `/${locale} rendered ${nav.length} nav destinations where /en rendered ${en.length}`).toBe(en.length);
+      expect(
+        nav.length,
+        `/${locale} rendered ${nav.length} nav destinations where /en rendered ${en.length}`,
+      ).toBe(en.length);
     }
   });
 });
@@ -625,7 +651,18 @@ test.describe('theme shell', () => {
     // proves the shipped bundle carries them.
     const tokens = await page.evaluate(() => {
       const style = getComputedStyle(document.documentElement);
-      const names = ['--bg', '--surface', '--text', '--muted', '--border', '--brand', '--brand-2', '--accent', '--danger', '--ok'];
+      const names = [
+        '--bg',
+        '--surface',
+        '--text',
+        '--muted',
+        '--border',
+        '--brand',
+        '--brand-2',
+        '--accent',
+        '--danger',
+        '--ok',
+      ];
       return Object.fromEntries(names.map((n) => [n, style.getPropertyValue(n).trim()]));
     });
 

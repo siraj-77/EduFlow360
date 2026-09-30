@@ -1,18 +1,9 @@
 {
-    "extends":  "@eduflow/config/tsconfig.base.json",
-    "compilerOptions":  {
-                            "outDir":  "dist",
-                            "rootDir":  "src"
-                        },
-    "include":  [
-                    "src/**/*.ts",
-                    "src/locales/*.json"
-                ],
-    "exclude":  [
-                    "node_modules",
-                    "dist",
-                    ".next",
-                    "**/*.spec.ts",
-                    "**/*.spec.tsx"
-                ]
+  "extends": "@eduflow/config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.ts", "src/locales/*.json"],
+  "exclude": ["node_modules", "dist", ".next", "**/*.spec.ts", "**/*.spec.tsx"]
 }

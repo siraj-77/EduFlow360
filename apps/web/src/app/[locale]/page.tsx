@@ -22,11 +22,7 @@ export function generateStaticParams() {
  * "useTranslations is not callable within an async component" at prerender
  * time, not at type-check time, so the build is where it shows.
  */
-export default async function HomePage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (routing.locales.includes(locale as never)) setRequestLocale(locale as never);
 

@@ -166,19 +166,28 @@ export function renderProjectErd() {
   const out = [];
 
   const head = title(
-      `EDUFLOW ${G.dot} PROJECT ERD`,
-      'The whole system, and what is still undesigned',
-      [
-        `One PostgreSQL database per school ${G.dot} physical isolation ${G.dot} school_id is metadata, never a control`,
-        `Entities are drawn only where the corpus names them. Every PC-xxx gap is drawn as a gap, not filled with a plausible table.`,
-        `Sources: SRS ${G.section}6 ${G.dot} MP ${G.section}5 ${G.dot} MP ${G.section}17.6${G.endash}17.10 ${G.dot} ARC-01 ${G.dot} ADR-003 ${G.dot} ADR-002 ${G.dot} AGENTS.md ${G.section}2.1${G.endash}${G.section}2.9`,
-      ],
-    );
+    `EDUFLOW ${G.dot} PROJECT ERD`,
+    'The whole system, and what is still undesigned',
+    [
+      `One PostgreSQL database per school ${G.dot} physical isolation ${G.dot} school_id is metadata, never a control`,
+      `Entities are drawn only where the corpus names them. Every PC-xxx gap is drawn as a gap, not filled with a plausible table.`,
+      `Sources: SRS ${G.section}6 ${G.dot} MP ${G.section}5 ${G.dot} MP ${G.section}17.6${G.endash}17.10 ${G.dot} ARC-01 ${G.dot} ADR-003 ${G.dot} ADR-002 ${G.dot} AGENTS.md ${G.section}2.1${G.endash}${G.section}2.9`,
+    ],
+  );
   out.push(...head.elements);
 
   /* --- Band 1: modules ------------------------------------------------ */
   const bandTop = head.bottom;
-  out.push(text(MARGIN, bandTop, [`01 ${G.dot} MODULES ${G.emdash} licence gate and evidence tier`], 18, INK, { width: 1400 }));
+  out.push(
+    text(
+      MARGIN,
+      bandTop,
+      [`01 ${G.dot} MODULES ${G.emdash} licence gate and evidence tier`],
+      18,
+      INK,
+      { width: 1400 },
+    ),
+  );
 
   // Card height is derived, not fixed. Platform Core lists fourteen entities
   // and Academic lists fourteen more; at three per line that is five rows of
@@ -216,7 +225,9 @@ export function renderProjectErd() {
     const y = rowTop[row];
     const style = TIER_STYLE[m.tier];
 
-    out.push(box(x, y, CARD_W, c.height, style.stroke, style.bg, `mod_${m.name.replace(/\W+/g, '_')}`));
+    out.push(
+      box(x, y, CARD_W, c.height, style.stroke, style.bg, `mod_${m.name.replace(/\W+/g, '_')}`),
+    );
 
     out.push(
       text(x + 16, y + 12, [m.name], 17, style.stroke, { width: CARD_W - 32 }),
@@ -231,7 +242,9 @@ export function renderProjectErd() {
     // ordering is the fix. It used to be pinned to a fixed offset from the card
     // top, which collided as soon as a module had more than three entities.
     out.push(
-      text(x + 16, y + 86 + c.entityLines * 17, wrap([m.note], 1), 11, MUTED, { width: CARD_W - 32 }),
+      text(x + 16, y + 86 + c.entityLines * 17, wrap([m.note], 1), 11, MUTED, {
+        width: CARD_W - 32,
+      }),
     );
   });
 
@@ -243,7 +256,9 @@ export function renderProjectErd() {
     text(
       MARGIN,
       gapTop,
-      [`02 ${G.dot} REQUIREMENT GAPS ${G.emdash} drawn, because a gap that is not visible is not managed`],
+      [
+        `02 ${G.dot} REQUIREMENT GAPS ${G.emdash} drawn, because a gap that is not visible is not managed`,
+      ],
       18,
       GAP_STYLE.stroke,
       { width: 1400 },
@@ -258,10 +273,14 @@ export function renderProjectErd() {
     const y = gapTop + 32 + row * (CARD_H + 24);
     out.push(box(x, y, GAP_W, CARD_H - 24, GAP_STYLE.stroke, GAP_STYLE.bg, `gap_${g.id}`));
     out.push(
-      text(x + 16, y + 12, [`${g.id} ${G.dot} ${g.title}`], 16, GAP_STYLE.stroke, { width: GAP_W - 32 }),
+      text(x + 16, y + 12, [`${g.id} ${G.dot} ${g.title}`], 16, GAP_STYLE.stroke, {
+        width: GAP_W - 32,
+      }),
       text(x + 16, y + 38, wrap([g.detail], 1), 11, INK, { width: GAP_W - 32 }),
       text(x + 16, y + 96, [`blocks: ${g.blocks}`], 11, MUTED, { width: GAP_W - 32 }),
-      text(x + 16, y + 116, ['status: NEEDS DESIGN - no entity drawn'], 11, GAP_STYLE.stroke, { width: GAP_W - 32 }),
+      text(x + 16, y + 116, ['status: NEEDS DESIGN - no entity drawn'], 11, GAP_STYLE.stroke, {
+        width: GAP_W - 32,
+      }),
     );
   });
 
@@ -284,19 +303,35 @@ export function renderProjectErd() {
     const row = Math.floor(i / PER_ROW);
     const x = MARGIN + col * (ENG_W + COL_GAP);
     const y = engineTop + 32 + row * (176 + 24);
-    out.push(box(x, y, ENG_W, 176, ENGINE_STYLE.stroke, ENGINE_STYLE.bg, `eng_${e.concern.replace(/\W+/g, '_')}`));
+    out.push(
+      box(
+        x,
+        y,
+        ENG_W,
+        176,
+        ENGINE_STYLE.stroke,
+        ENGINE_STYLE.bg,
+        `eng_${e.concern.replace(/\W+/g, '_')}`,
+      ),
+    );
     out.push(
       text(x + 16, y + 12, [e.concern], 16, ENGINE_STYLE.stroke, { width: ENG_W - 32 }),
       text(x + 16, y + 38, wrap([`one engine: ${e.engine}`], 1), 11, INK, { width: ENG_W - 32 }),
       text(x + 16, y + 58, wrap([`seam: ${e.seam}`], 1), 11, MUTED, { width: ENG_W - 32 }),
       text(x + 16, y + 78, wrap([`covers: ${e.covers}`], 1), 11, INK, { width: ENG_W - 32 }),
-      text(x + 16, y + 118, wrap([`never: ${e.forbids}`], 1), 11, GAP_STYLE.stroke, { width: ENG_W - 32 }),
+      text(x + 16, y + 118, wrap([`never: ${e.forbids}`], 1), 11, GAP_STYLE.stroke, {
+        width: ENG_W - 32,
+      }),
     );
   });
 
   /* --- Band 4: structure rules + prohibitions ------------------------- */
   const ruleTop = engineTop + 32 + Math.ceil(SHARED_ENGINES.length / PER_ROW) * (176 + 24) + 24;
-  out.push(text(MARGIN, ruleTop, [`04 ${G.dot} STRUCTURE RULES AND PROHIBITIONS`], 18, INK, { width: 1400 }));
+  out.push(
+    text(MARGIN, ruleTop, [`04 ${G.dot} STRUCTURE RULES AND PROHIBITIONS`], 18, INK, {
+      width: 1400,
+    }),
+  );
 
   ERD_STRUCTURE_RULES.forEach((r, i) => {
     const col = i % 2;
@@ -313,9 +348,25 @@ export function renderProjectErd() {
 
   const prohTop = ruleTop + 32 + Math.ceil(ERD_STRUCTURE_RULES.length / 2) * 140;
   const prohW = 1312;
-  out.push(box(MARGIN, prohTop, prohW, 24 + ERD_PROHIBITIONS.length * 24 + 12, GAP_STYLE.stroke, GAP_STYLE.bg));
   out.push(
-    text(MARGIN + 16, prohTop + 12, ['What this diagram deliberately does not show'], 14, GAP_STYLE.stroke, { width: prohW - 32 }),
+    box(
+      MARGIN,
+      prohTop,
+      prohW,
+      24 + ERD_PROHIBITIONS.length * 24 + 12,
+      GAP_STYLE.stroke,
+      GAP_STYLE.bg,
+    ),
+  );
+  out.push(
+    text(
+      MARGIN + 16,
+      prohTop + 12,
+      ['What this diagram deliberately does not show'],
+      14,
+      GAP_STYLE.stroke,
+      { width: prohW - 32 },
+    ),
     ...ERD_PROHIBITIONS.map((p, i) =>
       text(MARGIN + 16, prohTop + 40 + i * 24, [`${G.cross} ${p}`], 12, INK, { width: prohW - 32 }),
     ),
@@ -328,11 +379,27 @@ export function renderProjectErd() {
   const legendH = 40 + (ERD_TIER_NOTES.length + 1) * 24 + 16;
   out.push(box(MARGIN, legendTop, prohW, legendH, '#c9ced8', '#f7f8fb'));
   out.push(
-    text(MARGIN + 16, legendTop + 12, ['Evidence tier - the most important column on this diagram'], 14, INK, { width: prohW - 32 }),
-    ...ERD_TIER_NOTES.map((n, i) => text(MARGIN + 16, legendTop + 40 + i * 24, [n], 12, INK, { width: prohW - 32 })),
-    text(MARGIN + 16, legendTop + 40 + ERD_TIER_NOTES.length * 24, [
-      `Platform Core alone has a generated schema: ${PLATFORM_CORE_ENTITIES.length} tables (ARC-01). Everything else is drawn at the tier its evidence supports.`,
-    ], 12, MUTED, { width: prohW - 32 }),
+    text(
+      MARGIN + 16,
+      legendTop + 12,
+      ['Evidence tier - the most important column on this diagram'],
+      14,
+      INK,
+      { width: prohW - 32 },
+    ),
+    ...ERD_TIER_NOTES.map((n, i) =>
+      text(MARGIN + 16, legendTop + 40 + i * 24, [n], 12, INK, { width: prohW - 32 }),
+    ),
+    text(
+      MARGIN + 16,
+      legendTop + 40 + ERD_TIER_NOTES.length * 24,
+      [
+        `Platform Core alone has a generated schema: ${PLATFORM_CORE_ENTITIES.length} tables (ARC-01). Everything else is drawn at the tier its evidence supports.`,
+      ],
+      12,
+      MUTED,
+      { width: prohW - 32 },
+    ),
   );
 
   return out;
@@ -346,24 +413,31 @@ export function renderReferenceArchitecture() {
   const out = [];
 
   const head = title(
-      `EDUFLOW ${G.dot} REFERENCE ARCHITECTURE`,
-      'Where the boundaries are, and what stops them moving',
-      [
-        `Clean Architecture, dependencies inward: Presentation ${G.arrow} Application ${G.arrow} Domain ${G.arrow} Infrastructure (AGENTS.md ${G.section}2.2)`,
-        `A file under domain/ or use-cases/ may not import @nestjs/*, Prisma, BullMQ, any UI library, or any vendor SDK.`,
-        `Sources: AGENTS.md ${G.section}2.1${G.endash}${G.section}2.15 ${G.dot} ADR-002 ${G.dot} ADR-003 ${G.dot} ADR-004 ${G.dot} ADR-013 ${G.dot} ADR-015`,
-      ],
-    );
+    `EDUFLOW ${G.dot} REFERENCE ARCHITECTURE`,
+    'Where the boundaries are, and what stops them moving',
+    [
+      `Clean Architecture, dependencies inward: Presentation ${G.arrow} Application ${G.arrow} Domain ${G.arrow} Infrastructure (AGENTS.md ${G.section}2.2)`,
+      `A file under domain/ or use-cases/ may not import @nestjs/*, Prisma, BullMQ, any UI library, or any vendor SDK.`,
+      `Sources: AGENTS.md ${G.section}2.1${G.endash}${G.section}2.15 ${G.dot} ADR-002 ${G.dot} ADR-003 ${G.dot} ADR-004 ${G.dot} ADR-013 ${G.dot} ADR-015`,
+    ],
+  );
   out.push(...head.elements);
 
   /* --- Layer stack ---------------------------------------------------- */
   const stackTop = head.bottom;
   out.push(
-    text(MARGIN, stackTop, [`01 ${G.dot} CLEAN ARCHITECTURE ${G.emdash} every boundary states what it may import`], 18, INK, {
-      // Sized to the layer column, not the full page. At 1400px wide this
-      // header's box ran under the guard header and the two overlapped.
-      width: 880,
-    }),
+    text(
+      MARGIN,
+      stackTop,
+      [`01 ${G.dot} CLEAN ARCHITECTURE ${G.emdash} every boundary states what it may import`],
+      18,
+      INK,
+      {
+        // Sized to the layer column, not the full page. At 1400px wide this
+        // header's box ran under the guard header and the two overlapped.
+        width: 880,
+      },
+    ),
   );
 
   ARCH_LAYERS.forEach((l, i) => {
@@ -371,7 +445,9 @@ export function renderReferenceArchitecture() {
     const w = 880;
     out.push(box(MARGIN, y, w, 96, '#4f46e5', '#e8ebff', `layer_${i}`));
     out.push(
-      text(MARGIN + 16, y + 12, [`${l.name} ${G.emdash} ${l.detail}`], 15, '#4f46e5', { width: w - 32 }),
+      text(MARGIN + 16, y + 12, [`${l.name} ${G.emdash} ${l.detail}`], 15, '#4f46e5', {
+        width: w - 32,
+      }),
       text(MARGIN + 16, y + 38, [`may import: ${l.may}`], 11, INK, { width: w - 32 }),
       text(MARGIN + 16, y + 58, [`may NOT: ${l.mayNot}`], 11, '#dc2626', { width: w - 32 }),
     );
@@ -411,9 +487,18 @@ export function renderReferenceArchitecture() {
   // which put the two headers on top of each other.
   const guardX = MARGIN + 920;
   const guardW = 424;
-  out.push(text(guardX, stackTop, [`02 ${G.dot} EVERY ROUTE ${G.emdash} fail-closed, all three compose`], 18, '#dc2626', {
-    width: guardW,
-  }));
+  out.push(
+    text(
+      guardX,
+      stackTop,
+      [`02 ${G.dot} EVERY ROUTE ${G.emdash} fail-closed, all three compose`],
+      18,
+      '#dc2626',
+      {
+        width: guardW,
+      },
+    ),
+  );
 
   ARCH_GUARDS.forEach((g, i) => {
     const y = stackTop + 32 + i * 112;
@@ -429,7 +514,9 @@ export function renderReferenceArchitecture() {
     text(
       guardX,
       stackTop + 32 + ARCH_GUARDS.length * 112 + 8,
-      ['A route with neither @RequirePermission nor @Public is a defect - CI fails on it, not a reviewer.'],
+      [
+        'A route with neither @RequirePermission nor @Public is a defect - CI fails on it, not a reviewer.',
+      ],
       11,
       '#dc2626',
       { width: guardW + 200 },
@@ -442,7 +529,9 @@ export function renderReferenceArchitecture() {
     text(
       MARGIN,
       adapterTop,
-      [`03 ${G.dot} VENDOR SEAMS ${G.emdash} a use-case never calls a vendor SDK (AGENTS.md ${G.section}2.2)`],
+      [
+        `03 ${G.dot} VENDOR SEAMS ${G.emdash} a use-case never calls a vendor SDK (AGENTS.md ${G.section}2.2)`,
+      ],
       18,
       '#7c3aed',
       { width: 1400 },
@@ -458,20 +547,43 @@ export function renderReferenceArchitecture() {
     const y = adapterTop + 32 + row * 84;
     const undecided = a.state === 'undecided';
     out.push(
-      box(x, y, ADAPT_W, 68, undecided ? '#dc2626' : '#7c3aed', undecided ? '#ffeaea' : '#f3edff', `adapter_${i}`),
-      text(x + 16, y + 10, [a.port], 13, undecided ? '#dc2626' : '#7c3aed', { width: ADAPT_W - 32 }),
+      box(
+        x,
+        y,
+        ADAPT_W,
+        68,
+        undecided ? '#dc2626' : '#7c3aed',
+        undecided ? '#ffeaea' : '#f3edff',
+        `adapter_${i}`,
+      ),
+      text(x + 16, y + 10, [a.port], 13, undecided ? '#dc2626' : '#7c3aed', {
+        width: ADAPT_W - 32,
+      }),
       text(x + 16, y + 32, wrap([`${G.arrow} ${a.vendors}`], 1), 11, INK, { width: ADAPT_W - 32 }),
     );
     if (undecided) {
-      out.push(text(x + 16, y + 50, ['provider deliberately undecided'], 10, '#dc2626', { width: ADAPT_W - 32 }));
+      out.push(
+        text(x + 16, y + 50, ['provider deliberately undecided'], 10, '#dc2626', {
+          width: ADAPT_W - 32,
+        }),
+      );
     }
   });
 
   /* --- Deployment ----------------------------------------------------- */
   const depTop = adapterTop + 32 + Math.ceil(ARCH_ADAPTERS.length / ADAPT_COLS) * 84 + 32;
-  out.push(text(MARGIN, depTop, [`04 ${G.dot} DEPLOYMENT ${G.emdash} one school, one deployment, one database`], 18, INK, {
-    width: 1312,
-  }));
+  out.push(
+    text(
+      MARGIN,
+      depTop,
+      [`04 ${G.dot} DEPLOYMENT ${G.emdash} one school, one deployment, one database`],
+      18,
+      INK,
+      {
+        width: 1312,
+      },
+    ),
+  );
   // Height is derived: title + wrapped body + one line per store + the note.
   // It was short by one line, which pushed the closing note out of the box.
   const depBodyLines = wrap([ARCH_DEPLOYMENT.body], 1).length;
@@ -482,9 +594,14 @@ export function renderReferenceArchitecture() {
     text(MARGIN + 16, depBodyY + 12, [ARCH_DEPLOYMENT.title], 16, '#0e7490', { width: 1280 }),
     text(MARGIN + 16, depBodyY + 38, wrap([ARCH_DEPLOYMENT.body], 1), 11, INK, { width: 1280 }),
     ...ARCH_DEPLOYMENT.stores.map((s, i) =>
-      text(MARGIN + 16, depBodyY + 38 + depBodyLines * 21 + 12 + i * 32, [
-        `${s.name} ${G.emdash} ${s.role}`,
-      ], 12, INK, { width: 1280 }),
+      text(
+        MARGIN + 16,
+        depBodyY + 38 + depBodyLines * 21 + 12 + i * 32,
+        [`${s.name} ${G.emdash} ${s.role}`],
+        12,
+        INK,
+        { width: 1280 },
+      ),
     ),
     text(
       MARGIN + 16,
@@ -498,10 +615,29 @@ export function renderReferenceArchitecture() {
 
   /* --- Closing rules -------------------------------------------------- */
   const closeTop = depBodyY + depH + 32;
-  out.push(box(MARGIN, closeTop, 1312, 24 + ARCH_CLOSING.length * 24 + 12, '#c9ced8', '#f7f8fb', 'closing'));
   out.push(
-    text(MARGIN + 16, closeTop + 12, ['Rules that change how the rest of the system behaves'], 14, INK, { width: 1280 }),
-    ...ARCH_CLOSING.map((c, i) => text(MARGIN + 16, closeTop + 40 + i * 24, [`${G.middot} ${c}`], 12, INK, { width: 1280 })),
+    box(
+      MARGIN,
+      closeTop,
+      1312,
+      24 + ARCH_CLOSING.length * 24 + 12,
+      '#c9ced8',
+      '#f7f8fb',
+      'closing',
+    ),
+  );
+  out.push(
+    text(
+      MARGIN + 16,
+      closeTop + 12,
+      ['Rules that change how the rest of the system behaves'],
+      14,
+      INK,
+      { width: 1280 },
+    ),
+    ...ARCH_CLOSING.map((c, i) =>
+      text(MARGIN + 16, closeTop + 40 + i * 24, [`${G.middot} ${c}`], 12, INK, { width: 1280 }),
+    ),
   );
 
   return out;

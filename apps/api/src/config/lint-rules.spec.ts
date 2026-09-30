@@ -57,7 +57,10 @@ describe('AGENTS.md 2.2 — layering is mechanically enforced', () => {
   });
 
   it('rejects @prisma/client in a domain service', () => {
-    const r = lint(`import { PrismaClient } from '@prisma/client';\nexport class A {}\n`, DOMAIN_SERVICE);
+    const r = lint(
+      `import { PrismaClient } from '@prisma/client';\nexport class A {}\n`,
+      DOMAIN_SERVICE,
+    );
 
     expect(fired(r, RESTRICTED_IMPORTS)).toBe(true);
     expect(textOf(r)).toMatch(/@prisma\/client/);

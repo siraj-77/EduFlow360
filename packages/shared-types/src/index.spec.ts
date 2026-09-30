@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_LOCALE,
-  LOCALE_DISPLAY_ORDER,
-  SUPPORTED_LOCALES,
-  directionFor,
-} from './index.js';
+import { DEFAULT_LOCALE, LOCALE_DISPLAY_ORDER, SUPPORTED_LOCALES, directionFor } from './index.js';
 
 describe('directionFor', () => {
   it('returns rtl for Arabic', () => {

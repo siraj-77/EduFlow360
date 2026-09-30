@@ -46,7 +46,7 @@
     "invalidCredentials": "Email or password is incorrect.",
     "accountLocked": "This account is temporarily locked. Try again later.",
     "resetRequestSent": "If that email is registered, a reset link is on its way."
-},
+  },
   "signIn": {
     "title": "Sign in",
     "subtitle": "Access your school's dashboard.",

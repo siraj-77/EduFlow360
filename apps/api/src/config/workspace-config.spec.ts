@@ -93,7 +93,10 @@ describe('pnpm-workspace.yaml build-script allow-lists are machine-interpretable
     // rather than only as a type error.
     const placeholders = /set this to|true or false|TODO|FIXME|<.*>|xxx/i;
     for (const [key, raw, lineNo] of blockEntries('allowBuilds')) {
-      expect(placeholders.test(raw), `pnpm-workspace.yaml:${lineNo} - allowBuilds["${key}"] is still a placeholder: "${raw}"`).toBe(false);
+      expect(
+        placeholders.test(raw),
+        `pnpm-workspace.yaml:${lineNo} - allowBuilds["${key}"] is still a placeholder: "${raw}"`,
+      ).toBe(false);
     }
   });
 
@@ -108,7 +111,10 @@ describe('pnpm-workspace.yaml build-script allow-lists are machine-interpretable
     const allow = blockEntries('allowBuilds');
     const built = listItems('onlyBuiltDependencies');
 
-    expect(allow.length, 'pnpm-workspace.yaml declares no allowBuilds entries, so every dependency postinstall is blocked and pnpm exits 1').toBeGreaterThan(0);
+    expect(
+      allow.length,
+      'pnpm-workspace.yaml declares no allowBuilds entries, so every dependency postinstall is blocked and pnpm exits 1',
+    ).toBeGreaterThan(0);
 
     for (const [item, lineNo] of built) {
       expect(
@@ -123,7 +129,10 @@ describe('pnpm-workspace.yaml build-script allow-lists are machine-interpretable
     // choice, but it must be a deliberate one, and it must not collide with
     // the packages that genuinely need a postinstall to function.
     for (const [key, raw, lineNo] of blockEntries('allowBuilds')) {
-      expect(raw, `pnpm-workspace.yaml:${lineNo} - allowBuilds["${key}"] is ${raw}, so its postinstall stays blocked`).toBe('true');
+      expect(
+        raw,
+        `pnpm-workspace.yaml:${lineNo} - allowBuilds["${key}"] is ${raw}, so its postinstall stays blocked`,
+      ).toBe('true');
     }
   });
 

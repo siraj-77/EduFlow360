@@ -13,7 +13,11 @@
     "./eslint/next": "./eslint/next.js",
     "./prettier": "./prettier.config.js"
   },
-  "files": ["tsconfig*.json", "eslint", "prettier.config.js"],
+  "files": [
+    "tsconfig*.json",
+    "eslint",
+    "prettier.config.js"
+  ],
   "//": "eslint/ and prettier.config.js import @eslint/js, globals and typescript-eslint at load time, so this package must declare them itself. Under pnpm's isolated node_modules a package can only import what it declares -- consumers do not leak.",
   "devDependencies": {
     "@eslint/js": "^9.17.0",

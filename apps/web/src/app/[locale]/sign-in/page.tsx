@@ -32,11 +32,7 @@ export function generateStaticParams() {
  * inherit the hero's mesh gradient. The visual system is this file's own
  * `sign-in.css`, ported from the template's `.auth-card`.
  */
-export default async function SignInPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function SignInPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!routing.locales.includes(locale as never)) {
     return null;

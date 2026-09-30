@@ -99,7 +99,7 @@ export default defineConfig({
   // `AGENTS.md` §8 records: this is a Windows workstation.
   webServer: {
     command:
-      'node -e "require(\'node:fs\').rmSync(\'.next\',{recursive:true,force:true})" && npm run dev',
+      "node -e \"require('node:fs').rmSync('.next',{recursive:true,force:true})\" && npm run dev",
     url: `${BASE_URL}${PROBE_PATH}`,
     reuseExistingServer: false,
     timeout: 120_000,

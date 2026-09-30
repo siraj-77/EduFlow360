@@ -508,18 +508,29 @@ export const ARCH_ADAPTERS = [
   { port: 'ISmsAdapter', vendors: 'provider deliberately undecided', state: 'undecided' },
   { port: 'IBellHardwareAdapter', vendors: 'IP relay controller', state: 'named' },
   { port: 'IVideoConferenceAdapter', vendors: 'Zoom · Meet · Jitsi', state: 'named' },
-  { port: 'IAttendanceCaptureAdapter', vendors: 'manual · QR · biometric · RFID · geo-fence', state: 'named' },
+  {
+    port: 'IAttendanceCaptureAdapter',
+    vendors: 'manual · QR · biometric · RFID · geo-fence',
+    state: 'named',
+  },
   { port: 'IStorageAdapter', vendors: 'S3-compatible · MinIO in dev', state: 'named' },
   { port: 'INotificationChannelAdapter', vendors: 'email · SMS · WhatsApp · push', state: 'named' },
   { port: 'IPaymentGatewayAdapter', vendors: 'per-school configured gateway', state: 'undecided' },
-  { port: 'IFacilityBookingAdapter', vendors: 'one engine for every bookable resource', state: 'named' },
+  {
+    port: 'IFacilityBookingAdapter',
+    vendors: 'one engine for every bookable resource',
+    state: 'named',
+  },
 ];
 
 export const ARCH_DEPLOYMENT = {
   title: 'One school, one deployment, one database',
   body: 'Physical isolation. A missing WHERE clause cannot leak across schools because no other school’s rows exist in this database — one database per school, one deployment per school. school_id is carried for auditability and licence portability — it is metadata, not a security control.',
   stores: [
-    { name: 'PostgreSQL', role: 'the only database · one per school · migrations applied per school' },
+    {
+      name: 'PostgreSQL',
+      role: 'the only database · one per school · migrations applied per school',
+    },
     { name: 'Redis + BullMQ', role: 'cache and queue · not a store of record' },
     { name: 'S3-compatible', role: 'object bytes · behind IStorageAdapter, private buckets only' },
   ],

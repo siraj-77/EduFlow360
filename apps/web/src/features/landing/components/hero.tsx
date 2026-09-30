@@ -37,8 +37,7 @@ export async function Hero() {
       </p>
 
       <h1>
-        {t('heroTitle')}{' '}
-        <span className="grad">{t('heroTitleAccent')}</span>
+        {t('heroTitle')} <span className="grad">{t('heroTitleAccent')}</span>
       </h1>
 
       <p data-testid="hero-sub" className="landing-hero-sub">

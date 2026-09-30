@@ -43,12 +43,21 @@ const WEB = join(ROOT, 'apps/web');
 const E2E_DIR = join(WEB, 'tests/e2e');
 const CONFIG = join(WEB, 'playwright.config.ts');
 
-const WORKSPACE_PACKAGES = ['apps/api', 'apps/web', 'packages/config', 'packages/shared-types', 'packages/ui-kit', 'packages/i18n-resources'];
+const WORKSPACE_PACKAGES = [
+  'apps/api',
+  'apps/web',
+  'packages/config',
+  'packages/shared-types',
+  'packages/ui-kit',
+  'packages/i18n-resources',
+];
 
 /** A script that always exits 0 and never invokes a runner. */
 function isPassingStub(script: string): boolean {
   const alwaysSucceeds = /exit\s+0/.test(script);
-  const invokesRunner = /playwright|vitest|jest|detox|cypress|node\s+--test|node\s+.*\btest\b/.test(script);
+  const invokesRunner = /playwright|vitest|jest|detox|cypress|node\s+--test|node\s+.*\btest\b/.test(
+    script,
+  );
   return alwaysSucceeds && !invokesRunner;
 }
 
@@ -60,7 +69,10 @@ function specFiles(dir: string): string[] {
 describe('the e2e gate runs real end-to-end tests', () => {
   describe('apps/web', () => {
     it('has a Playwright config', () => {
-      expect(existsSync(CONFIG), 'apps/web/playwright.config.ts is missing, so pnpm test:e2e cannot run').toBe(true);
+      expect(
+        existsSync(CONFIG),
+        'apps/web/playwright.config.ts is missing, so pnpm test:e2e cannot run',
+      ).toBe(true);
     });
 
     it('the e2e testDir contains at least one spec', () => {
@@ -75,14 +87,20 @@ describe('the e2e gate runs real end-to-end tests', () => {
     it('every e2e spec declares at least one test', () => {
       for (const spec of specFiles(E2E_DIR)) {
         const body = readFileSync(join(E2E_DIR, spec), 'utf8');
-        expect(/^\s*(?:test|it)\s*\(/m.test(body), `apps/web/tests/e2e/${spec} declares no test(), so Playwright would run it and assert nothing`).toBe(true);
+        expect(
+          /^\s*(?:test|it)\s*\(/m.test(body),
+          `apps/web/tests/e2e/${spec} declares no test(), so Playwright would run it and assert nothing`,
+        ).toBe(true);
       }
     });
 
     it('no e2e spec file is empty', () => {
       // A zero-byte spec is a spec that cannot fail.
       for (const spec of specFiles(E2E_DIR)) {
-        expect(statSync(join(E2E_DIR, spec)).size, `apps/web/tests/e2e/${spec} is 0 bytes`).toBeGreaterThan(0);
+        expect(
+          statSync(join(E2E_DIR, spec)).size,
+          `apps/web/tests/e2e/${spec} is 0 bytes`,
+        ).toBeGreaterThan(0);
       }
     });
 
@@ -92,11 +110,17 @@ describe('the e2e gate runs real end-to-end tests', () => {
       // Without a webServer block the suite can only pass if a developer has
       // already started the app. In CI that means a separate manual step, and
       // locally it means the gate is only runnable on a prepared machine.
-      expect(/webServer\s*:/.test(config), 'apps/web/playwright.config.ts declares no webServer, so pnpm test:e2e requires a dev server to be already running by hand. The suite is not self-contained.').toBe(true);
+      expect(
+        /webServer\s*:/.test(config),
+        'apps/web/playwright.config.ts declares no webServer, so pnpm test:e2e requires a dev server to be already running by hand. The suite is not self-contained.',
+      ).toBe(true);
     });
 
     it('the config declares a baseURL for the suite to assert against', () => {
-      expect(/baseURL\s*:/.test(readFileSync(CONFIG, 'utf8')), 'apps/web/playwright.config.ts declares no baseURL').toBe(true);
+      expect(
+        /baseURL\s*:/.test(readFileSync(CONFIG, 'utf8')),
+        'apps/web/playwright.config.ts declares no baseURL',
+      ).toBe(true);
     });
 
     it('the e2e port is defined once and both baseURL and webServer.url derive from it', () => {
@@ -122,9 +146,15 @@ describe('the e2e gate runs real end-to-end tests', () => {
 
       const literalPorts = [...code.matchAll(/(?:localhost|127\.0\.0\.1):(\d+)/g)].map((m) => m[0]);
 
-      expect(literalPorts, `playwright.config.ts hard-codes a port in ${literalPorts.join(', ')}. Define it once as a constant and derive baseURL, webServer.url and webServer.env.PORT from it.`).toHaveLength(0);
+      expect(
+        literalPorts,
+        `playwright.config.ts hard-codes a port in ${literalPorts.join(', ')}. Define it once as a constant and derive baseURL, webServer.url and webServer.env.PORT from it.`,
+      ).toHaveLength(0);
 
-      expect(/webServer\s*:\s*\{[\s\S]*?env\s*:\s*\{[\s\S]*?PORT\s*:/m.test(code), 'playwright.config.ts does not pass PORT to the webServer, so the app ignores the port the suite chose and binds its own default').toBe(true);
+      expect(
+        /webServer\s*:\s*\{[\s\S]*?env\s*:\s*\{[\s\S]*?PORT\s*:/m.test(code),
+        'playwright.config.ts does not pass PORT to the webServer, so the app ignores the port the suite chose and binds its own default',
+      ).toBe(true);
     });
 
     it('the suite refuses to reuse an existing server on its port', () => {
@@ -138,7 +168,9 @@ describe('the e2e gate runs real end-to-end tests', () => {
       // Deliberately not asserting the default port value. Setting it back to
       // 3000 is a style regression; reusing a foreign server on 3000 is a
       // correctness one, and only this flag separates them.
-      const code = readFileSync(CONFIG, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+      const code = readFileSync(CONFIG, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/[^\n]*/g, '');
 
       expect(
         /webServer\s*:\s*\{[\s\S]*?reuseExistingServer\s*:\s*false/.test(code),
@@ -152,7 +184,9 @@ describe('the e2e gate runs real end-to-end tests', () => {
       const stubs: string[] = [];
 
       for (const dir of WORKSPACE_PACKAGES) {
-        const manifest = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8')) as { scripts?: Record<string, string> };
+        const manifest = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8')) as {
+          scripts?: Record<string, string>;
+        };
         const script = manifest.scripts?.['test:e2e'];
         if (script && isPassingStub(script)) stubs.push(`${dir} -> ${script}`);
       }

@@ -194,12 +194,7 @@ describe('the reference architecture shows the architecture, not the feature lis
   it('draws all three mandatory guards and the public escape hatch', () => {
     const text = allText(readScene(ARCH_PATH));
     // `AGENTS.md` §2.3 — fail-closed, all three compose, none optional.
-    for (const guard of [
-      '@RequirePermission',
-      '@RequireEntitlement',
-      '@Audited',
-      '@Public',
-    ]) {
+    for (const guard of ['@RequirePermission', '@RequireEntitlement', '@Audited', '@Public']) {
       expect(text, `${guard} is missing from the architecture diagram`).toContain(guard);
     }
   });
@@ -343,7 +338,10 @@ describe('the diagrams are readable, not merely well formed', () => {
       expect(raw.includes(Buffer.from([0xef, 0xbf, 0xbd])), `${label} contains U+FFFD`).toBe(false);
       expect(raw[0], `${label} has a UTF-8 BOM`).not.toBe(0xef);
       // Round-trips cleanly, so it is well-formed UTF-8 rather than Latin-1.
-      expect(Buffer.from(raw.toString('utf8'), 'utf8').equals(raw), `${label} is not valid UTF-8`).toBe(true);
+      expect(
+        Buffer.from(raw.toString('utf8'), 'utf8').equals(raw),
+        `${label} is not valid UTF-8`,
+      ).toBe(true);
     });
   }
 });
