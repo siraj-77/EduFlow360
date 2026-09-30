@@ -1,8 +1,28 @@
 # TODO — Next Actions
 
-**Last updated:** 2026-09-30
-**How to use:** The topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
-**Analysis:** `docs/analysis/CODE_AUDIT_2026-09-30.md` (**current** evidence) · `docs/work/ACTION_PLAN_2026-09-30.md` (**the action plan**) · `docs/analysis/CODE_AUDIT_2026-09-29.md` (prior audit) · `docs/work/REMEDIATION_PLAN_2026-09-29.md` (superseded for EPIC-00/EPIC-DOC scope) · `docs/work/GAP_ANALYSIS_2026-09-28.md` (pre-scaffold baseline) · `docs/work/PLATFORM_CORE_PLAN.md`
+**Last updated:** 2026-09-30 (end of session)
+**How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
+
+> ## ▶ NEXT TASK — `D-4.1`, multi-role (`UserRole` join)
+>
+> **The owner confirmed at end of session: a user may hold multiple roles.** Decided, **not applied**.
+>
+> ⚠️ **One trap, and it fires at the worst moment.** `apps/api/src/config/project-erd.spec.ts` (line 260) `apps/api/src/config`
+> asserts the schema's model list equals `PLATFORM_CORE_ENTITIES`
+> (`apps/api/erd/project-erd-source.mjs` (line 54) `apps/api/erd`). Adding a 15th model without adding `'UserRole'`
+> there makes `pnpm test` fail. That tripwire is deliberate — it exists to catch a second tenancy
+> concept. **Satisfy it; do not silence it.**
+>
+> **Full step list, proof order and the FK-`@db.Uuid` reminder:** `docs/work/RESUME_2026-09-30.md` §3.
+>
+> ⚠️ A new foreign key needs `@db.Uuid` on **both** scalar sides — that exact omission made all 11
+> existing FKs unbuildable (`42d2522`). The integration suite's table list also becomes 15, with
+> `UserRole`, in the same change.
+>
+> **Then, in order:** `ADR-024` + `PLT-107` (both decided, both unwritten, ~1 hour, unblock
+> `PLT-101`) → `PLT-101` auth → `B-2` theme toggle (last hollow gate) → wire
+> `audit-immutability.sql` (`audit_records` is **currently mutable**).
+> **Analysis:** `docs/analysis/CODE_AUDIT_2026-09-30.md` (**current** evidence) · `docs/work/ACTION_PLAN_2026-09-30.md` (**the action plan**) · `docs/analysis/CODE_AUDIT_2026-09-29.md` (prior audit) · `docs/work/REMEDIATION_PLAN_2026-09-29.md` (superseded for EPIC-00/EPIC-DOC scope) · `docs/work/GAP_ANALYSIS_2026-09-28.md` (pre-scaffold baseline) · `docs/work/PLATFORM_CORE_PLAN.md`
 
 ---
 
@@ -86,7 +106,7 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 > **Added 2026-09-30.** `docs/diagrams/ERD_PROJECT.excalidraw` draws the system at module level with an **evidence tier** on every row: `SPECIFIED` · `NAMED` · `MODULE` · `GAP`. **`MODULE` means the corpus names a capability and no entity at all**, and `GAP` is one of `PC-000`…`PC-006`. Seven gaps are drawn **in their own band rather than inside the modules they block**, because a gap drawn inside a module reads as handled. **No entity was invented** — `docs/idea-bank/README.md` §6 rule 5 forbids it, and ~120 unnamed corpus concepts remain unnamed. Gate: `project-erd.spec.ts` (27 cases). Record: `docs/diagrams/ERD_PROJECT_AND_ARCHITECTURE.md`.
 
 - [ ] **ARC-09-1** `PC-004` **Admission** — the only gap `MP` §30 explicitly demands an entity set for **in the ERD**. Design `Application` → `EntranceTest` → `Approval` → auto-conversion to `Student`. Blocks MVP scope
-- [ ] **ARC-09-2** `PC-005` **BookShop / Canteen / Hall** — the `Sale` record is the missing piece; `MP` §17.6–17.9 specify the behaviour and `FR-RET-01` assumes the sale *is* a stock movement while `MP` §30 separately demands an **immutable** sales log. Two records, one sentence, no reconciliation → `T3`
+- [ ] **ARC-09-2** `PC-005` **BookShop / Canteen / Hall** — the `Sale` record is the missing piece; `MP` §17.6–17.9 specify the behaviour and `FR-RET-01` assumes the sale _is_ a stock movement while `MP` §30 separately demands an **immutable** sales log. Two records, one sentence, no reconciliation → `T3`
 - [ ] **ARC-09-3** `PC-006` **Student Wallet** — stored-value legal review + GL liability design. Enterprise add-on; **must not ship without** jurisdiction review (`AGENTS.md` §2.10)
 - [ ] **ARC-09-4** `PC-000` **Attendance** and `PC-001` **Leave/Workforce** — no design at all; `MP` §8/§9 defer to a **v3.0 document not in this repository**. Requires first-principles design (`D1` carve-out: designed fresh)
 - [ ] **ARC-09-5** `PC-002` **Grading & Moderation** — P0 with zero rules. **Never invent a threshold**; `PC-002` is the ticket
@@ -101,7 +121,7 @@ Full stories, points and acceptance criteria: `docs/work/REMEDIATION_PLAN_2026-0
 
 > **State 2026-09-30 (late evening):** P2 (scaffold) is DONE. The ERD is written **and committed** (ARC-01); Phase 0 has exited. `G0` is closed — 23 commits, clean tree, everything pushed. **The top engineering priority is `EPIC-G1`, then `EPIC-G4 (P3 CI)`.** The single next task is **`G1-2`**.
 >
-> **Added late 2026-09-30 — ARC-08.** `docs/diagrams/ERD_PROJECT.excalidraw` and `REFERENCE_ARCHITECTURE.excalidraw` now draw the system **above** the schema: 23 modules with licence gates and evidence tiers, all 7 `PC-000`…`PC-006` gaps drawn as gaps, the 7 shared engines, and the prohibitions. **No entity was invented.** New work items **`ARC-09-1`…`ARC-09-9`** are listed above — they are the *design* work the diagram deliberately refuses to guess at, so they do **not** change the P0 ordering.
+> **Added late 2026-09-30 — ARC-08.** `docs/diagrams/ERD_PROJECT.excalidraw` and `REFERENCE_ARCHITECTURE.excalidraw` now draw the system **above** the schema: 23 modules with licence gates and evidence tiers, all 7 `PC-000`…`PC-006` gaps drawn as gaps, the 7 shared engines, and the prohibitions. **No entity was invented.** New work items **`ARC-09-1`…`ARC-09-9`** are listed above — they are the _design_ work the diagram deliberately refuses to guess at, so they do **not** change the P0 ordering.
 >
 > ⚠️ **`PLT-101` entry condition is NOT met.** `TODO.md:226` records it as _"the harness is still not trustworthy"_, and the 2026-09-30 audit confirmed why in more detail. It got measurably closer today — 3 of the 4 hollow gates are closed — but `test:integration` still runs nothing (`AUD-30-02`), the coverage tiers still match **zero** instrumented files (`FIX-26`), `format:check` is red (`FIX-05`), and nothing runs in CI (`FIX-12`). **Do not start a Platform Core story until EPIC-G1 closes.**
 
