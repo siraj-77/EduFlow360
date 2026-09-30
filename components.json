@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "packages/ui-kit/src/styles.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "none",
+  "aliases": {
+    "components": "@eduflow/ui-kit/components",
+    "ui": "@eduflow/ui-kit/components/ui",
+    "utils": "@eduflow/ui-kit/lib/cn",
+    "lib": "@eduflow/ui-kit/lib",
+    "hooks": "@eduflow/ui-kit/hooks"
+  }
+}

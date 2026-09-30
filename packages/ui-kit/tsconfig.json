@@ -1,14 +1,5 @@
 {
-    "extends":  "@eduflow/config/tsconfig.nextjs.json",
-    "include":  [
-                    "src/**/*.ts",
-                    "src/**/*.tsx"
-                ],
-    "exclude":  [
-                    "node_modules",
-                    "dist",
-                    ".next",
-                    "**/*.spec.ts",
-                    "**/*.spec.tsx"
-                ]
+  "extends": "@eduflow/config/tsconfig.nextjs.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", ".next", "**/*.spec.ts", "**/*.spec.tsx"]
 }
