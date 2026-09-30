@@ -12,13 +12,7 @@ import tseslint from 'typescript-eslint';
 /** @type {import('eslint').Linter.Config[]} */
 export const base = tseslint.config(
   {
-    ignores: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/.next/**',
-      '**/coverage/**',
-      '**/*.d.ts',
-    ],
+    ignores: ['**/node_modules/**', '**/dist/**', '**/.next/**', '**/coverage/**', '**/*.d.ts'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -26,6 +20,16 @@ export const base = tseslint.config(
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
+      // Setting `parserOptions` here REPLACES whatever
+      // `tseslint.configs.recommended` set, rather than merging into it. With
+      // the object empty, no JSX is produced, so every
+      // `JSXElement[...]` selector in AGENTS.md 3.2.1's raw-element ban
+      // matched nothing and the rule had never fired. Found 2026-09-30 by
+      // `apps/web/src/config/ui-primitive-rules.spec.ts`; see `next.js` for
+      // the matching overwrite bug in the rule blocks themselves.
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
     },
     rules: {
       // AGENTS.md section 8: TypeScript strict everywhere, and an
