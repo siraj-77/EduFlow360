@@ -1,17 +1,20 @@
-/**
- * EduFlow local services (Prompt Pack 1.1 / P2.3).
- *
- * All four services are defined here. The application itself NEVER
- * depends on this file existing -- it reads DATABASE_URL, REDIS_URL and
- * STORAGE_ENDPOINT from the environment. So on a machine without Docker,
- * a developer can point those at native binaries and the same code runs
- * unchanged. See README.md, "Running without Docker".
- *
- * Credentials below are LOCAL DEVELOPMENT ONLY. They are deliberately
- * obvious, because AGENTS.md 11 forbids real-looking example values in
- * tracked files. Production credentials come from the per-school
- * environment provisioned by OPS-06.
- */
+# EduFlow local services (Prompt Pack 1.1 / P2.3).
+#
+# All four services are defined here. The application itself NEVER depends on
+# this file existing -- it reads DATABASE_URL, REDIS_URL and STORAGE_ENDPOINT
+# from the environment. So on a machine without Docker, a developer can point
+# those at native binaries and the same code runs unchanged. See README.md,
+# "Running without Docker".
+#
+# Credentials below are LOCAL DEVELOPMENT ONLY. They are deliberately obvious,
+# because AGENTS.md 11 forbids real-looking example values in tracked files.
+# Production credentials come from the per-school environment provisioned by
+# OPS-06.
+#
+# NOTE: this header used to be a JavaScript `/** ... */` block, which YAML
+# cannot parse -- Prettier rejected the file at 1:1 and `docker compose -f
+# infra/docker/docker-compose.yml up -d`, the command AGENTS.md 14 documents,
+# could not have worked. YAML comments are `#`.
 
 name: eduflow
 

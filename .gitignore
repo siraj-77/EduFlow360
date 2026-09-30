@@ -89,6 +89,14 @@ desktop.ini
 *.orig
 *.rej
 
+# Agent-spawned git worktrees. Each contains a full checkout of this repo, so
+# without this they show up as untracked noise in `git status` AND Prettier
+# walks them - `format:check` was failing on
+# `.kilo/worktrees/citrine-eclipse/infra/docker/docker-compose.yml` with a YAML
+# parse error from a scratch tree, which reads as a defect in this repo and is
+# not one. Prettier 3 reads `.gitignore` by default, so one entry covers both.
+.kilo/
+
 # ---- Local agent configuration — MUST NEVER be committed ----
 # `.claude/settings.json` contained a live `thk_live_` credential plus
 # machine-specific model routing (a third-party `ANTHROPIC_BASE_URL`).
