@@ -13,7 +13,7 @@
  * carries a `GAP` marker and the open question is listed in
  * `docs/diagrams/ERD_PLATFORM_CORE.md` rather than resolved by guessing.
  *
- * `docs/work/TODO.md` item 3 fixes the entity set at fourteen. PLT-203 and
+ * `docs/work/TODO.md` item 3 fixes the entity set at sixteen. PLT-203 and
  * PLT-801 build ownership and file-access policies against abstract ports with
  * fakes, so there is deliberately no Student, Class or Teacher here
  * (`AGENTS.md` §13).
@@ -219,6 +219,17 @@ export const MODELS = [
           "school's configured default. Nullable on purpose — a `DEFAULT 'en'`",
           'would hard-code English into every deployment (`AGENTS.md` §8).',
         ],
+      },
+      {
+        name: 'externalIdentities',
+        type: 'ExternalIdentity[]',
+        attrs: ['@relation("fk_external_identity_user")'],
+        kind: 'relation',
+        to: 'ExternalIdentity',
+        relation: 'externalIdentity',
+        inverse: true,
+        invisible: true,
+        comment: 'Provider sign-in credentials. One user may hold several, one per provider.',
       },
       {
         name: 'roles',
@@ -527,6 +538,95 @@ export const MODELS = [
     ],
     idAttr: '@@id([schoolId, userId, roleId])',
     indexes: ['@@index([roleId])'],
+  },
+  {
+    name: 'ExternalIdentity',
+    table: 'external_identities',
+    comment: [
+      'A sign-in credential issued by someone OTHER than this system (`PLT-101`).',
+      '',
+      'Owner decision 2026-09-30: Google first, more providers expected. So `provider`',
+      'is a COLUMN, not a table per provider - adding Microsoft or Apple later is one',
+      'row per provider, with no model, no foreign key and no migration.',
+      '',
+      'THE LOOKUP KEY IS `providerSubject`, NEVER THE EMAIL ADDRESS. That is the whole',
+      'point. Google calls it `sub`, it never changes for a person, and two people may',
+      'share an address. Signing in by address would silently merge two families into',
+      'one account, which is the child-safety failure `AGENTS.md` 2.13 exists to prevent.',
+      'providerEmail is a snapshot for display and may go stale; it is not unique and',
+      'nothing may join or authenticate on it.',
+      '',
+      'NO password and NO token is stored here. Google authenticates the person; EduFlow',
+      'then issues its own session, because `ADR-008` needs revocable server-side sessions',
+      'and a provider token is not one. This table answers only which provider account is',
+      'this local user, and is written only after the provider token is verified.',
+      '',
+      'providerEmailVerified records what the provider claimed at the time of linking. It is',
+      'a snapshot, so it is never re-read as a current fact, and a Workspace tenant that',
+      'does not assert verification simply leaves it null.',
+    ],
+    erd: { x: 520, y: 560 },
+    fields: [
+      ID,
+      {
+        name: 'provider',
+        type: 'String',
+        attrs: ['@map("provider")'],
+        kind: 'scalar',
+        comment:
+          'e.g. `google`. Data, never a compile-time enum, so a new provider is configuration.',
+      },
+      {
+        name: 'providerSubject',
+        type: 'String',
+        attrs: ['@map("provider_subject")'],
+        kind: 'scalar',
+        comment: [
+          'The immutable user id the provider issued (Google: `sub`). THE LOOKUP KEY.',
+          'An address is not, and must never be - see the model comment.',
+        ],
+      },
+      {
+        name: 'providerEmail',
+        type: 'String',
+        attrs: ['?'],
+        kind: 'scalar',
+        comment:
+          'Snapshot for display. Deliberately NOT unique: two unrelated people may share one.',
+      },
+      {
+        name: 'providerEmailVerified',
+        type: 'Boolean',
+        attrs: ['?'],
+        kind: 'scalar',
+        comment: 'What the provider claimed at link time. A snapshot, so never trusted as current.',
+      },
+      {
+        name: 'userId',
+        type: 'String',
+        attrs: ['@map("user_id")', '@db.Uuid'],
+        kind: 'relation',
+        to: 'User',
+        fk: 'fk_external_identity_user',
+        relation: 'externalIdentity',
+        comment: 'Cascade: an identity row is meaningless without its user.',
+      },
+      {
+        name: 'user',
+        type: 'User',
+        attrs: [
+          '@relation("fk_external_identity_user", fields: [userId], references: [id], onDelete: Cascade)',
+        ],
+        kind: 'relation',
+        to: 'User',
+        relation: 'externalIdentity',
+        invisible: true,
+      },
+      CREATED_AT,
+      UPDATED_AT,
+    ],
+    indexes: ['@@index([userId])'],
+    uniques: ['@@unique([schoolId, provider, providerSubject])'],
   },
 
   {

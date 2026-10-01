@@ -1,4 +1,5 @@
 # EduFlow — Jira/Epic-Style Action Plan
+
 ## Module: Platform Core & RBAC (Master Plan §5 "PLATFORM" / SRS §3.1)
 
 **Project Key:** `PLT`
@@ -10,17 +11,17 @@
 
 ## Epic Index
 
-| Epic ID | Epic Name | Priority | Est. Points | Sprint Target |
-|---|---|---|---|---|
-| PLT-EPIC-01 | Authentication & Session Management | P0 | 34 | Sprint 1–2 |
-| PLT-EPIC-02 | Dynamic RBAC & Policy Engine | P0 | 42 | Sprint 2–3 |
-| PLT-EPIC-03 | Licensing & Entitlement Enforcement | P0 | 29 | Sprint 3 |
-| PLT-EPIC-04 | Immutable Audit Logging System | P0 | 21 | Sprint 2 (parallel) |
-| PLT-EPIC-05 | Error & Diagnostic Logging Engine | P1 | 18 | Sprint 3 |
-| PLT-EPIC-06 | Dynamic Module Registry & System Settings | P0 | 16 | Sprint 2 |
-| PLT-EPIC-07 | Multi-Channel Notification Router (Platform-level skeleton) | P1 | 13 | Sprint 4 |
-| PLT-EPIC-08 | Storage & File Manager | P1 | 13 | Sprint 3 |
-| PLT-EPIC-09 | System Health & Monitoring | P2 | 13 | Sprint 4 |
+| Epic ID     | Epic Name                                                   | Priority | Est. Points | Sprint Target       |
+| ----------- | ----------------------------------------------------------- | -------- | ----------- | ------------------- |
+| PLT-EPIC-01 | Authentication & Session Management                         | P0       | 34          | Sprint 1–2          |
+| PLT-EPIC-02 | Dynamic RBAC & Policy Engine                                | P0       | 42          | Sprint 2–3          |
+| PLT-EPIC-03 | Licensing & Entitlement Enforcement                         | P0       | 29          | Sprint 3            |
+| PLT-EPIC-04 | Immutable Audit Logging System                              | P0       | 21          | Sprint 2 (parallel) |
+| PLT-EPIC-05 | Error & Diagnostic Logging Engine                           | P1       | 18          | Sprint 3            |
+| PLT-EPIC-06 | Dynamic Module Registry & System Settings                   | P0       | 16          | Sprint 2            |
+| PLT-EPIC-07 | Multi-Channel Notification Router (Platform-level skeleton) | P1       | 13          | Sprint 4            |
+| PLT-EPIC-08 | Storage & File Manager                                      | P1       | 13          | Sprint 3            |
+| PLT-EPIC-09 | System Health & Monitoring                                  | P2       | 13          | Sprint 4            |
 
 **Total estimated:** ~199 points ≈ 4 sprints (8 weeks) for a 3–4 backend-engineer team, run in parallel with Frontend/QA as noted per story.
 
@@ -34,22 +35,71 @@
 **Definition of Done:** All stories below pass unit + integration tests; security review of token handling completed; works identically on Web and Mobile clients.
 
 ### Story PLT-101: JWT Login (Email/Username + Password)
+
+> **🤖 Agent comments, 2026-09-30.** Read before implementing. Five things below have
+> changed since this story was written, and two of them would fail on contact with the
+> code as it now stands. Nothing here has rewritten the story's IDs or its acceptance
+> criteria — `AGENTS.md` §7 forbids that. These are notes.
+>
+> **1. `role_id` no longer exists. Use `UserRole`.** Task 1 below says
+> _"Design `User` entity (… role_id …)"_. That column is gone: `D-4.1` (owner-confirmed)
+> replaced it with a `UserRole` join table, committed `dac3614`. The reason is concrete —
+> `ERD:84` recorded that **"a teacher who is also a parent cannot be expressed"**, and a
+> teacher who is also a parent is common, not exotic. So: one `User` row, many `UserRole`
+> rows, permissions **union** across them, and deliberately **no `isPrimary` flag** — see
+> §2. Story points almost certainly rise; 8 was set when the model was singular.
+>
+> **2. Do NOT add an `isStaff` boolean.** The owner proposed one. It would be a second
+> source of truth for a question roles already answer: _"is this person staff?"_ is
+> _"do they hold a staff role?"_. Two answers that can disagree is the same class of
+> defect as the old `roleId`, and worse — a boolean cannot be audited, so a
+> wrongly-`true` `isStaff` is invisible. See `PLT-201` notes below for what to do instead.
+>
+> **3. Google OAuth is now in scope for this story** (owner decision 2026-09-30), and
+> **more providers are expected after Google**. That changes the build: do not hard-code a
+> Google route. Build a provider-agnostic OIDC authorization-code flow with `provider` as
+> **data**. ⚠️ **Do not install Auth.js.** Both of its session strategies contradict
+> `ADR-008` — `jwt` is stateless, which §2 of this epic explicitly rules out, and
+> `database` requires its own session tables, duplicating the `Session` model `ARC-01`
+> already designed with `familyId`/`usedAt`/`replacedByTokenId` for reuse detection.
+> A new **`ExternalIdentity`** table is required — a **sixteenth** model, so it trips
+> the same three registration points `UserRole` did (`PLATFORM_CORE_MODELS`,
+> `PLATFORM_CORE_ENTITIES`, `CLUSTER`), all in one commit.
+>
+> **4. Identity keys on the provider's subject, never on the email address.** See
+> `docs/analysis/PLT-101_DECISIONS_2026-09-30.md` for why: a renamed teacher becomes a
+> different account, and a school moving Workspace domain rewrites every staff address
+> at once. It also gets a collision case right that an email key gets dangerously wrong —
+> two unrelated people sharing an address must stay **two** accounts.
+>
+> **5. `POST /auth/setup/complete` is a dependency, and OAuth is not it.** A fresh
+> install has no `User` for an external identity to attach to. `PLT-107` (owner-approved,
+> written 2026-09-30) provides the one-time setup token. Do not attempt to bootstrap via
+> Google.
+
 - **As a** registered user (any role) **I want to** log in with my credentials **so that** I can access the system appropriately scoped to my role.
 - **Tasks:**
-  - [ ] Design `User` entity (id, email/username, password_hash, role_id, status, school_id)
-  - [ ] Implement password hashing (bcrypt/argon2) with configurable cost factor
+  - [ ] Design `User` entity (id, email/username, password_hash, status, school_id) — ⚠️ **no `role_id`; roles come from `UserRole`** (comment 1)
+  - [ ] Implement password hashing (bcrypt/argon2) with configurable cost factor — `ADR-007` names **argon2id**; parameters come from settings, never hard-coded
   - [ ] Implement `POST /auth/login` endpoint issuing access token (short-lived, e.g. 15 min) + refresh token (long-lived, e.g. 7 days)
   - [ ] Implement account lockout after N failed attempts (configurable), with cooldown
-  - [ ] Frontend: Login form (Web) with validation, error states
-  - [ ] Mobile: Login screen reusing shared API client
+  - [ ] **NEW** `ExternalIdentity` model + the three ERD registration points, one commit (comment 3)
+  - **NEW** Provider-agnostic OIDC flow: redirect → callback → verify ID token against Google's JWKS, checking `aud` and `iss`. Never trust a client-supplied email (comment 3)
+  - **NEW** Resolve `(provider, providerSubject)` → `User`; issue **our** `Session` + `RefreshToken` family per `ADR-008`. Google's credential ends at that boundary (comment 3)
+  - Frontend: Login form (Web) with validation, error states
+  - Mobile: Login screen reusing shared API client — **milestone 2** (`D5`), so it does not block this story
 - **Acceptance Criteria:**
   - Given valid credentials, login returns access + refresh tokens and a 200 response.
   - Given invalid credentials, login returns 401 without leaking whether email or password was wrong.
   - After 5 failed attempts within 10 minutes, account locks for a configurable cooldown period and returns 429.
   - Password is never returned in any API response or logged in plaintext (verify against §6 Logging Rules — password redaction).
-- **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `frontend`, `mobile`, `security`
+  - **NEW** Given a valid Google credential, then a `Session` row exists and **no** Google token is stored as a session — it expires hourly and cannot be revoked.
+  - **NEW** Given a Google user whose address changed, then they resolve to the **same** `User`, because the lookup is by `providerSubject`.
+  - **NEW** Given a user holding two roles, then they authenticate once and hold the **union** of both role sets' permissions.
+- **Story Points:** 8 → ⚠️ **likely 13** (comment 1: the model changed; comment 3: OAuth is new scope) | **Priority:** P0 | **Labels:** `backend`, `frontend`, `mobile`, `security`
 
 ### Story PLT-102: Token Refresh & Rotation
+
 - **As the** system **I want to** rotate refresh tokens on use **so that** a stolen refresh token has a limited window of exploitability.
 - **Tasks:**
   - [ ] Implement `POST /auth/refresh` — validates refresh token, issues new access + refresh token pair, invalidates old refresh token (rotation)
@@ -62,6 +112,7 @@
 - **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `security`
 
 ### Story PLT-103: Session Management & Forced Logout
+
 - **As an** Admin **I want to** view and revoke a user's active sessions **so that** I can respond to lost devices or role changes.
 - **Tasks:**
   - [ ] `Session` entity tracking device info, IP, last-active timestamp, per login
@@ -74,6 +125,7 @@
 - **Story Points:** 5 | **Priority:** P0 | **Labels:** `backend`, `mobile`
 
 ### Story PLT-104: OTP-Based Login/Verification (Parent/Student Self-Service)
+
 - **As a** Parent/Student **I want to** log in or verify my identity via OTP (SMS/Email) **so that** I don't need to remember a password for lightweight self-service access.
 - **Tasks:**
   - [ ] `POST /auth/otp/request` — generates time-limited OTP, sends via Email (MVP) / SMS (P1) adapter
@@ -86,6 +138,7 @@
 - **Story Points:** 5 | **Priority:** P1 | **Labels:** `backend`, `notifications`
 
 ### Story PLT-105: Password Reset Flow
+
 - **As a** user **I want to** reset my forgotten password securely **so that** I can regain access without Admin intervention.
 - **Tasks:**
   - [ ] `POST /auth/password-reset/request` — emails a signed, time-limited reset link/token
@@ -96,7 +149,8 @@
   - Successful reset invalidates all prior sessions (security best practice).
 - **Story Points:** 5 | **Priority:** P0 | **Labels:** `backend`, `frontend`
 
-### Story PLT-106: Jailbreak/Root Detection for Sensitive Mobile Roles *(Mobile hardening)*
+### Story PLT-106: Jailbreak/Root Detection for Sensitive Mobile Roles _(Mobile hardening)_
+
 - **As the** system **I want to** detect a jailbroken/rooted device for Finance/HR roles **so that** sensitive mobile sessions aren't run on compromised devices.
 - **Tasks:**
   - [ ] Integrate root/jailbreak detection library in Expo build
@@ -110,23 +164,74 @@
 
 **Goal:** Every module-, page-, action-, and API-level access decision is governed by a configurable role/permission model with ownership-aware policies, enforced consistently on both UI and API.
 **Maps to:** FR-PLT-03, FR-PLT-04 | Master Plan §5 "Dynamic RBAC & Policy Engine," Pillar #1
-**Definition of Ready:** Role catalog (Super Admin, School Admin, Teacher, Student, Parent, Staff + custom roles) and initial permission taxonomy agreed.
-**Definition of Done:** A permission-matrix test suite proves every module's key actions are correctly allowed/denied per role, including ownership edge cases.
+**Definition of Ready:** Role catalog (⚠️ **School Admin, Teacher, Student, Parent, Staff** + custom roles — **`Super Admin` removed**, `ADR-003`) and initial permission taxonomy agreed.
+
+> **🤖 Agent comment on the line above:** it originally read _"Super Admin, School Admin, …"_.
+> `Super Admin` is a cross-tenant concept and `ADR-003` forbids it — there is no tenant above
+> a school, because one database is one school (`AGENTS.md` §2.1). The shipped schema carries
+> a comment saying so, and a test asserts the word `SUPER_ADMIN` never appears in it.
+> **This is not a cosmetic edit:** seeding that role would fail the gate.
+> **Definition of Done:** A permission-matrix test suite proves every module's key actions are correctly allowed/denied per role, including ownership edge cases.
 
 ### Story PLT-201: Role & Permission Data Model
+
+> **🤖 Agent comments, 2026-09-30.** Three corrections, two of them `ADR-003`
+> violations that would be caught the moment a route guard is written.
+>
+> **1. ⚠️ "Super Admin" must not exist — twice.** The Epic's Definition of Ready and
+> Task 4 both name it. `ADR-003` is explicit: _"Do not add a `SUPER_ADMIN` cross-tenant
+> role. There is nothing to be cross-tenant about."_ One database is one school
+> (`AGENTS.md` §2.1), so there is no tenant above the school to administer.
+> `schema.prisma` already carries a comment saying exactly this, and
+> `prisma-schema.spec.ts` has a test asserting the schema never contains
+> `SUPER_ADMIN`. Seeding one would fail that test. **Replace with `SCHOOL_ADMIN`** —
+> which is what `prisma/seed.mjs` creates today, holding `PLATFORM_MODULE_MANAGE`,
+> `LICENCE_APPLY`, `LICENCE_UPGRADE`, `USER_CREATE`, `PERMISSION_ASSIGN`,
+> `SCHOOL_SETTINGS_MANAGE` and `AUDIT_READ` as _permissions_.
+>
+> **2. `school_id` is NOT NULL here, and the corpus reason does not apply.** Task 1 says
+> _"school_id nullable for system roles"_. `PLT-201` justifies it as a role belonging to
+> no school — which cannot happen when one database is one school. It is also
+> self-defeating: a nullable column inside `@@unique([schoolId, name])` **does not
+> constrain**, because PostgreSQL treats NULLs as distinct. `ADR-003` requires
+> uniqueness scoped within one school's database, and that requirement cannot be met by
+> a column that may be null. The shipped schema has `schoolId NOT NULL` plus an
+> `isSystemRole` boolean, and `ERD_PLATFORM_CORE.md` §5 records this as a **flagged
+> deviation**, not a silent one.
+>
+> **3. On the owner's proposed `isStaff` flag — do not add it.** Raised on this story
+> while scoping OAuth. "Is this person staff?" is already answered by _"do they hold a
+> staff role?"_, and after `D-4.1` the answer is a query, not a guess. A boolean would
+> be a second source of truth that can disagree with the roles, and — the decisive part
+> — **it cannot be audited.** A wrong `isStaff = true` leaves no trace in
+> `audit_records`, whereas a role grant does (`@Audited`).
+>
+> What the flag was probably reaching for, and the correct mechanism:
+>
+> - _"Block non-staff from signing in"_ → the **email-domain filter** at authentication,
+>   which is a config value, not a per-user column.
+> - _"Give new users no power until vetted"_ → create the `User` with **zero roles**.
+>   Already possible since `D-4.1` (`User.roleId` used to be `NOT NULL`), and asserted
+>   by the integration suite.
+> - _"Mark this person as staff"_ → create a role and grant it.
+
 - **As the** system **I want to** store roles as a configurable set of permissions **so that** schools can define custom roles beyond the immutable system roles.
 - **Tasks:**
-  - [ ] `Role` entity (id, name, is_system_role: boolean, school_id nullable for system roles)
+  - [ ] `Role` entity (id, name, is_system_role: boolean, ⚠️ **`school_id NOT NULL`** — comment 2)
   - [ ] `Permission` entity (id, key e.g. `ATTENDANCE_MARK`, `FINANCE_INVOICE_REVERSE`, module, action type)
-  - [ ] `RolePermission` join table
-  - [ ] Seed immutable system roles (Super Admin, School Admin) that cannot be edited/deleted
+  - [ ] `RolePermission` join table — ✅ **already built** by `ARC-01`, committed `add4f15`
+  - [ ] **NEW** `UserRole` join table — ✅ **already built** by `D-4.1`, committed `dac3614`. Multi-role, composite key, **no `isPrimary`** (permissions union)
+  - [ ] Seed immutable system roles — ⚠️ **(`SCHOOL_ADMIN`, not `Super Admin`)**, comment 1
   - [ ] Admin UI: Role management screen (list, create custom role, assign permissions via checkbox matrix)
 - **Acceptance Criteria:**
   - System roles cannot be deleted or have their core permissions removed via API (enforced server-side, not just UI-hidden).
   - A custom role can be created with an arbitrary subset of available permissions.
-- **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `frontend`
+  - **NEW** A user may hold **more than one** role, and their effective permissions are the **union** of every role's.
+  - **NEW** A `Role` deletion is **refused** while any `UserRole` references it (`onDelete: Restrict`), so a school cannot be silently stripped of its administrator.
+- **Story Points:** 8 → ⚠️ **likely 5** (the two join tables and the seed already exist; the remaining work is the admin UI and the guard wiring) | **Priority:** P0 | **Labels:** `backend`, `frontend`
 
 ### Story PLT-202: Permission-Check Guard (API Layer)
+
 - **As a** developer **I want to** decorate any NestJS route with a required permission **so that** access control is declarative and consistent across all modules.
 - **Tasks:**
   - [ ] Implement `@RequirePermission('ATTENDANCE_MARK')` decorator + `PermissionGuard`
@@ -139,6 +244,7 @@
 - **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `security`
 
 ### Story PLT-203: Ownership Policy Engine
+
 - **As a** Teacher **I want to** only be able to edit grades for classes I'm assigned to **so that** cross-class data tampering is impossible even with the correct role.
 - **Tasks:**
   - [ ] Design `IOwnershipPolicy` interface — pluggable per-entity-type ownership check (e.g., `TeacherClassOwnershipPolicy`, `ParentChildOwnershipPolicy`)
@@ -151,6 +257,7 @@
 - **Story Points:** 13 | **Priority:** P0 | **Labels:** `backend`, `security`, `architecture`
 
 ### Story PLT-204: Frontend Permission-Aware UI Rendering
+
 - **As a** user **I want to** only see UI elements (menu items, buttons, pages) I'm actually permitted to use **so that** the interface isn't cluttered with inaccessible actions and no UI-only "security."
 - **Tasks:**
   - [ ] `usePermissions()` React hook exposing the current user's resolved permission set (fetched once at login, cached)
@@ -163,6 +270,7 @@
 - **Story Points:** 5 | **Priority:** P0 | **Labels:** `frontend`
 
 ### Story PLT-205: Module/Page/Action/API-Level Granularity Verification
+
 - **As** QA **I want to** run a comprehensive permission-matrix test **so that** we have confidence the RBAC system correctly gates at every level described in the Master Plan (module, page, action, API).
 - **Tasks:**
   - [ ] Build a test matrix spreadsheet/fixture: Role × Module × Action → Expected (Allow/Deny)
@@ -180,6 +288,7 @@
 **Definition of Ready:** Certificate payload schema (§4.2) finalized; RSA/ECDSA keypair generation process agreed with Ops.
 
 ### Story PLT-301: License Certificate Local Validator
+
 - **As the** system **I want to** verify a signed license certificate against an embedded public key at startup **so that** tampered or invalid licenses are rejected before the app serves traffic.
 - **Tasks:**
   - [ ] Implement signature verification (RSA-2048/ECDSA) against embedded public key
@@ -192,6 +301,7 @@
 - **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `security`
 
 ### Story PLT-302: Feature Entitlement Enforcer (API + UI)
+
 - **As the** system **I want to** gate module/feature access based on the current license's `allowed_modules` and `features` **so that** a Basic-edition school cannot use Deluxe-only functionality even if they guess the API route.
 - **Tasks:**
   - [ ] `@RequireEntitlement('ai_timetable_assistant')` decorator + `EntitlementGuard`, composable with `PermissionGuard` (PLT-202)
@@ -204,6 +314,7 @@
 - **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `frontend`
 
 ### Story PLT-303: Online Activation Flow
+
 - **As a** School Admin **I want to** activate my serial key online **so that** the school gets its signed license without manual file handling.
 - **Tasks:**
   - [ ] `POST /license/activate` — calls the Activation Server with serial key + hardware footprint (school_id, server MAC hash)
@@ -213,6 +324,7 @@
 - **Story Points:** 5 | **Priority:** P0 | **Labels:** `backend`, `frontend`
 
 ### Story PLT-304: Offline Activation Flow
+
 - **As a** School Admin at an air-gapped site **I want to** activate via an offline token/`.lic` file exchange **so that** schools without reliable internet can still activate.
 - **Tasks:**
   - [ ] Generate a local system request token (hardware fingerprint bundle) for upload via any internet-connected device
@@ -222,6 +334,7 @@
 - **Story Points:** 5 | **Priority:** P1 | **Labels:** `backend`, `frontend`
 
 ### Story PLT-305: Grace Period & Graceful Degradation
+
 - **As a** School Admin **I want to** get a warning banner instead of a sudden lockout if the activation/renewal server is unreachable **so that** operations aren't disrupted mid-day.
 - **Tasks:**
   - [ ] Implement configurable grace-period countdown (default 14 days) from last-successful-validation timestamp
@@ -240,6 +353,7 @@
 **Definition of Ready:** Audit Record schema (§6.1) finalized; list of "sensitive actions" per module agreed (living list, expands as new modules ship).
 
 ### Story PLT-401: Audit Record Schema & Append-Only Storage
+
 - **As the** system **I want to** store audit records in an append-only table **so that** modification/deletion via application logic is architecturally prevented, not just discouraged.
 - **Tasks:**
   - [ ] `AuditRecord` entity per §6.1 schema (id, timestamp, actor_id, actor_role, ip_address, device_info, action, module, entity_type, entity_id, before_value, after_value JSONB, reason)
@@ -251,6 +365,7 @@
 - **Story Points:** 5 | **Priority:** P0 | **Labels:** `backend`, `database`, `security`
 
 ### Story PLT-402: Audit Interceptor (Automatic Capture)
+
 - **As a** developer **I want to** decorate a sensitive use-case with `@Audited('GRADE_MODIFIED')` **so that** audit logging is consistent and can't be forgotten module-by-module.
 - **Tasks:**
   - [ ] Implement NestJS interceptor that captures actor context (from the authenticated request), before/after snapshots (where applicable), and writes the audit record asynchronously (non-blocking, via queue) after the action completes successfully
@@ -260,6 +375,7 @@
 - **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `architecture`
 
 ### Story PLT-403: Admin Audit Log Viewer
+
 - **As an** Admin **I want to** search/filter audit records by actor, module, date range, and action type **so that** I can investigate incidents or answer compliance questions.
 - **Tasks:**
   - [ ] `GET /audit-logs` with filter/pagination support (indexed on timestamp, module, actor_id)
@@ -269,6 +385,7 @@
 - **Story Points:** 5 | **Priority:** P1 | **Labels:** `backend`, `frontend`
 
 ### Story PLT-404: Retention Policy Enforcement
+
 - **As the** system **I want to** retain audit records per the configured retention policy (e.g., ≥7 years for finance actions) **so that** compliance requirements (NFR-07) are met without unbounded storage growth for non-critical logs.
 - **Tasks:**
   - [ ] Configurable retention period per module/action-category
@@ -286,6 +403,7 @@
 **Definition of Ready:** Logging library selected (e.g., Pino/Winston); redaction field list agreed (passwords, tokens, card details, secret keys, biometric templates).
 
 ### Story PLT-501: Structured JSON Logger with Correlation IDs
+
 - **As a** developer **I want to** log every request with a correlation ID **so that** I can trace a single request's full lifecycle across services in production.
 - **Tasks:**
   - [ ] Middleware generates/propagates a correlation ID per incoming request (header passthrough for mobile/web clients)
@@ -295,6 +413,7 @@
 - **Story Points:** 5 | **Priority:** P1 | **Labels:** `backend`, `observability`
 
 ### Story PLT-502: Automatic Redaction of Sensitive Fields
+
 - **As the** system **I want to** strip passwords, tokens, card details, secret keys, and biometric templates before writing any log line **so that** logs are never a data-leak vector.
 - **Tasks:**
   - [ ] Redaction middleware/serializer applied globally to the logger (deny-list of field names + pattern-based detection for token-like strings)
@@ -303,6 +422,7 @@
 - **Story Points:** 5 | **Priority:** P0 | **Labels:** `backend`, `security`
 
 ### Story PLT-503: Log Rotation (25MB cap, 3 historical files)
+
 - **As** Ops **I want to** cap log file size and retain only recent history **so that** disk usage stays bounded.
 - **Tasks:**
   - [ ] Configure rotation: `app.log` active file capped at 25MB, rotates to `app.log.1/.2/.3`
@@ -312,6 +432,7 @@
 - **Story Points:** 3 | **Priority:** P1 | **Labels:** `backend`, `devops`
 
 ### Story PLT-504: Admin Diagnostics Viewer
+
 - **As an** Admin **I want to** search/filter error logs from the control panel **so that** I can self-diagnose issues without SSH/server access.
 - **Tasks:**
   - [ ] `GET /diagnostics/errors` with filter by severity, date range, correlation ID, module
@@ -327,6 +448,7 @@
 **Maps to:** Master Plan §5 "Dynamic Module Registry," "System Settings Engine"
 
 ### Story PLT-601: Module Registry
+
 - **As the** system **I want to** maintain a registry of all installable modules and their current enabled/disabled state (derived from license + Admin toggle) **so that** the UI and API can consistently know what's active.
 - **Tasks:**
   - [ ] `ModuleRegistry` entity/service — single source of truth combining license entitlement (PLT-302) with any Admin-level module toggle (e.g., a Deluxe school choosing not to enable Hostel even though eligible)
@@ -336,6 +458,7 @@
 - **Story Points:** 8 | **Priority:** P0 | **Labels:** `backend`, `frontend`
 
 ### Story PLT-602: School Configuration & System Settings Engine
+
 - **As a** School Admin **I want to** configure school-wide settings (name, logo, academic-year start, timezone, locale, notification preferences) **so that** the system reflects our school's identity and operating rules.
 - **Tasks:**
   - [ ] `SchoolSettings` key-value/JSONB store with typed accessors
@@ -352,6 +475,7 @@
 **Maps to:** Master Plan §5 "Multi-Channel Notification Router," FR-COM-01 (partial), FR-MOB-03
 
 ### Story PLT-701: Notification Router Core Service
+
 - **As a** developer in any module **I want to** call `notificationRouter.send(event)` **so that** I don't need to know which channel(s) to use — the router resolves that from user preference and event urgency.
 - **Tasks:**
   - [ ] `NotificationEvent` interface (type, recipient, payload, urgency: NORMAL|EMERGENCY)
@@ -362,6 +486,7 @@
 - **Story Points:** 8 | **Priority:** P1 | **Labels:** `backend`, `architecture`
 
 ### Story PLT-702: Email & Push Channel Adapters (MVP channels)
+
 - **As the** system **I want to** deliver notifications via Email and Push (Expo Push/FCM/APNs) **so that** MVP-critical alerts (absence, fee due) reach users without waiting for SMS/WhatsApp adapters.
 - **Tasks:**
   - [ ] Email adapter (transactional email provider integration)
@@ -378,6 +503,7 @@
 **Maps to:** Master Plan §5 "Storage & File Manager"
 
 ### Story PLT-801: Storage Abstraction Layer
+
 - **As a** developer **I want to** call `storageService.upload(file, scope)` **so that** every module stores files consistently, access-controlled, without directly touching S3 SDK calls.
 - **Tasks:**
   - [ ] `IStorageAdapter` interface over S3-compatible providers (AWS S3, Cloudflare R2, MinIO for local dev)
@@ -388,6 +514,7 @@
 - **Story Points:** 8 | **Priority:** P1 | **Labels:** `backend`, `architecture`, `security`
 
 ### Story PLT-802: File Size/Type Validation & Quota
+
 - **As the** system **I want to** enforce file-type and size limits per upload context **so that** storage costs and abuse vectors are controlled.
 - **Tasks:**
   - [ ] Configurable max file size and allowed MIME types per scope (e.g., homework submissions vs. ID photos have different rules)
@@ -403,6 +530,7 @@
 **Maps to:** Master Plan §5 "System Health & Monitoring," NFR-01 (Availability)
 
 ### Story PLT-901: Health Check Endpoints
+
 - **As** Ops/DevOps **I want to** query a `/health` endpoint **so that** load balancers and uptime monitors can detect service health.
 - **Tasks:**
   - [ ] `/health/liveness` (process is up) and `/health/readiness` (DB/Redis reachable, license valid) endpoints
@@ -411,6 +539,7 @@
 - **Story Points:** 3 | **Priority:** P2 | **Labels:** `backend`, `devops`
 
 ### Story PLT-902: Metrics & Alerting Hooks
+
 - **As** Ops **I want to** export basic metrics (request latency, error rate, queue depth) **so that** we can monitor NFR-02 (attendance round-trip latency) and general system health in production.
 - **Tasks:**
   - [ ] Instrument key routes with latency/error-rate metrics (Prometheus-compatible or equivalent)
@@ -419,6 +548,7 @@
 - **Story Points:** 5 | **Priority:** P2 | **Labels:** `backend`, `devops`, `observability`
 
 ### Story PLT-903: Admin System Status Page
+
 - **As an** Admin **I want to** see a simple system status summary (DB connected, license valid, last backup time) **so that** I have basic operational confidence without needing engineering access.
 - **Tasks:**
   - [ ] Admin UI widget summarizing health-check + license + last-backup status
@@ -448,15 +578,15 @@ PLT-EPIC-09 (Health/Monitoring) — independent, can start any time, lowest prio
 
 ## Suggested Sprint Breakdown (3–4 backend engineers)
 
-| Sprint | Focus |
-|---|---|
-| Sprint 1 | PLT-101 → PLT-105 (Auth core), PLT-201 (Role/Permission model) started |
-| Sprint 2 | PLT-202, PLT-203, PLT-204 (RBAC enforcement end-to-end), PLT-401, PLT-402 (Audit core) in parallel |
-| Sprint 3 | PLT-301 → PLT-305 (Licensing), PLT-403, PLT-501 → PLT-503 (Diagnostics), PLT-601/602 |
+| Sprint   | Focus                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sprint 1 | PLT-101 → PLT-105 (Auth core), PLT-201 (Role/Permission model) started                                                                                              |
+| Sprint 2 | PLT-202, PLT-203, PLT-204 (RBAC enforcement end-to-end), PLT-401, PLT-402 (Audit core) in parallel                                                                  |
+| Sprint 3 | PLT-301 → PLT-305 (Licensing), PLT-403, PLT-501 → PLT-503 (Diagnostics), PLT-601/602                                                                                |
 | Sprint 4 | PLT-701/702 (Notification skeleton), PLT-801/802 (Storage), PLT-205 (RBAC matrix QA sign-off), PLT-901–903 (Health, lower priority, can slip to Sprint 5 if needed) |
 
 **Sprint 2 exit gate = M2 "Foundation Complete" milestone** from the Roadmap document (SRS §24), since by end of Sprint 2 the core Auth+RBAC+Audit trio is functional enough for other module teams to start building against it.
 
 ---
 
-*End of Jira/Epic-Style Action Plan — Platform Core & RBAC*
+_End of Jira/Epic-Style Action Plan — Platform Core & RBAC_

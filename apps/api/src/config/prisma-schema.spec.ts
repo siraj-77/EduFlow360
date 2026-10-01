@@ -55,6 +55,19 @@ const SCHEMA_CODE = SCHEMA.replace(/^\s*\/\/\/.*$/gm, '').replace(/^\s*\/\/[^/].
 const PLATFORM_CORE_MODELS = [
   'AuditRecord',
   'ErrorLog',
+  /**
+   * `PLT-101`, owner decision 2026-09-30: Google sign-in, with more providers
+   * expected. This is the SIXTEENTH model, so like `UserRole` it moves THREE
+   * registration points in one commit: this list, `PLATFORM_CORE_ENTITIES` in
+   * `apps/api/erd/project-erd-source.mjs`, and `CLUSTER` in
+   * `apps/api/prisma/render-erd.mjs`.
+   *
+   * Position matters: `models()` returns the schema's names SORTED, and
+   * `toEqual` compares element by element, so a model appended at the end of
+   * this list fails even though both sides contain it. Alphabetical order is
+   * the contract, not a style preference.
+   */
+  'ExternalIdentity',
   'License',
   'ModuleRegistry',
   'NotificationDelivery',
@@ -207,6 +220,61 @@ describe('schema.prisma — ARC-01 Platform Core data model', () => {
       /isPrimary|primary/i,
     );
     expect(bodyOf('User'), 'no primary-role flag on User either').not.toMatch(/isPrimary|primary/i);
+  });
+
+  it('keys an external identity on the provider subject, never on the email address', () => {
+    expectPlatformCoreModels();
+
+    // The owner asked whether we store the gmail id. We store Google's `sub`,
+    // which is immutable, and the address only as a snapshot for humans. Three
+    // failures if the email were the key:
+    //   1. A renamed teacher becomes a DIFFERENT account and loses history.
+    //   2. A school moving Workspace domain rewrites every staff address at
+    //      once, and nobody logs in - with no error, because each address
+    //      simply stops matching.
+    //   3. `email_verified` is absent for some Google account types, so the
+    //      address is not always trustworthy either.
+    const id = bodyOf('ExternalIdentity');
+
+    expect(id, 'the provider name is DATA, not a table per provider').toMatch(/\bprovider\b/);
+    expect(id).toMatch(/providerSubject/);
+    expect(id).toMatch(/providerEmail/);
+
+    // The lookup key is (provider, providerSubject) and nothing else.
+    expect(id).toMatch(/@@unique\(\[schoolId, provider, providerSubject\]\)/);
+
+    // NOT unique on the address: two people may legitimately share one, and
+    // merging them would combine two families' children's data (2.13).
+    expect(id, 'providerEmail must NOT be unique').not.toMatch(
+      /@@unique\(\[schoolId, provider, providerEmail\]\)/,
+    );
+  });
+
+  it('gives ExternalIdentity its userId foreign key as uuid', () => {
+    // The `42d2522` class: a relation scalar that is `String` while the id it
+    // references is `uuid` is ACCEPTED by Prisma and REFUSED by PostgreSQL. A
+    // new join table is exactly where it recurs, so it is asserted here.
+    //
+    // ONE foreign key, not two: unlike `user_roles`, this table has no
+    // `@@id` of its own and only points at `User`.
+    expectPlatformCoreModels();
+    const id = bodyOf('ExternalIdentity');
+
+    expect(id, 'ExternalIdentity.userId must be uuid').toMatch(
+      /userId\s+String\s+@map\("user_id"\)\s+@db\.Uuid/,
+    );
+  });
+
+  it('cascades an external identity when its user is deleted', () => {
+    // `Cascade`, unlike `UserRole.roleId` which is `Restrict`. The distinction
+    // is deliberate and worth stating: deleting a ROLE must fail loudly, but an
+    // external identity is not a grant - it is a login credential attached to
+    // an account. Deleting the account should leave nothing behind that could
+    // be mistaken for an orphan.
+    expectPlatformCoreModels();
+    expect(bodyOf('ExternalIdentity')).toMatch(
+      /@relation\("fk_external_identity_user", fields: \[userId\], references: \[id\], onDelete: Cascade\)/,
+    );
   });
 
   it('defines exactly the fourteen Platform Core entities and nothing else', () => {

@@ -28,11 +28,11 @@ pnpm --filter @eduflow/api generate:schema   # rewrite both artefacts
 
 **The ERD and the schema are generated from one file.** That is the whole point. D22 left `schema.prisma` empty because _"a plausible-but-invented schema is worse than none"_ — a guessed `Student` would have to be reconciled against the real ERD later, and a reviewer would have to decide which was right. Generating both from `schema-source.mjs` means a field added to a model appears in the diagram, a relation removed from the schema loses its arrow, and `schema-generation.spec.ts` fails the build if either artefact is hand-edited.
 
-## 2. The fourteen entities
+## 2. The sixteen entities
 
-`User` · `Role` · `Permission` · `RolePermission` · `Session` · `RefreshToken` · `AuditRecord` · `ErrorLog` · `SchoolSettings` · `ModuleRegistry` · `License` · `NotificationPreference` · `NotificationDelivery` · `StoredFile`
+`User` · `Role` · `Permission` · `RolePermission` · `UserRole` · `ExternalIdentity` · `Session` · `RefreshToken` · `AuditRecord` · `ErrorLog` · `SchoolSettings` · `ModuleRegistry` · `License` · `NotificationPreference` · `NotificationDelivery` · `StoredFile`
 
-Exactly fourteen, and the gate fails if a fifteenth appears. **No `Student`, `Class` or `Teacher`** — `PLT-203` and `PLT-801` build ownership and file-access policies against abstract ports with fakes, precisely so this schema does not have to guess (`AGENTS.md` §13). The gate asserts their absence by name.
+Exactly sixteen, and the gate fails if a seventeenth appears. **No `Student`, `Class` or `Teacher`** — `PLT-203` and `PLT-801` build ownership and file-access policies against abstract ports with fakes, precisely so this schema does not have to guess (`AGENTS.md` §13). The gate asserts their absence by name.
 
 ## 3. Five invariants, each with a test that watches it fire
 

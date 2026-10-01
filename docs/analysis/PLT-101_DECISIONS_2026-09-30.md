@@ -87,7 +87,7 @@ accident. Under an email key they would collide into one account — which is a
 privacy incident involving two unrelated families' children's data
 (`AGENTS.md` §2.13), not merely a bug.
 
-⚠️ **Consequence to state now:** this table is a **seventeenth model**, so it trips
+⚠️ **Consequence to state now:** this table is a **sixteenth model**, so it trips
 the same three registration points `D-4.1` did — `PLATFORM_CORE_MODELS`
 (`prisma-schema.spec.ts`), `PLATFORM_CORE_ENTITIES`
 (`apps/api/erd/project-erd-source.mjs`) and `CLUSTER` (`apps/api/prisma/render-erd.mjs`).

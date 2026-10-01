@@ -328,6 +328,66 @@
     "backgroundColor": "transparent"
   },
   {
+    "id": "box_ExternalIdentity",
+    "type": "rectangle",
+    "x": 520,
+    "y": 690,
+    "width": 400,
+    "height": 212,
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "#e8ebff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "ExternalIdentity"
+  },
+  {
+    "type": "text",
+    "x": 534,
+    "y": 698,
+    "width": 372,
+    "height": 16,
+    "text": "ExternalIdentity",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 534,
+    "y": 718,
+    "width": 372,
+    "height": 16,
+    "text": "external_identities",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 534,
+    "y": 734,
+    "width": 372,
+    "height": 144,
+    "text": "schoolId  String\nPK  id\nprovider  String\nproviderSubject  String\nproviderEmail  String\nproviderEmailVerified  Boolean\n▶  userId → User\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
     "id": "box_Session",
     "type": "rectangle",
     "x": 1120,
@@ -1064,6 +1124,40 @@
     "_name": "UserRole->Role"
   },
   {
+    "id": "edge_ExternalIdentity_userId",
+    "type": "arrow",
+    "x": 920,
+    "y": 796,
+    "width": 0,
+    "height": -372,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        44,
+        0
+      ],
+      [
+        44,
+        -372
+      ],
+      [
+        0,
+        -372
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "ExternalIdentity->User"
+  },
+  {
     "id": "edge_Session_userId",
     "type": "arrow",
     "x": 1120,
@@ -1076,11 +1170,11 @@
         0
       ],
       [
-        -74,
+        -126,
         0
       ],
       [
-        -74,
+        -126,
         32
       ],
       [
@@ -1110,11 +1204,11 @@
         0
       ],
       [
-        62,
+        26,
         0
       ],
       [
-        62,
+        26,
         -298
       ],
       [
@@ -1144,11 +1238,11 @@
         0
       ],
       [
-        -113,
+        -100,
         0
       ],
       [
-        -113,
+        -100,
         -266
       ],
       [
@@ -1178,11 +1272,11 @@
         0
       ],
       [
-        -100,
+        -87,
         0
       ],
       [
-        -100,
+        -87,
         -2044
       ],
       [
@@ -1212,11 +1306,11 @@
         0
       ],
       [
-        -87,
+        -74,
         0
       ],
       [
-        -87,
+        -74,
         -2344
       ],
       [
@@ -1246,11 +1340,11 @@
         0
       ],
       [
-        -74,
+        -126,
         0
       ],
       [
-        -74,
+        -126,
         -1714
       ],
       [
@@ -1280,11 +1374,11 @@
         0
       ],
       [
-        -126,
+        -113,
         0
       ],
       [
-        -126,
+        -113,
         -580
       ],
       [
@@ -1314,11 +1408,11 @@
         0
       ],
       [
-        -113,
+        -100,
         0
       ],
       [
-        -113,
+        -100,
         -982
       ],
       [
@@ -1348,11 +1442,11 @@
         0
       ],
       [
-        26,
+        44,
         0
       ],
       [
-        26,
+        44,
         -402
       ],
       [
@@ -1382,11 +1476,11 @@
         0
       ],
       [
-        -87,
+        -74,
         0
       ],
       [
-        -87,
+        -74,
         -1392
       ],
       [

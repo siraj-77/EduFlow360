@@ -2539,3 +2539,102 @@ own package's runner `include` globs, so `AUD-30-01` cannot recur. It generalise
 - `pnpm format:check` still exits 2 — pre-existing `FIX-05`, untouched. Note that
   this commit edits `.md` files, which are among the 60 that gate reports, so it
   neither fixes nor worsens `FIX-05`.
+
+
+## 2026-09-30 - `PLT-101` tranche 1: `ExternalIdentity`, keyed on the provider subject
+
+### Phase
+
+`PLT-101` Authentication & Session Management, schema tranche. The OIDC flow itself is
+still unbuilt; this is the table it will write to.
+
+### Activity
+
+Added `ExternalIdentity` as the **sixteenth** Platform Core model, with the inverse
+`User.externalIdentities`. All three registration points moved in one commit:
+`PLATFORM_CORE_MODELS` (`prisma-schema.spec.ts`), `PLATFORM_CORE_ENTITIES`
+(`apps/api/erd/project-erd-source.mjs`) and `CLUSTER` (`apps/api/prisma/render-erd.mjs`).
+
+**The load-bearing decision:** the unique key is `(schoolId, provider, providerSubject)`,
+never the email address. Google `sub` is immutable per person; an address is not, and two
+unrelated people can share one. Signing in by address would merge two families into one
+account, which is the child-safety failure `AGENTS.md` §2.13 exists to prevent. So
+`providerEmail` is a snapshot, is not unique, and nothing may join on it. Two integration
+tests hold that: one rejects a duplicate subject across two users, the other proves two
+same-address people stay separate accounts and fails the moment someone adds a unique
+index on the email to tidy the model up.
+
+`provider` is a **column, not a table per provider**, so Microsoft or Apple later is a row
+and not a migration. No Auth.js: `ADR-008` rules it out and `Session`/`RefreshToken`
+already provide revocable sessions with reuse detection.
+
+### Decisions Made
+
+- **Identity keys on `providerSubject`.** Rationale above. This is the one decision here
+  that is irreversible in practice, because data written under the wrong key cannot be
+  migrated by hand.
+- **`providerEmailVerified` is a snapshot, never re-read as current.** A Workspace tenant
+  that does not assert verification simply leaves it null, so nothing branches on it.
+- **`Cascade` on `userId`, unlike `UserRole.roleId` which is `Restrict`.** Deleting a ROLE
+  must fail loudly; an external identity is a login credential, not a grant, so deleting
+  the account should leave nothing that looks like an orphan.
+- **Model count corrected 14 → 16, not 17.** An earlier draft of the Jira note and
+  of `PLT-101_DECISIONS` said "seventeenth"; that was wrong arithmetic and it is fixed in
+  every current-state document. Historical `CHANGELOG` and past `WORKLOG` entries were
+  left alone deliberately, because rewriting history is its own kind of lie.
+
+### Files Changed
+
+- `apps/api/prisma/schema-source.mjs` — `ExternalIdentity` model and the `User` inverse.
+- `apps/api/prisma/schema.prisma` + `docs/diagrams/ERD_PLATFORM_CORE.elements.json` — generated, not hand-edited.
+- `apps/api/erd/project-erd-source.mjs`, `apps/api/prisma/render-erd.mjs` — the other two registration points.
+- `apps/api/src/config/prisma-schema.spec.ts` — 3 new cases, and the list moved into
+  alphabetical order because `models()` returns sorted names and `toEqual` compares
+  element by element. Appending the new model at the end failed all 24 tests in the file
+  even though both sides contained it.
+- `apps/api/src/config/schema-generation.spec.ts` — `ExternalIdentity->User` edge.
+- `apps/api/src/config/database-contract.integration.spec.ts` — 15→16 tables, 12→13
+  foreign keys, and 5 new cases (subject uniqueness, same-address separation, one-per-
+  provider, cascade, and the `user_id` column being `uuid`).
+- `docs/core/EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md`, `docs/analysis/PLT-101_DECISIONS_2026-09-30.md`,
+  `docs/core/SSOT.md`, `docs/diagrams/ERD_PLATFORM_CORE.md`, `docs/work/TODO.md`.
+
+### Process note
+
+Two real failures were caught rather than reasoned around, and both are worth recording:
+
+1. **A dropped `@db.Uuid`.** `prisma db push` refused with
+   `external_identities_user_id_fkey cannot be implemented`. Cause: the helper that
+   builds attribute arrays took one argument, so `q('@map("user_id")', '@db.Uuid')`
+   silently emitted only the first. This is exactly the `42d2522` class, and the unit
+   test added for it is what caught it before the database did not.
+2. **File edits made through PowerShell corrupted `schema-source.mjs`** into a state where
+   a line that was byte-for-byte valid JavaScript failed to parse. Cost far more time to
+   diagnose than the change itself. All file mutation from that point on went through
+   Node `fs` with a parse check after every single insertion. If this bites again, the
+   rule is: **edit these sources with Node, never with PowerShell string cmdlets.**
+
+### Quality
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm docs:verify`, `pnpm format:check`,
+  `pnpm build`, `pnpm test:integration`, `pnpm test:e2e` — **8 green**.
+- `pnpm test:coverage` — **still red**, unchanged and expected: the domain, use-case and
+  controller tiers are empty until `F-1`/`F-3` land. Not worsened by this tranche.
+- `pnpm format:check:docs` — red across 44 markdown files, **pre-existing** and the
+  non-mandatory prose gate. This tranche edits `.md` files, so it neither fixes nor
+  worsens it.
+- `pnpm test:integration` — **17/17** against live PostgreSQL 18.4 (`eduflowdb_new`),
+  16 tables and 13 foreign keys confirmed by `information_schema`, not by the ORM.
+
+### Next Steps
+
+`PLT-101` tranche 2: `IOidcProvider`/`IOidcClient` ports and the Google adapter, the
+authorization-code exchange, the callback route, state/nonce/PKCE, and session issuance.
+Two answers are needed from the owner and neither blocks starting: the literal allowed
+email domain, and Workspace tenant versus consumer Gmail.
+
+**Also open, found while running the gates:** `DATABASE_URL` is in git-ignored `.env` but
+nothing loads it, so `pnpm test:integration` fails on a fresh shell with a collection
+error. Reported rather than fixed, because it is a build-config change outside this
+tranche and `AGENTS.md` §11 wants missing variables to fail loudly and deliberately.
+Run the gate with the variable exported until someone fixes it properly.

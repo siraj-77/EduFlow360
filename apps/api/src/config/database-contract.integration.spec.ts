@@ -41,7 +41,7 @@ beforeAll(async () => {
 });
 
 describe('the schema applies to a real PostgreSQL', () => {
-  it('creates all 15 tables with the ADR-003 names', async () => {
+  it('creates all 16 tables with the ADR-003 names', async () => {
     const rows = await prisma.$queryRawUnsafe<{ table_name: string }[]>(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_name NOT LIKE '_prisma%'
@@ -52,6 +52,7 @@ describe('the schema applies to a real PostgreSQL', () => {
     expect(names).toEqual([
       'audit_records',
       'error_logs',
+      'external_identities',
       'licenses',
       'module_registry',
       'notification_deliveries',
@@ -74,7 +75,7 @@ describe('the schema applies to a real PostgreSQL', () => {
     expect(names).not.toContain('tenants');
   });
 
-  it('creates all 12 foreign keys', async () => {
+  it('creates all 13 foreign keys', async () => {
     // This is the assertion that fails against the pre-fix schema. Prisma
     // reported the schema as valid; only PostgreSQL refused to build it.
     //
@@ -85,11 +86,14 @@ describe('the schema applies to a real PostgreSQL', () => {
     // that is wrong, because a join has two foreign keys where a direct
     // relation had one. If this number is ever 11 again, either the join lost a
     // key or the old column came back; both are bugs.
+    //
+    // PLT-101 takes it to 13: `external_identities.user_id` (+1). It is a plain
+    // relation, so it adds exactly one key.
     const rows = await prisma.$queryRawUnsafe<{ constraint_name: string }[]>(
       `SELECT constraint_name FROM information_schema.table_constraints
        WHERE constraint_type = 'FOREIGN KEY' AND table_schema = 'public'`,
     );
-    expect(rows.length).toBe(12);
+    expect(rows.length).toBe(13);
   });
 
   it('stores the join keys as uuid, matching the ids they reference', async () => {
@@ -239,6 +243,177 @@ describe('foreign keys are enforced, not merely present', () => {
 
     expect(await prisma.userRole.count({ where: { userId: user.id } })).toBe(0);
     await prisma.user.delete({ where: { id: user.id } });
+  });
+});
+
+describe('PLT-101: a provider identity is keyed on the subject, never the address', () => {
+  it('rejects two rows sharing a provider subject, even on different users', async () => {
+    // The unique key is (schoolId, provider, providerSubject). Without it,
+    // nothing stops the same Google account being linked to two local users,
+    // and "log in with Google" silently picks one of them.
+    const school = randomUUID();
+    const a = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `sub-a-${randomUUID()}@example.test`,
+        username: `sub-a-${randomUUID()}`,
+      },
+    });
+    const b = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `sub-b-${randomUUID()}@example.test`,
+        username: `sub-b-${randomUUID()}`,
+      },
+    });
+    const subject = `sub-${randomUUID()}`;
+
+    await prisma.externalIdentity.create({
+      data: { schoolId: school, provider: 'google', providerSubject: subject, userId: a.id },
+    });
+
+    await expect(
+      prisma.externalIdentity.create({
+        data: { schoolId: school, provider: 'google', providerSubject: subject, userId: b.id },
+      }),
+    ).rejects.toThrow(/unique/i);
+
+    await prisma.user.delete({ where: { id: a.id } });
+    await prisma.user.delete({ where: { id: b.id } });
+  });
+
+  it('keeps two people who share an email address as separate accounts', async () => {
+    // The whole reason `providerSubject` exists. `providerEmail` is a snapshot
+    // and is deliberately NOT unique: two unrelated people can share an
+    // address, and merging them on it would combine two families' children into
+    // one account (AGENTS.md 2.13). This test fails the moment someone adds a
+    // unique index on the email to "tidy up" the model.
+    const school = randomUUID();
+    const shared = `shared-${randomUUID()}@example.test`;
+    const a = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `x-${randomUUID()}@example.test`,
+        username: `x-${randomUUID()}`,
+      },
+    });
+    const b = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `y-${randomUUID()}@example.test`,
+        username: `y-${randomUUID()}`,
+      },
+    });
+
+    const first = await prisma.externalIdentity.create({
+      data: {
+        schoolId: school,
+        provider: 'google',
+        providerSubject: `sub-1-${randomUUID()}`,
+        providerEmail: shared,
+        userId: a.id,
+      },
+    });
+    const second = await prisma.externalIdentity.create({
+      data: {
+        schoolId: school,
+        provider: 'google',
+        providerSubject: `sub-2-${randomUUID()}`,
+        providerEmail: shared,
+        userId: b.id,
+      },
+    });
+
+    expect(first.providerEmail).toBe(second.providerEmail);
+    expect(first.userId).not.toBe(second.userId);
+
+    await prisma.user.delete({ where: { id: a.id } });
+    await prisma.user.delete({ where: { id: b.id } });
+  });
+
+  it('lets one user hold one identity per provider, and several across providers', async () => {
+    // `provider` is a column, not a table per provider (owner decision
+    // 2026-09-30): Google first, more providers expected. Adding Microsoft is
+    // then a row, not a migration.
+    const school = randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `multi-${randomUUID()}@example.test`,
+        username: `multi-${randomUUID()}`,
+      },
+    });
+    const googleSubject = `g-${randomUUID()}`;
+
+    await prisma.externalIdentity.create({
+      data: {
+        schoolId: school,
+        provider: 'google',
+        providerSubject: googleSubject,
+        userId: user.id,
+      },
+    });
+    // A second provider for the same person is fine.
+    await prisma.externalIdentity.create({
+      data: {
+        schoolId: school,
+        provider: 'microsoft',
+        providerSubject: `m-${randomUUID()}`,
+        userId: user.id,
+      },
+    });
+    // The same provider twice for one person is not.
+    await expect(
+      prisma.externalIdentity.create({
+        data: {
+          schoolId: school,
+          provider: 'google',
+          providerSubject: googleSubject,
+          userId: user.id,
+        },
+      }),
+    ).rejects.toThrow(/unique/i);
+
+    expect(await prisma.externalIdentity.count({ where: { userId: user.id } })).toBe(2);
+
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+
+  it('cascades the credential away when the user is deleted', async () => {
+    // An identity row without its user is meaningless, and leaving orphans
+    // behind would make a later re-registration inherit a stale credential.
+    const school = randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `casc-${randomUUID()}@example.test`,
+        username: `casc-${randomUUID()}`,
+      },
+    });
+    await prisma.externalIdentity.create({
+      data: {
+        schoolId: school,
+        provider: 'google',
+        providerSubject: `s-${randomUUID()}`,
+        userId: user.id,
+      },
+    });
+
+    await prisma.user.delete({ where: { id: user.id } });
+
+    expect(await prisma.externalIdentity.count({ where: { userId: user.id } })).toBe(0);
+  });
+
+  it('stores the join key as uuid, matching the id it references', async () => {
+    // Same trap as `user_roles` in 42d2522: a relation scalar that is `String`
+    // while its id is `uuid` is unbuildable, and only PostgreSQL says so.
+    const rows = await prisma.$queryRawUnsafe<{ column_name: string; data_type: string }[]>(
+      `SELECT column_name, data_type FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'external_identities'
+         AND column_name = 'user_id'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].data_type).toBe('uuid');
   });
 });
 

@@ -46,6 +46,9 @@ const CLUSTER = {
    * unlisted model fails loudly rather than drawing an unstyled box.
    */
   UserRole: 'RBAC',
+  // PLT-101: provider sign-in. Clustered with Identity - it is a credential
+  // for an account, not a grant between accounts.
+  ExternalIdentity: 'Identity',
   Role: 'RBAC',
   User: 'Identity',
   Session: 'Identity',

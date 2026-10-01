@@ -65,6 +65,7 @@ export const PLATFORM_CORE_ENTITIES = [
    * concept, not to enforce a model count.
    */
   'UserRole',
+  'ExternalIdentity',
   'Session',
   'RefreshToken',
   'AuditRecord',

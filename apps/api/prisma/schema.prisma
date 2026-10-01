@@ -186,6 +186,8 @@ model User {
   /// school's configured default. Nullable on purpose — a `DEFAULT 'en'`
   /// would hard-code English into every deployment (`AGENTS.md` §8).
   preferredLocale         String?                  @map("preferred_locale")
+  /// Provider sign-in credentials. One user may hold several, one per provider.
+  externalIdentities      ExternalIdentity[]       @relation("fk_external_identity_user")
   /// Multi-role per `D-4.1`. The join rows carry the grants.
   roles                   UserRole[]               @relation("fk_user_role")
   sessions                Session[]                @relation("fk_session_user")
@@ -312,6 +314,54 @@ model UserRole {
   @@id([schoolId, userId, roleId])
   @@index([roleId])
   @@map("user_roles")
+}
+
+/// A sign-in credential issued by someone OTHER than this system (`PLT-101`).
+///
+/// Owner decision 2026-09-30: Google first, more providers expected. So `provider`
+/// is a COLUMN, not a table per provider - adding Microsoft or Apple later is one
+/// row per provider, with no model, no foreign key and no migration.
+///
+/// THE LOOKUP KEY IS `providerSubject`, NEVER THE EMAIL ADDRESS. That is the whole
+/// point. Google calls it `sub`, it never changes for a person, and two people may
+/// share an address. Signing in by address would silently merge two families into
+/// one account, which is the child-safety failure `AGENTS.md` 2.13 exists to prevent.
+/// providerEmail is a snapshot for display and may go stale; it is not unique and
+/// nothing may join or authenticate on it.
+///
+/// NO password and NO token is stored here. Google authenticates the person; EduFlow
+/// then issues its own session, because `ADR-008` needs revocable server-side sessions
+/// and a provider token is not one. This table answers only which provider account is
+/// this local user, and is written only after the provider token is verified.
+///
+/// providerEmailVerified records what the provider claimed at the time of linking. It is
+/// a snapshot, so it is never re-read as a current fact, and a Workspace tenant that
+/// does not assert verification simply leaves it null.
+model ExternalIdentity {
+  /// Which school this row belongs to. METADATA ONLY.
+  /// One database per school (ADR-003), so no query is scoped by it and no guard
+  /// reads it. There is no `School` table and no foreign key: isolation is
+  /// physical. It exists for auditability and licence portability.
+  schoolId              String   @map("school_id")
+  id                    String   @id @default(uuid()) @db.Uuid
+  /// e.g. `google`. Data, never a compile-time enum, so a new provider is configuration.
+  provider              String   @map("provider")
+  /// The immutable user id the provider issued (Google: `sub`). THE LOOKUP KEY.
+  /// An address is not, and must never be - see the model comment.
+  providerSubject       String   @map("provider_subject")
+  /// Snapshot for display. Deliberately NOT unique: two unrelated people may share one.
+  providerEmail         String?  @map("provider_email")
+  /// What the provider claimed at link time. A snapshot, so never trusted as current.
+  providerEmailVerified Boolean? @map("provider_email_verified")
+  /// Cascade: an identity row is meaningless without its user.
+  userId                String   @map("user_id") @db.Uuid
+  user                  User     @relation("fk_external_identity_user", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([schoolId, provider, providerSubject])
+  @@index([userId])
+  @@map("external_identities")
 }
 
 /// One server-side record per login. `ADR-008`: stateless-only JWTs cannot

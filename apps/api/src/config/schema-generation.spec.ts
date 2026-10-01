@@ -140,6 +140,12 @@ describe('the ERD is drawn from the schema, not maintained beside it', () => {
     // drift; asserting the exact set pins the intent — that no edge is
     // decorative, and that a new relation has to be counted here.
     expect(declared.sort()).toEqual([
+      /**
+       * `PLT-101`: the lookup key is the provider's immutable subject, but the
+       * edge is to the local `User`, because an identity row has no meaning on
+       * its own. Deleting the user cascades the credential away.
+       */
+      'ExternalIdentity->User',
       'NotificationDelivery->NotificationPreference',
       'NotificationDelivery->User',
       'NotificationPreference->User',
@@ -152,9 +158,8 @@ describe('the ERD is drawn from the schema, not maintained beside it', () => {
       'StoredFile->User',
       /**
        * `D-4.1`: `User->Role` is GONE. It is replaced by two edges through the
-       * join, and the count stays 11 — the relation did not multiply, it was
-       * routed. The old single-FK edge appearing here again would mean the
-       * join is decorative.
+       * join — the relation did not multiply, it was routed. The old single-FK
+       * edge appearing here again would mean the join is decorative.
        */
       'UserRole->Role',
       'UserRole->User',

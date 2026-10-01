@@ -3,45 +3,67 @@
 **Last updated:** 2026-09-30 (end of session)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
-> ## ✅ DONE 2026-09-30 — `D-4.1`, multi-role (`UserRole` join)
+> ## ✔ DONE 2026-09-30 — `D-4.1`, multi-role (`UserRole` join)
 >
-> **The owner confirmed a user may hold multiple roles.** It is now **applied and applied against a real database**:
-> `UserRole` is the fifteenth model, `User.roleId` is gone, and permissions **union** across a user's
-> roles with no primary-role flag — because `AGENTS.md` §2.3 makes the permission the only thing that
-> gates a route, and a `isPrimary` column would be a second source of truth for "what can this user do".
->
-> **Both tripwires were satisfied, not silenced.** `PLATFORM_CORE_MODELS` in `prisma-schema.spec.ts`
-> AND `PLATFORM_CORE_ENTITIES` in `apps/api/erd/project-erd-source.mjs` — plus a **third** registration
-> point that was not in the handoff: `CLUSTER` in `apps/api/prisma/render-erd.mjs`, where an unlisted
-> model killed the generator with `Cannot read properties of undefined (reading 'stroke')`.
->
-> **FK count 11 → 12**, not 11. `User.role_id` (−1) became `user_roles.user_id` + `user_roles.role_id` (+2).
-> An earlier comment of mine claimed the count "stays 11" because the relation was only routed — that was
-> wrong arithmetic, and the test caught it.
->
-> Proof: schema applies to PostgreSQL 18.4, `prisma validate` clean, ERD geometry PASS (0 overlaps),
-> 12/12 integration, seed idempotent with `roles=1` and still **no password**.
-> Evidence: `docs/work/TDD_EVIDENCE_GATES.md`. Commit: see `git log`.
+> The owner confirmed a user may hold multiple roles. Applied and proved against a real
+> database: `UserRole` is the fifteenth model, `User.roleId` is gone, and permissions **union**
+> across a user's roles with no primary-role flag, because `AGENTS.md` §2.3 makes the
+> permission the only thing that gates a route. Proof: 12/12 integration against PostgreSQL 18.4.
 >
 > ---
 >
-> ## ▶ NEXT TASK — `ADR-024` + `PLT-107`
+> ## ✔ DONE 2026-09-30 — `ADR-024` and `PLT-107` written
 >
-> Both **decided by the owner 2026-09-30, both still unwritten.** ~1 hour combined, and they are the
-> last things standing between the project and its first feature.
+> - **`ADR-024`** — the `Money` wire format: decimal string on the wire plus a branded
+>   client type that cannot be built from a bare `number`. Amends `ADR-002`. Blocks `PLT-301`,
+>   `PLT-302`. Web decision is native `bigint` on `target: ES2020`, no polyfill.
+> - **`PLT-107`** — first-admin bootstrap: a one-time, single-use, expiring, audited setup
+>   token on the one `INVITED` user. **Not a seed script.** The seed still writes
+>   `passwordHash = null`, so there is no credential to bypass.
 >
-> - **`ADR-024`** — the `Money` wire format. Option (C): string on the wire plus a branded client type
->   that cannot be built from a bare `number`. `ADR-002` exists to forbid float money; the `number`
->   option reintroduces it one layer up, silently losing minor units past `MAX_SAFE_INTEGER`. Amends
->   `ADR-002`. Blocks `PLT-301`, `PLT-302`.
-> - **`PLT-107`** — first-admin bootstrap: a one-time, single-use, expiring, audited setup token.
->   **Not a seed script** — that would leave `School_Setup_Workflow_v1.md` §6.5 unimplementable.
->   Unblocks `PLT-101`, and therefore Epic 01.
+> ---
 >
-> **Then:** `PLT-101` auth + identity (34 pts) → `B-2` theme toggle (last hollow gate, `AUD-30-04`)
-> → wire `audit-immutability.sql`, since **`audit_records` is still mutable**.
-> `PLT-101`) → `PLT-101` auth → `B-2` theme toggle (last hollow gate) → wire
-> `audit-immutability.sql` (`audit_records` is **currently mutable**).
+> ## ✔ DONE 2026-09-30 — `PLT-101` tranche 1: the `ExternalIdentity` model
+>
+> The sixteenth model, and applied the same way `UserRole` was: all three registration
+> points updated in one commit (`PLATFORM_CORE_MODELS`, `PLATFORM_CORE_ENTITIES`, `CLUSTER`),
+> then proved rather than asserted. 16 tables / 13 foreign keys against real PostgreSQL.
+>
+> **The decision that shaped it: identity keys on the provider `sub`, never on the email.**
+> `providerEmail` is a snapshot and is deliberately not unique, because two unrelated
+> people can share an address and merging them would combine two families’ children
+> (`AGENTS.md` §2.13). `@@unique([schoolId, provider, providerSubject])` plus a test that
+> keeps two same-address people as separate accounts.
+>
+> **`provider` is a column, not a table per provider** (owner: Google first, more expected),
+> so Microsoft later is a row and not a migration. No Auth.js: `ADR-008` forbids it, and the
+> `Session`/`RefreshToken` pair already exists for reuse detection.
+>
+> ---
+>
+> ## ▶ NEXT — `PLT-101` tranche 2: the OIDC flow itself
+>
+> Nothing above is a login yet. Still to build: `IOidcProvider` / `IOidcClient` ports and the
+> Google adapter, authorization-code exchange, the callback route, state/nonce/PKCE, and
+> session issuance on success.
+>
+> **Two things only the owner can answer, neither of which blocks starting:**
+>
+> - the literal allowed email domain (for example `@school.lk`) — currently unknown
+> - Workspace tenant or consumer Gmail — decides the consent screen and whether
+>   `email_verified` is asserted
+>
+> Real Google end-to-end also needs client credentials and redirect URIs configured locally.
+> Secrets must never be sent in chat or committed.
+>
+> **Then:** `B-2` theme toggle (last hollow gate, `AUD-30-04`) → wire
+> `audit-immutability.sql`, since **`audit_records` is still mutable** → make the
+> integration gate load `.env` (see below).
+>
+> **Known gate gap:** `DATABASE_URL` lives in git-ignored `.env` but nothing loads it, so
+> `pnpm test:integration` fails on a fresh shell with a collection error. Not fixed here
+> because it is a build-config change outside this tranche; run it with the variable
+> exported until it is.
 > **Analysis:** `docs/analysis/CODE_AUDIT_2026-09-30.md` (**current** evidence) · `docs/work/ACTION_PLAN_2026-09-30.md` (**the action plan**) · `docs/analysis/CODE_AUDIT_2026-09-29.md` (prior audit) · `docs/work/REMEDIATION_PLAN_2026-09-29.md` (superseded for EPIC-00/EPIC-DOC scope) · `docs/work/GAP_ANALYSIS_2026-09-28.md` (pre-scaffold baseline) · `docs/work/PLATFORM_CORE_PLAN.md`
 
 ---
