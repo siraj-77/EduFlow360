@@ -60,6 +60,50 @@
 > `audit-immutability.sql`, since **`audit_records` is still mutable** → make the
 > integration gate load `.env` (see below).
 >
+> ---
+>
+> ## ✔ DONE 2026-10-01 — housekeeping: the integration gate can reach its own database
+>
+> `DATABASE_URL` lives in the git-ignored `.env` and nothing loaded it, so on a clean
+> shell `pnpm test:integration` died as a collection error telling the developer to set
+> a variable no tool read. Every earlier green observation of this gate came from a
+> reviewer exporting it by hand, which hid the defect. The config now loads the root
+> `.env` with Node's built-in `process.loadEnvFile()`. **No dependency added.**
+>
+> Three properties, each proven rather than asserted: an already-set `DATABASE_URL`
+> wins (so CI stays deterministic); the path is anchored to the config file, not the
+> working directory; and a missing variable throws at start-up naming it
+> (`AGENTS.md` §11). Regression guards in `integration-gate.spec.ts` were verified
+> non-vacuous by removing the loader and watching them fail.
+>
+> ---
+>
+> ## ▶ BLOCKED — `PLT-101` tranche 2 cannot start yet. Two owner decisions.
+>
+> Reconnaissance on 2026-10-01: `apps/api/src` contains **three** TypeScript files
+> (`main.ts`, `app.module.ts`, `config/env.ts`). `app.module.ts` has `imports: []`.
+> There is **no `I*` port anywhere** in project source, **no** session-minting code, and
+> **none** of the three guards exists as code — `@RequirePermission` and friends appear
+> only as string literals in tests. `ADR-008` session issuance must be built from scratch.
+>
+> **Blocker 1 — the sign-off gate is still open, and this is authentication.**
+> `TODO.md:211` reads `- [ ] **Sign-off recorded before PLT-101 starts** - still open`,
+> and `TODO.md:168` reads `**PLT-101 entry condition is NOT met.**`. Tranche 1 (the
+> schema) was reversible data work and went ahead; the flow itself is not, and it is
+> security-critical. It needs your sign-off before any code moves.
+>
+> **Blocker 2 — verifying the OIDC ID-token signature needs a new dependency.**
+> Zero of `apps/api`'s 21 dependencies are crypto, JWT or JOSE. Node's global `fetch`
+> covers the token exchange and `node:crypto` covers hashing, but **nothing installed can
+> validate an RS256 JWS**. `AGENTS.md` §8 requires explicit instruction to add one.
+>
+> **Also still needed, and cheap to answer now:** the literal allowed email domain
+> (for example `@school.lk`), and Workspace tenant versus consumer Gmail. Neither
+> blocks the design; both must be decided before sign-in can gate on a real allowlist.
+>
+> Recommended first slice once unblocked: `IClock` + `IOidcProvider` ports, the
+> `Session`/`RefreshToken` repository, and the OIDC env schema — no HTTP route
+> until the token-verification story is settled.
 > **Known gate gap:** `DATABASE_URL` lives in git-ignored `.env` but nothing loads it, so
 > `pnpm test:integration` fails on a fresh shell with a collection error. Not fixed here
 > because it is a build-config change outside this tranche; run it with the variable
@@ -323,7 +367,7 @@ Blocking the items marked ⚑.
 | ⚑12 | **The `M2` naming legend** — approve the "Milestone 2" vs "Gate M2" distinction in `SSOT.md` §4 | All milestone references |
 | **⚑A** | **Approve a one-line change to `AGENTS.md` §3.1** (`Jest` → `Vitest`). D27 decided the runner and `ADR-020` records it, but §3.1 is inside §3 which this session is directed not to touch | **The contract still contradicts the code** |
 | **⚑B** | **Approve the `AGENTS.md:8,17` status correction.** Both still say _"pre-scaffold / no application code exists yet"_. They are in the preamble and §1 — **not** §2/§3/§13 — so this is D14, not the standing restriction | Every session opens by reading a false state |
-| ?'G | **`Money` wire format � ANSWERED 2026-09-30 (owner): option (C)**, string on the wire + a branded client type that cannot be built from a bare `number`. **Why C and not B:** `ADR-002` exists to forbid float money, and (B) reintroduces it one layer up, just less visibly � `Number.MAX_SAFE_INTEGER` caps LKR (2dp) at ~90tn and KWD/BHD/JOD (3dp) at ~9bn, **silently losing minor units**, and currency is a per-school **setting** (�2.14) so a 3dp currency cannot be assumed away. (B) is defensible only with a test that fails when a currency exceeds 2dp. **The trigger is real, not hypothetical:** `JSON.stringify({amountMinor: 100n})` throws, so the first endpoint returning a `Money` 500s. **Still to do � the decision is recorded, the work is not started:** (1) write **`ADR-024`** amending `ADR-002` with the wire format, (2) add the `MoneyWire` type + a serialiser, (3) a test that fails on a 3dp currency. | ? **`D-4.2` closed** � unblocks `PLT-301`, `PLT-302`, `ARC-06`, P8 |
+| ⚑'G | **`Money` wire format — ANSWERED 2026-09-30 (owner): option (C)**, string on the wire + a branded client type that cannot be built from a bare `number`. **Why C and not B:** `ADR-002` exists to forbid float money, and (B) reintroduces it one layer up, just less visibly — `Number.MAX_SAFE_INTEGER` caps LKR (2dp) at ~90tn and KWD/BHD/JOD (3dp) at ~9bn, **silently losing minor units**, and currency is a per-school **setting** (§2.14) so a 3dp currency cannot be assumed away. (B) is defensible only with a test that fails when a currency exceeds 2dp. **The trigger is real, not hypothetical:** `JSON.stringify({amountMinor: 100n})` throws, so the first endpoint returning a `Money` 500s. **Still to do — the decision is recorded, the work is not started:** (1) write **`ADR-024`** amending `ADR-002` with the wire format, (2) add the `MoneyWire` type + a serialiser, (3) a test that fails on a 3dp currency. | → **`D-4.2` closed** · unblocks `PLT-301`, `PLT-302`, `ARC-06`, P8 |
 
 ---
 

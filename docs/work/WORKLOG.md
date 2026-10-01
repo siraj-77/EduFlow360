@@ -2638,3 +2638,123 @@ nothing loads it, so `pnpm test:integration` fails on a fresh shell with a colle
 error. Reported rather than fixed, because it is a build-config change outside this
 tranche and `AGENTS.md` §11 wants missing variables to fail loudly and deliberately.
 Run the gate with the variable exported until someone fixes it properly.
+
+## 2026-10-01 - Delegated housekeeping: repaired prose corruption, and unblocked the integration gate
+
+### Phase
+
+Repository hygiene, then the first reconnaissance for `PLT-101` tranche 2. Two of the
+three tasks were delegated to subagents and both were verified independently before
+being accepted. The third stopped at a gate.
+
+### Activity
+
+**1. Repaired 17 corrupted characters in two tracked documents.** `SSOT.md` (12) and
+`TODO.md` (5) contained U+FFFD, the replacement character, which renders as a black
+diamond and destroys the sentence around it. They were written through a PowerShell
+pipeline that mangled UTF-8; the original bytes are gone, so each character had to be
+inferred from context.
+
+Delegated. Verified before accepting: 17 substitutions, **zero** non-U+FFFD changes, and
+both files the same byte length, so nothing was reflowed. 16 of 17 were decisive —
+`§` where a section reference is meant (`§2.1`, `§2.3`, `§2.14`, `§4`, all consistent with
+the rest of the house style), em dashes at sentence breaks, and middle dots as list
+separators, matching the entity separator already used in `ERD_PLATFORM_CORE.md`.
+
+**2. Repaired 5 further ASCII `?` on the same lines.** The delegated agent noticed these
+were the same corruption surviving as `?` instead of U+FFFD, and flagged them as
+out of scope rather than fixing them. They were not out of scope. `SSOT.md` rows 40, 43
+and 45 sit in the `Truthful?` column where **every** sibling row is U+2705; `TODO.md`
+row 326 cell 1 is a flag symbol plus an apostrophe and a letter, where the intact
+sibling at row 319 is U+2691 plus the same shape. Same
+structure, only the symbol destroyed. Now repaired.
+
+**3. `pnpm test:integration` can now reach its own database.** `DATABASE_URL` lives in
+the git-ignored `.env` and nothing loaded it, so on a clean shell the gate died as a
+*collection* error while telling the developer to set a variable no tool read. Every
+earlier green observation came from a reviewer exporting it by hand.
+
+Delegated. The fix uses Node's built-in `process.loadEnvFile()`. **No dependency added.**
+Verified independently, with turbo forced uncached:
+
+- `.env` present, no exported variable → **exit 0, 17/17, 0 cached**
+- `.env` absent, no exported variable → **exit 1**, error names `DATABASE_URL` and
+  the exact path it looked in
+- `.env` restored afterwards, **SHA-256 identical** to before the probe
+- guards non-vacuous: removing the loader call turns **2 of 11** assertions red
+
+### Rulings I made
+
+- **`SSOT.md:45` keeps `§1c`, unrepaired target.** The section sign is near-certain, but
+  SSOT has sections 1, 1a and 1b and **no 1c**, and `1c` occurs nowhere else in the
+  repository. Retargeting it to a decision ID would be inventing a reference. Left for
+  the owner. *Costs if wrong:* one stale cross-reference in a status table, no
+  behavioural effect.
+- **`TODO.md:326` cell 3 left as-is.** Its sibling cells hold full sentences; a lone `?`
+  standing for a whole cell of prose is not a character-level corruption, so there is
+  nothing to reconstruct. *Costs if wrong:* a status cell reads as `?` until the owner
+  rewrites it.
+- **`PLT-101` tranche 2 was NOT started**, despite being the next task and having a
+  clear plan. `TODO.md:211` records `- [ ] Sign-off recorded before PLT-101 starts -
+  still open` and `TODO.md:168` records the entry condition as NOT met. Tranche 1 was
+  reversible schema work; this is authentication, and the gate exists precisely because
+  that is not reversible. Reported rather than started. *Costs if wrong:* a day of
+  elapsed time.
+
+### What PLT-101 tranche 2 actually faces
+
+Delegated reconnaissance, spot-verified. `apps/api/src` contains **three** TypeScript
+files: `main.ts`, `app.module.ts`, `config/env.ts`. `app.module.ts` is `imports: []`.
+There is **no `I*` port anywhere** in project source, **no** code that reads or writes
+`Session` or `RefreshToken`, and **none** of the three guards exists as code
+(@RequirePermission`, `@RequireEntitlement`, `@Audited`, `@Public` appear only as
+string literals inside tests). `IClock` is a rule with no implementation: the lint rule
+bans `Date.now()` in domain and use-cases, and nothing provides the replacement.
+
+So `ADR-008` session issuance is greenfield. That is not a blocker, it is the size of the
+tranche. Two things *are* blockers:
+
+1. The sign-off gate above.
+2. **No dependency can verify an OIDC ID-token signature.** Zero of `apps/api`'s 21
+   dependencies are crypto, JWT or JOSE. Global `fetch` covers the token exchange and
+   `node:crypto` covers hashing, but validating an RS256 JWS needs a library that is not
+   installed. `AGENTS.md` §8 requires explicit instruction to add one.
+
+### Files Changed
+
+- `apps/api/vitest.integration.config.ts` — loads the repo-root `.env`; already-set values win;
+  throws naming the variable when absent.
+- `apps/api/src/config/integration-gate.spec.ts` — four guards on that config.
+- `docs/core/SSOT.md`, `docs/work/TODO.md` — 22 characters repaired.
+- `docs/work/TODO.md` — tranche-1 and housekeeping status, plus the two blockers.
+
+### Process note
+
+The delegated agent's report said its new assertions went red when the loader was
+removed. My own first probe disagreed, and the cause was my probe, not the tests: a
+Node `execFileSync` wrapper swallowed the output. Re-running directly in the shell
+showed `2 failed | 9 passed`. **Neither the agent's report nor my first probe was
+trustworthy; only the direct run was.** Recorded because the whole point of delegating
+is that verification still happens here.
+
+### Quality
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm docs:verify`, `pnpm format:check`,
+  `pnpm build`, `pnpm test:integration`, `pnpm test:e2e` — see the gate table in the
+  commit body for the exit codes measured on this tree.
+- `pnpm test:coverage` remains red and unchanged: five tiers still match zero source
+  files until `F-1`/`F-3` land.
+- `pnpm format:check:docs` remains red across 44 files, pre-existing and non-mandatory.
+- **Found, not fixed:** `docs/superpowers/plans/2026-09-30-gap-remediation.md` carries 10
+  further U+FFFD. Left alone because it was outside the delegated scope; it is the same
+  defect and should be swept.
+
+### Next Steps
+
+Owner decisions, in order: (1) clear or hold the `PLT-101` sign-off gate; (2) approve a
+JOSE dependency for ID-token verification, or direct an alternative; (3) the literal
+allowed email domain; (4) Workspace tenant versus consumer Gmail.
+
+Then `PLT-101` tranche 2, starting with `IClock` + `IOidcProvider` ports, the
+`Session`/`RefreshToken` repository and the OIDC env schema. **No HTTP route until token
+verification is settled.**

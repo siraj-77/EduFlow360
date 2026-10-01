@@ -145,5 +145,82 @@ describe('the integration gate runs integration tests', () => {
         `${path} sets passWithNoTests: true. Vitest then exits 0 when its include glob matches no files, so the integration gate reports success having run nothing. This is the second hollow-gate shape, and unlike a script stub it is invisible to isPassingStub(). Leave it false: the gate stays red until F-7 supplies a real integration test, which is the honest state.`,
       ).toBe(false);
     });
+
+    /**
+     * The gate is also unreachable without help. `DATABASE_URL` lives in the
+     * git-ignored `.env` at the repository root and nothing loaded it, so on a
+     * clean shell `pnpm test:integration` died as a *collection* error
+     * (`Failed Suites 1`, `0 test`) while telling the developer to "set it in
+     * .env" - advice no tool in the repository acted on. Every earlier green
+     * observation of this gate came from a reviewer exporting the variable by
+     * hand, which hid the defect instead of fixing it.
+     *
+     * These are text-level assertions on the config, deliberately the same
+     * idiom already used for `passWithNoTests` above: a config cannot be
+     * imported inside a unit test, because importing it is precisely the act
+     * that throws when the variable is absent. The ordering assertion below is
+     * the load-bearing one - it is what makes "never override an
+     * already-set variable" structural rather than aspirational.
+     *
+     * Every pattern here is anchored to executable form - a real `if (...)`, a
+     * real call with an argument, a quoted literal - rather than to the bare
+     * name. The first version of these assertions matched this paragraph and
+     * the config's own doc comment, which proved nothing: `indexOf('loadEnvFile')`
+     * reports an offset inside prose, not inside code. A guard that can be
+     * satisfied by a comment is not a guard.
+     */
+    it.each(CONFIGS)('$dir loads DATABASE_URL from the repository-root .env', ({ path }) => {
+      const config = readFileSync(path, 'utf8');
+
+      expect(
+        /process\.loadEnvFile\(\s*[A-Za-z_$]/.test(config),
+        `${path} does not call process.loadEnvFile(<path>). The integration suite needs DATABASE_URL, which lives in the git-ignored .env at the repository root. Without this the gate fails at collection time with no test run at all. Node's built-in loader is sufficient; do not add dotenv.`,
+      ).toBe(true);
+
+      expect(
+        /['"]\.\.\/\.\.\/\.env['"]/.test(config),
+        `${path} does not reference the quoted literal '../../.env', so it is not looking at the repository root. The config lives in apps/api, so the root .env is two levels up.`,
+      ).toBe(true);
+    });
+
+    it.each(CONFIGS)(
+      '$dir checks DATABASE_URL before loading, so it never overrides it',
+      ({ path }) => {
+        const config = readFileSync(path, 'utf8');
+
+        const guardAt = config.search(/\bif\s*\(\s*!\s*process\.env\.DATABASE_URL\s*\)/);
+        const loadAt = config.search(/process\.loadEnvFile\(\s*[A-Za-z_$]/);
+
+        expect(
+          guardAt,
+          `${path} has no executable \`if (!process.env.DATABASE_URL)\` guard around the load. process.loadEnvFile() overwrites existing keys, so loading unconditionally would silently replace a value CI injected from a secret and make the gate non-deterministic across environments.`,
+        ).toBeGreaterThanOrEqual(0);
+        expect(loadAt, `${path} does not call process.loadEnvFile(<path>)`).toBeGreaterThanOrEqual(
+          0,
+        );
+        expect(
+          guardAt,
+          `${path} loads the .env at offset ${loadAt} but only checks DATABASE_URL at offset ${guardAt}. The check has to come first, or an already-set DATABASE_URL gets overwritten.`,
+        ).toBeLessThan(loadAt);
+      },
+    );
+
+    it.each(CONFIGS)('$dir names DATABASE_URL when it cannot start', ({ path }) => {
+      const config = readFileSync(path, 'utf8');
+
+      expect(
+        /throw new Error\(\s*['"`]?[\s\S]{0,4}DATABASE_URL is not set/.test(config),
+        `${path} has no start-up error naming DATABASE_URL. AGENTS.md section 11 requires start-up to fail fast naming the missing variable, with no silent default.`,
+      ).toBe(true);
+    });
+
+    it.each(CONFIGS)('$dir does not hardcode a database credential', ({ path }) => {
+      const config = readFileSync(path, 'utf8');
+
+      expect(
+        /postgres(?:ql)?:\/\/[^:]+:[^@]+@/.test(config),
+        `${path} contains what looks like an inline PostgreSQL connection string. The URL belongs in the git-ignored .env or the environment. A credential in a tracked config is a leaked credential.`,
+      ).toBe(false);
+    });
   });
 });
