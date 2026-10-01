@@ -265,6 +265,61 @@ describe('schema.prisma — ARC-01 Platform Core data model', () => {
     );
   });
 
+  /**
+   * The durable version of the `42d2522` guard.
+   *
+   * The two tests above name tables. A table added tomorrow has no test, so
+   * nothing stops a relation scalar from being declared `String` while the id
+   * it references is `uuid` - Prisma accepts that, and only PostgreSQL refuses
+   * to build it, which surfaces as
+   * `external_identities_user_id_fkey cannot be implemented` at `db push` time,
+   * long after the schema was believed good.
+   *
+   * That is not hypothetical: it happened on `external_identities.user_id`
+   * during `PLT-101`, because a helper that builds attribute arrays took one
+   * argument and silently emitted only the first, dropping `@db.Uuid`.
+   *
+   * So this walks EVERY model instead of a hand-picked list: for each
+   * `@relation(..., fields: [x])`, find `x` in the same model and require
+   * `@db.Uuid`. Adding a seventeenth model now gets the check for free.
+   */
+  it('gives EVERY relation scalar @db.Uuid, without a hand-written list', () => {
+    const found = expectPlatformCoreModels();
+    const offenders: string[] = [];
+    let checked = 0;
+
+    for (const model of found) {
+      const body = bodyOf(model);
+      // Each relation that actually carries a foreign key names its scalar.
+      for (const m of body.matchAll(/@relation\(\s*"[^"]*"\s*,\s*fields:\s*\[(\w+)\]/g)) {
+        const scalar = m[1] as string;
+        const decl = new RegExp(`^\\s*${scalar}\\s+String\\??\\s+[^\\n]*@db\\.Uuid`, 'm');
+        checked++;
+        if (!decl.test(body)) offenders.push(`${model}.${scalar}`);
+      }
+    }
+
+    // Guard the guard: a regex that silently matches nothing would pass here
+    // and be worse than no test at all, because it would look like coverage.
+    expect(checked, 'the relation walk must find at least one relation').toBeGreaterThan(0);
+    expect(offenders, `relation scalars missing @db.Uuid: ${offenders.join(', ')}`).toEqual([]);
+  });
+
+  it('gives EVERY surrogate primary key @db.Uuid, for the same reason', () => {
+    const found = expectPlatformCoreModels();
+    // `UserRole` and `RolePermission` deliberately have NO `id` column: they use
+    // a composite `@@id([schoolId, ...])`, so there is no surrogate key to type.
+    // A model is only in scope if it declares a scalar `id` at all.
+    const withSurrogateId = found.filter((m) => /^\s*id\s+String\s+@id/m.test(bodyOf(m)));
+    const offenders = withSurrogateId.filter(
+      (m) => !/^\s*id\s+String\s+@id[^\n]*@db\.Uuid/m.test(bodyOf(m)),
+    );
+
+    // Guard the guard again, for the same reason as above.
+    expect(withSurrogateId.length, 'the model walk must find surrogate keys').toBeGreaterThan(0);
+    expect(offenders, `primary keys missing @db.Uuid: ${offenders.join(', ')}`).toEqual([]);
+  });
+
   it('cascades an external identity when its user is deleted', () => {
     // `Cascade`, unlike `UserRole.roleId` which is `Restrict`. The distinction
     // is deliberate and worth stating: deleting a ROLE must fail loudly, but an
