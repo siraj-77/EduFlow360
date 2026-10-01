@@ -67,6 +67,17 @@ const PLATFORM_CORE_MODELS = [
   'Session',
   'StoredFile',
   'User',
+  /**
+   * `D-4.1`, decided by the owner 2026-09-30: a user may hold MULTIPLE roles.
+   *
+   * Until then this list had 14 entries, and two separate tripwires asserted it:
+   * this one, and `PLATFORM_CORE_ENTITIES` in `apps/api/erd/project-erd-source.mjs`
+   * which `project-erd.spec.ts` compares the schema against. Adding a fifteenth
+   * model without updating BOTH fails `pnpm test` - which is the intended
+   * behaviour, not an obstacle. The tripwire exists to catch a second tenancy
+   * concept, so it is satisfied, never silenced.
+   */
+  'UserRole',
 ] as const;
 
 function models(): string[] {
@@ -135,6 +146,67 @@ describe('schema.prisma — ARC-01 Platform Core data model', () => {
     const report = `${res.stdout ?? ''}${res.stderr ?? ''}`;
     expect(res.status, `prisma validate failed:\n${report}`).toBe(0);
     expect(report).toMatch(/is valid/);
+  });
+
+  it('expresses multi-role as a UserRole join, because one role per user cannot be (D-4.1)', () => {
+    // ERD:84 said it plainly: "a teacher who is also a parent cannot be
+    // expressed". One `roleId` foreign key cannot represent that, and the gap
+    // is not cosmetic - a teacher who is also a parent was simply unable to log
+    // in as both.
+    expectPlatformCoreModels();
+
+    // The single FK is GONE from User. An earlier draft of this test asserted
+    // `roleId String[]` instead, which would have kept a role column on User and
+    // made the join table decorative. The grant belongs on the join row, so
+    // User carries only the list.
+    expect(bodyOf('User'), 'User must not keep a single roleId foreign key').not.toMatch(
+      /roleId\s+String\s+@map\("role_id"\)/,
+    );
+    expect(bodyOf('User'), 'User navigates to the join, not straight to Role').not.toMatch(
+      /\brole\s+Role\b/,
+    );
+    expect(bodyOf('User')).toMatch(/roles\s+UserRole\[\]/);
+
+    // And a join table exists to back it.
+    const join = bodyOf('UserRole');
+    expect(join).toMatch(/userId/);
+    expect(join).toMatch(/roleId/);
+  });
+
+  it('gives UserRole a composite key, so the same grant cannot be inserted twice', () => {
+    expectPlatformCoreModels();
+    // Same shape as `RolePermission`: a duplicate row would be invisible in a
+    // role listing and would double-count a permission audit.
+    expect(bodyOf('UserRole')).toMatch(/@@id\(\[schoolId, userId, roleId\]\)/);
+  });
+
+  it('stores both UserRole foreign keys as uuid, matching the ids they reference', () => {
+    // `42d2522`: every relation scalar in this schema was `String` while every
+    // id was `@db.Uuid`, which made all eleven foreign keys unbuildable.
+    // Prisma ACCEPTS the mismatch and only refuses at `db push`, so a new join
+    // table is exactly where it recurs. This assertion is the guard.
+    expectPlatformCoreModels();
+    const join = bodyOf('UserRole');
+
+    expect(join, 'UserRole.userId must be uuid').toMatch(
+      /userId\s+String\s+@map\("user_id"\)\s+@db\.Uuid/,
+    );
+    expect(join, 'UserRole.roleId must be uuid').toMatch(
+      /roleId\s+String\s+@map\("role_id"\)\s+@db\.Uuid/,
+    );
+  });
+
+  it('carries no primary-role flag, because permissions union across roles', () => {
+    expectPlatformCoreModels();
+    // Owner decision 2026-09-30: a user with three roles holds the UNION of
+    // their permissions. A `isPrimary` flag would introduce a second source of
+    // truth for "what can this user do", and AGENTS.md 2.3 makes the permission
+    // the only thing that gates a route. Asserted absent so adding one later is
+    // a deliberate change rather than an accident.
+    expect(bodyOf('UserRole'), 'no primary-role flag: the union is the rule').not.toMatch(
+      /isPrimary|primary/i,
+    );
+    expect(bodyOf('User'), 'no primary-role flag on User either').not.toMatch(/isPrimary|primary/i);
   });
 
   it('defines exactly the fourteen Platform Core entities and nothing else', () => {

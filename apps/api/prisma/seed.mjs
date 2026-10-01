@@ -164,6 +164,11 @@ async function seed() {
 
   // INVITED with no passwordHash - see the header. `mustChangePassword` is not
   // meaningful for a user who has no password to change yet.
+  //
+  // `D-4.1`: roles are a JOIN, so the grant is a nested write rather than a
+  // `roleId` column. `schoolId` is restated on the join row because it is
+  // required there - `connect` is not an option, since `UserRole`'s unique input
+  // is the composite (schoolId, userId, roleId) and userId does not exist yet.
   const email = process.env.SEED_ADMIN_EMAIL;
   const username = process.env.SEED_ADMIN_USERNAME ?? 'admin';
 
@@ -181,11 +186,12 @@ async function seed() {
       email,
       username,
       status: 'INVITED',
-      roleId: role.id,
+      roles: { create: [{ schoolId: SCHOOL_ID, roleId: role.id }] },
     },
   });
+  const grants = await prisma.userRole.count({ where: { userId: user.id } });
   console.log(
-    `  admin: ${user.username} <${user.email}> status=${user.status} passwordHash=${user.passwordHash === null ? 'null' : 'SET'}`,
+    `  admin: ${user.username} <${user.email}> status=${user.status} passwordHash=${user.passwordHash === null ? 'null' : 'SET'} roles=${grants}`,
   );
   return { role, user };
 }

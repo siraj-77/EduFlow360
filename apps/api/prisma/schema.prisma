@@ -137,8 +137,19 @@ enum FileScanStatus {
   FAILED
 }
 
-/// A person who can authenticate. Role is a single foreign key, not a join
-/// table — see the open question in docs/diagrams/ERD_PLATFORM_CORE.md.
+/// A person who can authenticate.
+///
+/// `D-4.1`: roles are a JOIN, not a single foreign key. `ERD:84` recorded
+/// that "a teacher who is also a parent cannot be expressed" - and that is
+/// not a cosmetic gap, because such a user could not log in as both at all.
+/// The owner confirmed multi-role on 2026-09-30.
+///
+/// There is deliberately NO primary-role flag. A user with three roles holds
+/// the UNION of their permissions, because `AGENTS.md` 2.3 makes the
+/// permission the only thing that gates a route. A `isPrimary` column would
+/// introduce a second source of truth for "what can this user do", and the
+/// two would disagree the first time an admin reordered anything.
+///
 /// A user holds NO student/teacher/parent data here: `PLT-203` resolves
 /// ownership through abstract ports, and the domains that would own those
 /// relationships do not exist yet.
@@ -175,9 +186,8 @@ model User {
   /// school's configured default. Nullable on purpose — a `DEFAULT 'en'`
   /// would hard-code English into every deployment (`AGENTS.md` §8).
   preferredLocale         String?                  @map("preferred_locale")
-  /// One role per user. See the open question on multi-role support.
-  roleId                  String                   @map("role_id") @db.Uuid
-  role                    Role                     @relation("fk_user_role", fields: [roleId], references: [id], onDelete: Restrict)
+  /// Multi-role per `D-4.1`. The join rows carry the grants.
+  roles                   UserRole[]               @relation("fk_user_role")
   sessions                Session[]                @relation("fk_session_user")
   refreshTokens           RefreshToken[]           @relation("fk_refresh_token_user")
   schoolSettingsUpdates   SchoolSettings[]         @relation("fk_school_settings_updated_by")
@@ -189,7 +199,6 @@ model User {
 
   @@unique([schoolId, email])
   @@unique([schoolId, username])
-  @@index([roleId])
   @@index([status])
   @@index([lockedUntil])
   @@map("users")
@@ -218,7 +227,7 @@ model Role {
   /// The highest role is an in-school administrator; there is no
   /// cross-tenant super admin (`ADR-003`).
   isSystemRole Boolean          @default(false) @map("is_system_role")
-  users        User[]           @relation("fk_user_role")
+  users        UserRole[]       @relation("fk_role_user_role")
   permissions  RolePermission[] @relation("fk_role_permission_role")
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
@@ -271,6 +280,38 @@ model RolePermission {
   @@id([schoolId, roleId, permissionId])
   @@index([permissionId])
   @@map("role_permissions")
+}
+
+/// Which roles a user holds (`D-4.1`, owner-confirmed 2026-09-30).
+///
+/// Replaces `User.roleId`, a single foreign key, which could not express
+/// a teacher who is also a parent - the case `ERD:84` named.
+///
+/// NO primary flag and no validity window, both deliberate. Permissions UNION
+/// across every row here, because `AGENTS.md` 2.3 makes the permission the
+/// only thing that gates a route. A `isPrimary` or `expiresAt` column would
+/// add a second source of truth for "what can this user do", and the two
+/// would disagree the first time an admin changed either.
+///
+/// Grant and expiry are answered by `audit_records` (`PLT-402`), which is
+/// append-only by construction.
+model UserRole {
+  /// Which school this row belongs to. METADATA ONLY.
+  /// One database per school (ADR-003), so no query is scoped by it and no guard
+  /// reads it. There is no `School` table and no foreign key: isolation is
+  /// physical. It exists for auditability and licence portability.
+  schoolId  String   @map("school_id")
+  /// Restrict, not Cascade: `onDelete: Cascade` here is harmless, but the inverse matters - see the model comment.
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation("fk_user_role", fields: [userId], references: [id], onDelete: Cascade)
+  /// Restrict. Deleting a role that still has users must fail rather than silently strip a school of an administrator - the same reasoning as the old single-FK shape.
+  roleId    String   @map("role_id") @db.Uuid
+  role      Role     @relation("fk_role_user_role", fields: [roleId], references: [id], onDelete: Restrict)
+  grantedAt DateTime @default(now()) @map("granted_at")
+
+  @@id([schoolId, userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
 }
 
 /// One server-side record per login. `ADR-008`: stateless-only JWTs cannot

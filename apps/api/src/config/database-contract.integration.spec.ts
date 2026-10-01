@@ -41,7 +41,7 @@ beforeAll(async () => {
 });
 
 describe('the schema applies to a real PostgreSQL', () => {
-  it('creates all 14 tables with the ADR-003 names', async () => {
+  it('creates all 15 tables with the ADR-003 names', async () => {
     const rows = await prisma.$queryRawUnsafe<{ table_name: string }[]>(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_name NOT LIKE '_prisma%'
@@ -63,6 +63,7 @@ describe('the schema applies to a real PostgreSQL', () => {
       'school_settings',
       'sessions',
       'stored_files',
+      'user_roles',
       'users',
     ]);
 
@@ -73,71 +74,109 @@ describe('the schema applies to a real PostgreSQL', () => {
     expect(names).not.toContain('tenants');
   });
 
-  it('creates all 11 foreign keys', async () => {
+  it('creates all 12 foreign keys', async () => {
     // This is the assertion that fails against the pre-fix schema. Prisma
     // reported the schema as valid; only PostgreSQL refused to build it.
+    //
+    // D-4.1 takes this from 11 to 12, and the arithmetic is the point:
+    // `User.role_id` (-1) is replaced by `user_roles.user_id` and
+    // `user_roles.role_id` (+2). Net +1. An earlier draft of this comment
+    // claimed the count "stays 11" because the relation was only "routed" -
+    // that is wrong, because a join has two foreign keys where a direct
+    // relation had one. If this number is ever 11 again, either the join lost a
+    // key or the old column came back; both are bugs.
     const rows = await prisma.$queryRawUnsafe<{ constraint_name: string }[]>(
       `SELECT constraint_name FROM information_schema.table_constraints
        WHERE constraint_type = 'FOREIGN KEY' AND table_schema = 'public'`,
     );
-    expect(rows.length).toBe(11);
+    expect(rows.length).toBe(12);
   });
 
-  it('stores id columns as uuid, not text', async () => {
+  it('stores the join keys as uuid, matching the ids they reference', async () => {
+    // `user_roles` has NO `id` column - it uses the composite
+    // `@@id([schoolId, userId, roleId])` - so this checks the two foreign keys
+    // instead. Both must be `uuid`. In `42d2522` every relation scalar in this
+    // schema was `String` while every id was `uuid`, which made all of them
+    // unbuildable; a new join table is exactly where that recurs.
     const rows = await prisma.$queryRawUnsafe<{ column_name: string; data_type: string }[]>(
       `SELECT column_name, data_type FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = 'roles' AND column_name = 'id'`,
+       WHERE table_schema = 'public' AND table_name = 'user_roles'
+         AND column_name IN ('user_id', 'role_id')
+       ORDER BY column_name`,
     );
-    expect(rows[0]?.data_type).toBe('uuid');
-  });
-});
-
-describe('foreign keys are enforced, not merely present', () => {
-  it('rejects a user whose role does not exist', async () => {
-    const ghost = randomUUID();
-    await expect(
-      prisma.user.create({
-        data: {
-          schoolId: SCHOOL_ID,
-          email: 'orphan@example.test',
-          username: 'orphan',
-          roleId: ghost,
-        },
-      }),
-    ).rejects.toThrow(/foreign key/i);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.data_type === 'uuid')).toBe(true);
   });
 
-  it('accepts a user whose role exists', async () => {
+  it('lets one user hold more than one role, which is what D-4.1 decided', async () => {
+    // The case `ERD:84` named: "a teacher who is also a parent cannot be
+    // expressed". Before the join, this test could not even be written.
+    const school = randomUUID();
     const role = await prisma.role.create({
-      data: { schoolId: SCHOOL_ID, name: `ROLE_${randomUUID()}`, isSystemRole: false },
+      data: { schoolId: school, name: `ROLE_${randomUUID()}`, isSystemRole: false },
+    });
+    const second = await prisma.role.create({
+      data: { schoolId: school, name: `ROLE_${randomUUID()}`, isSystemRole: false },
     });
     const user = await prisma.user.create({
       data: {
-        schoolId: SCHOOL_ID,
-        email: `u-${randomUUID()}@example.test`,
-        username: `u-${randomUUID()}`,
-        roleId: role.id,
+        schoolId: school,
+        email: `multi-${randomUUID()}@example.test`,
+        username: `multi-${randomUUID()}`,
+        roles: {
+          create: [
+            { schoolId: school, roleId: role.id },
+            { schoolId: school, roleId: second.id },
+          ],
+        },
       },
     });
 
-    expect(user.roleId).toBe(role.id);
+    const held = await prisma.userRole.findMany({ where: { userId: user.id } });
+    expect(held.length).toBe(2);
+    expect(new Set(held.map((r) => r.roleId))).toEqual(new Set([role.id, second.id]));
+
+    await prisma.user.delete({ where: { id: user.id } });
+    await prisma.role.delete({ where: { id: role.id } });
+    await prisma.role.delete({ where: { id: second.id } });
+  });
+
+  it('refuses a duplicate role grant, so a role listing cannot double-count', async () => {
+    const school = randomUUID();
+    const role = await prisma.role.create({
+      data: { schoolId: school, name: `ROLE_${randomUUID()}`, isSystemRole: false },
+    });
+    const user = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `dup-${randomUUID()}@example.test`,
+        username: `dup-${randomUUID()}`,
+        roles: { create: [{ schoolId: school, roleId: role.id }] },
+      },
+    });
+
+    await expect(
+      prisma.userRole.create({ data: { schoolId: school, userId: user.id, roleId: role.id } }),
+    ).rejects.toThrow(/unique|duplicate/i);
+
     await prisma.user.delete({ where: { id: user.id } });
     await prisma.role.delete({ where: { id: role.id } });
   });
 
   it('refuses to delete a role that still has users', async () => {
-    // User.role is `onDelete: Restrict`. Deleting a role in use must fail rather
-    // than orphan every user who held it - a silently orphaned administrator is
-    // a lockout with no trace.
+    // `UserRole.roleId` is `onDelete: Restrict`. Deleting a role in use must
+    // fail rather than silently strip a school of an administrator - and with
+    // a join table, the cascade that would have done it is no longer implicit.
+    const school = randomUUID();
     const role = await prisma.role.create({
-      data: { schoolId: SCHOOL_ID, name: `ROLE_${randomUUID()}`, isSystemRole: false },
+      data: { schoolId: school, name: `ROLE_${randomUUID()}`, isSystemRole: false },
     });
     const user = await prisma.user.create({
       data: {
-        schoolId: SCHOOL_ID,
+        schoolId: school,
         email: `r-${randomUUID()}@example.test`,
         username: `r-${randomUUID()}`,
-        roleId: role.id,
+        roles: { create: [{ schoolId: school, roleId: role.id }] },
       },
     });
 
@@ -147,6 +186,59 @@ describe('foreign keys are enforced, not merely present', () => {
 
     await prisma.user.delete({ where: { id: user.id } });
     await prisma.role.delete({ where: { id: role.id } });
+  });
+});
+
+describe('foreign keys are enforced, not merely present', () => {
+  it('rejects a role grant whose role does not exist', async () => {
+    // Rewritten for D-4.1: the FK is now on `user_roles.role_id`, not on
+    // `users.role_id`. Asserting it against `users` would have passed trivially
+    // - there is no such column left to violate.
+    const school = randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `orphan-${randomUUID()}@example.test`,
+        username: `orphan-${randomUUID()}`,
+      },
+    });
+
+    await expect(
+      prisma.userRole.create({ data: { schoolId: school, userId: user.id, roleId: randomUUID() } }),
+    ).rejects.toThrow(/foreign key/i);
+
+    await prisma.user.delete({ where: { id: user.id } });
+  });
+
+  it('rejects a role grant whose user does not exist', async () => {
+    const school = randomUUID();
+    const role = await prisma.role.create({
+      data: { schoolId: school, name: `ROLE_${randomUUID()}`, isSystemRole: false },
+    });
+
+    await expect(
+      prisma.userRole.create({ data: { schoolId: school, userId: randomUUID(), roleId: role.id } }),
+    ).rejects.toThrow(/foreign key/i);
+
+    await prisma.role.delete({ where: { id: role.id } });
+  });
+
+  it('lets a user exist with no role at all, because a grant is not identity', async () => {
+    // `User.roleId` was NOT NULL, so before D-4.1 an account could not be
+    // created until a role existed. A user is a person who can authenticate;
+    // holding a role is a later, separate act. Asserting this keeps the join
+    // from being reintroduced as a required column.
+    const school = randomUUID();
+    const user = await prisma.user.create({
+      data: {
+        schoolId: school,
+        email: `roleless-${randomUUID()}@example.test`,
+        username: `roleless-${randomUUID()}`,
+      },
+    });
+
+    expect(await prisma.userRole.count({ where: { userId: user.id } })).toBe(0);
+    await prisma.user.delete({ where: { id: user.id } });
   });
 });
 
@@ -161,12 +253,22 @@ describe('ADR-003 invariants hold in the database, not only in prose', () => {
       data: { schoolId: SCHOOL_ID, name: `ROLE_${randomUUID()}`, isSystemRole: false },
     });
     const a = await prisma.user.create({
-      data: { schoolId: SCHOOL_ID, email, username: `a-${randomUUID()}`, roleId: role.id },
+      data: {
+        schoolId: SCHOOL_ID,
+        email,
+        username: `a-${randomUUID()}`,
+        roles: { create: [{ schoolId: SCHOOL_ID, roleId: role.id }] },
+      },
     });
     // Same email, same school: rejected.
     await expect(
       prisma.user.create({
-        data: { schoolId: SCHOOL_ID, email, username: `b-${randomUUID()}`, roleId: role.id },
+        data: {
+          schoolId: SCHOOL_ID,
+          email,
+          username: `b-${randomUUID()}`,
+          roles: { create: [{ schoolId: SCHOOL_ID, roleId: role.id }] },
+        },
       }),
     ).rejects.toThrow(/unique/i);
 

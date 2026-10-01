@@ -34,6 +34,18 @@ const TITLE_FONT = 15;
 const CLUSTER = {
   Permission: 'RBAC',
   RolePermission: 'RBAC',
+  /**
+   * `D-4.1`: the multi-role join. Clustered with RBAC rather than Identity,
+   * because it is a grant between a user and a role - it is RBAC data wearing
+   * an identity table name.
+   *
+   * Adding it here was NOT optional: `CLUSTER_STYLE[CLUSTER[m.name]]` returns
+   * undefined for an unlisted model, and the generator died with
+   * `Cannot read properties of undefined (reading 'stroke')`. So the renderer
+   * has a third registration point alongside the two schema lists, and an
+   * unlisted model fails loudly rather than drawing an unstyled box.
+   */
+  UserRole: 'RBAC',
   Role: 'RBAC',
   User: 'Identity',
   Session: 'Identity',

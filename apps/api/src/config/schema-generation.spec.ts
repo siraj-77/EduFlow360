@@ -150,7 +150,14 @@ describe('the ERD is drawn from the schema, not maintained beside it', () => {
       'SchoolSettings->User',
       'Session->User',
       'StoredFile->User',
-      'User->Role',
+      /**
+       * `D-4.1`: `User->Role` is GONE. It is replaced by two edges through the
+       * join, and the count stays 11 — the relation did not multiply, it was
+       * routed. The old single-FK edge appearing here again would mean the
+       * join is decorative.
+       */
+      'UserRole->Role',
+      'UserRole->User',
     ]);
     expect(soft.sort()).toEqual(['AuditRecord->User', 'ErrorLog->User']);
     expect(elements.filter((e) => e.type === 'arrow').length).toBe(declared.length + soft.length);

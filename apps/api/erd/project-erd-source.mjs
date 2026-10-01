@@ -56,6 +56,15 @@ export const PLATFORM_CORE_ENTITIES = [
   'Role',
   'Permission',
   'RolePermission',
+  /**
+   * `D-4.1`: multi-role. Added 2026-09-30 as the fifteenth model, which makes
+   * this the SECOND tripwire that has to move with it — `prisma-schema.spec.ts`
+   * keeps its own `PLATFORM_CORE_MODELS` list, and `project-erd.spec.ts` fails
+   * if this and the schema disagree. Both are satisfied here rather than one
+   * being relaxed, because the tripwire exists to catch a second tenancy
+   * concept, not to enforce a model count.
+   */
+  'UserRole',
   'Session',
   'RefreshToken',
   'AuditRecord',

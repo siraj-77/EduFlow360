@@ -3,23 +3,43 @@
 **Last updated:** 2026-09-30 (end of session)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
-> ## ▶ NEXT TASK — `D-4.1`, multi-role (`UserRole` join)
+> ## ✅ DONE 2026-09-30 — `D-4.1`, multi-role (`UserRole` join)
 >
-> **The owner confirmed at end of session: a user may hold multiple roles.** Decided, **not applied**.
+> **The owner confirmed a user may hold multiple roles.** It is now **applied and applied against a real database**:
+> `UserRole` is the fifteenth model, `User.roleId` is gone, and permissions **union** across a user's
+> roles with no primary-role flag — because `AGENTS.md` §2.3 makes the permission the only thing that
+> gates a route, and a `isPrimary` column would be a second source of truth for "what can this user do".
 >
-> ⚠️ **One trap, and it fires at the worst moment.** `apps/api/src/config/project-erd.spec.ts` (line 260) `apps/api/src/config`
-> asserts the schema's model list equals `PLATFORM_CORE_ENTITIES`
-> (`apps/api/erd/project-erd-source.mjs` (line 54) `apps/api/erd`). Adding a 15th model without adding `'UserRole'`
-> there makes `pnpm test` fail. That tripwire is deliberate — it exists to catch a second tenancy
-> concept. **Satisfy it; do not silence it.**
+> **Both tripwires were satisfied, not silenced.** `PLATFORM_CORE_MODELS` in `prisma-schema.spec.ts`
+> AND `PLATFORM_CORE_ENTITIES` in `apps/api/erd/project-erd-source.mjs` — plus a **third** registration
+> point that was not in the handoff: `CLUSTER` in `apps/api/prisma/render-erd.mjs`, where an unlisted
+> model killed the generator with `Cannot read properties of undefined (reading 'stroke')`.
 >
-> **Full step list, proof order and the FK-`@db.Uuid` reminder:** `docs/work/RESUME_2026-09-30.md` §3.
+> **FK count 11 → 12**, not 11. `User.role_id` (−1) became `user_roles.user_id` + `user_roles.role_id` (+2).
+> An earlier comment of mine claimed the count "stays 11" because the relation was only routed — that was
+> wrong arithmetic, and the test caught it.
 >
-> ⚠️ A new foreign key needs `@db.Uuid` on **both** scalar sides — that exact omission made all 11
-> existing FKs unbuildable (`42d2522`). The integration suite's table list also becomes 15, with
-> `UserRole`, in the same change.
+> Proof: schema applies to PostgreSQL 18.4, `prisma validate` clean, ERD geometry PASS (0 overlaps),
+> 12/12 integration, seed idempotent with `roles=1` and still **no password**.
+> Evidence: `docs/work/TDD_EVIDENCE_GATES.md`. Commit: see `git log`.
 >
-> **Then, in order:** `ADR-024` + `PLT-107` (both decided, both unwritten, ~1 hour, unblock
+> ---
+>
+> ## ▶ NEXT TASK — `ADR-024` + `PLT-107`
+>
+> Both **decided by the owner 2026-09-30, both still unwritten.** ~1 hour combined, and they are the
+> last things standing between the project and its first feature.
+>
+> - **`ADR-024`** — the `Money` wire format. Option (C): string on the wire plus a branded client type
+>   that cannot be built from a bare `number`. `ADR-002` exists to forbid float money; the `number`
+>   option reintroduces it one layer up, silently losing minor units past `MAX_SAFE_INTEGER`. Amends
+>   `ADR-002`. Blocks `PLT-301`, `PLT-302`.
+> - **`PLT-107`** — first-admin bootstrap: a one-time, single-use, expiring, audited setup token.
+>   **Not a seed script** — that would leave `School_Setup_Workflow_v1.md` §6.5 unimplementable.
+>   Unblocks `PLT-101`, and therefore Epic 01.
+>
+> **Then:** `PLT-101` auth + identity (34 pts) → `B-2` theme toggle (last hollow gate, `AUD-30-04`)
+> → wire `audit-immutability.sql`, since **`audit_records` is still mutable**.
 > `PLT-101`) → `PLT-101` auth → `B-2` theme toggle (last hollow gate) → wire
 > `audit-immutability.sql` (`audit_records` is **currently mutable**).
 > **Analysis:** `docs/analysis/CODE_AUDIT_2026-09-30.md` (**current** evidence) · `docs/work/ACTION_PLAN_2026-09-30.md` (**the action plan**) · `docs/analysis/CODE_AUDIT_2026-09-29.md` (prior audit) · `docs/work/REMEDIATION_PLAN_2026-09-29.md` (superseded for EPIC-00/EPIC-DOC scope) · `docs/work/GAP_ANALYSIS_2026-09-28.md` (pre-scaffold baseline) · `docs/work/PLATFORM_CORE_PLAN.md`

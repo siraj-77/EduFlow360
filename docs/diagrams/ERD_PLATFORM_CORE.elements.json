@@ -33,7 +33,7 @@
     "x": 520,
     "y": 270,
     "width": 400,
-    "height": 324,
+    "height": 308,
     "strokeColor": "#4f46e5",
     "backgroundColor": "#e8ebff",
     "strokeWidth": 2,
@@ -78,8 +78,8 @@
     "x": 534,
     "y": 314,
     "width": 372,
-    "height": 256,
-    "text": "schoolId  String\nPK  id\nemail  String\nusername  String\npasswordHash  String\npasswordAlgorithm  String\npasswordUpdatedAt  DateTime\nmustChangePassword  Boolean\nstatus  UserStatus\nfailedLoginAttempts  Int\nlockedUntil  DateTime\nlastLoginAt  DateTime\npreferredLocale  String\n▶  roleId → Role\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "height": 240,
+    "text": "schoolId  String\nPK  id\nemail  String\nusername  String\npasswordHash  String\npasswordAlgorithm  String\npasswordUpdatedAt  DateTime\nmustChangePassword  Boolean\nstatus  UserStatus\nfailedLoginAttempts  Int\nlockedUntil  DateTime\nlastLoginAt  DateTime\npreferredLocale  String\ncreatedAt  DateTime\nupdatedAt  DateTime",
     "fontSize": 11,
     "fontFamily": 3,
     "textAlign": "left",
@@ -260,6 +260,66 @@
     "width": 372,
     "height": 64,
     "text": "schoolId  String\n▶  roleId → Role\n▶  permissionId → Permission\ngrantedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
+    "id": "box_UserRole",
+    "type": "rectangle",
+    "x": 0,
+    "y": 340,
+    "width": 400,
+    "height": 132,
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "#f3edff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "UserRole"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 348,
+    "width": 372,
+    "height": 16,
+    "text": "UserRole",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#7c3aed",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 368,
+    "width": 372,
+    "height": 16,
+    "text": "user_roles",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 14,
+    "y": 384,
+    "width": 372,
+    "height": 64,
+    "text": "schoolId  String\n▶  userId → User\n▶  roleId → Role\ngrantedAt  DateTime",
     "fontSize": 11,
     "fontFamily": 3,
     "textAlign": "left",
@@ -868,40 +928,6 @@
     "backgroundColor": "transparent"
   },
   {
-    "id": "edge_User_roleId",
-    "type": "arrow",
-    "x": 520,
-    "y": 432,
-    "width": -120,
-    "height": 488,
-    "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -86,
-        0
-      ],
-      [
-        -86,
-        488
-      ],
-      [
-        -120,
-        488
-      ]
-    ],
-    "strokeColor": "#4f46e5",
-    "backgroundColor": "transparent",
-    "strokeWidth": 2,
-    "strokeStyle": "solid",
-    "roughness": 0,
-    "startArrowhead": null,
-    "endArrowhead": "arrow",
-    "_name": "User->Role"
-  },
-  {
     "id": "edge_RolePermission_roleId",
     "type": "arrow",
     "x": 400,
@@ -914,11 +940,11 @@
         0
       ],
       [
-        44,
+        26,
         0
       ],
       [
-        44,
+        26,
         254
       ],
       [
@@ -948,11 +974,11 @@
         0
       ],
       [
-        62,
+        44,
         0
       ],
       [
-        62,
+        44,
         -298
       ],
       [
@@ -970,28 +996,96 @@
     "_name": "RolePermission->Permission"
   },
   {
-    "id": "edge_Session_userId",
+    "id": "edge_UserRole_userId",
     "type": "arrow",
-    "x": 1120,
-    "y": 392,
-    "width": -200,
-    "height": 40,
+    "x": 400,
+    "y": 406,
+    "width": 120,
+    "height": 18,
     "points": [
       [
         0,
         0
       ],
       [
-        -87,
+        60,
         0
       ],
       [
-        -87,
-        40
+        60,
+        18
+      ],
+      [
+        120,
+        18
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "UserRole->User"
+  },
+  {
+    "id": "edge_UserRole_roleId",
+    "type": "arrow",
+    "x": 400,
+    "y": 406,
+    "width": 0,
+    "height": 514,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        26,
+        0
+      ],
+      [
+        26,
+        514
+      ],
+      [
+        0,
+        514
+      ]
+    ],
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "UserRole->Role"
+  },
+  {
+    "id": "edge_Session_userId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 392,
+    "width": -200,
+    "height": 32,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -74,
+        0
+      ],
+      [
+        -74,
+        32
       ],
       [
         -200,
-        40
+        32
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1016,11 +1110,11 @@
         0
       ],
       [
-        44,
+        62,
         0
       ],
       [
-        44,
+        62,
         -298
       ],
       [
@@ -1043,23 +1137,23 @@
     "x": 1120,
     "y": 690,
     "width": -200,
-    "height": -258,
+    "height": -266,
     "points": [
       [
         0,
         0
       ],
       [
-        -126,
+        -113,
         0
       ],
       [
-        -126,
-        -258
+        -113,
+        -266
       ],
       [
         -200,
-        -258
+        -266
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1077,23 +1171,23 @@
     "x": 1120,
     "y": 2468,
     "width": -200,
-    "height": -2036,
+    "height": -2044,
     "points": [
       [
         0,
         0
       ],
       [
-        -113,
+        -100,
         0
       ],
       [
-        -113,
-        -2036
+        -100,
+        -2044
       ],
       [
         -200,
-        -2036
+        -2044
       ]
     ],
     "strokeColor": "#8a8f98",
@@ -1111,23 +1205,23 @@
     "x": 1120,
     "y": 2768,
     "width": -200,
-    "height": -2336,
+    "height": -2344,
     "points": [
       [
         0,
         0
       ],
       [
-        -100,
+        -87,
         0
       ],
       [
-        -100,
-        -2336
+        -87,
+        -2344
       ],
       [
         -200,
-        -2336
+        -2344
       ]
     ],
     "strokeColor": "#8a8f98",
@@ -1145,23 +1239,23 @@
     "x": 1120,
     "y": 2138,
     "width": -200,
-    "height": -1706,
+    "height": -1714,
     "points": [
       [
         0,
         0
       ],
       [
-        -87,
+        -74,
         0
       ],
       [
-        -87,
-        -1706
+        -74,
+        -1714
       ],
       [
         -200,
-        -1706
+        -1714
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1179,23 +1273,23 @@
     "x": 1120,
     "y": 1004,
     "width": -200,
-    "height": -572,
+    "height": -580,
     "points": [
       [
         0,
         0
       ],
       [
-        -74,
+        -126,
         0
       ],
       [
-        -74,
-        -572
+        -126,
+        -580
       ],
       [
         -200,
-        -572
+        -580
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1213,23 +1307,23 @@
     "x": 1120,
     "y": 1406,
     "width": -200,
-    "height": -974,
+    "height": -982,
     "points": [
       [
         0,
         0
       ],
       [
-        -126,
+        -113,
         0
       ],
       [
-        -126,
-        -974
+        -113,
+        -982
       ],
       [
         -200,
-        -974
+        -982
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1254,11 +1348,11 @@
         0
       ],
       [
-        62,
+        26,
         0
       ],
       [
-        62,
+        26,
         -402
       ],
       [
@@ -1281,23 +1375,23 @@
     "x": 1120,
     "y": 1816,
     "width": -200,
-    "height": -1384,
+    "height": -1392,
     "points": [
       [
         0,
         0
       ],
       [
-        -100,
+        -87,
         0
       ],
       [
-        -100,
-        -1384
+        -87,
+        -1392
       ],
       [
         -200,
-        -1384
+        -1392
       ]
     ],
     "strokeColor": "#4f46e5",
