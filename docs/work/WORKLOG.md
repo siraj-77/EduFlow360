@@ -2758,3 +2758,79 @@ allowed email domain; (4) Workspace tenant versus consumer Gmail.
 Then `PLT-101` tranche 2, starting with `IClock` + `IOidcProvider` ports, the
 `Session`/`RefreshToken` repository and the OIDC env schema. **No HTTP route until token
 verification is settled.**
+
+## 2026-10-01 (session close) - Documentation reconciled, and the state re-measured
+
+### Phase
+
+Session close. No code changed. The point was to leave the next session able to start
+without archaeology, and to stop the measured numbers in `SSOT.md` from drifting again.
+
+### Activity
+
+**Re-measured everything, because `SSOT.md` §1 says in its own words that every row is
+measured and never carried forward.** Ten cells had gone stale across three sessions:
+
+| Cell | Was | Now |
+|---|---|---|
+| Version control | 24 commits, 27 modified + 3 untracked | **48 commits, clean, 0 ahead / 0 behind** at `e4b8232` |
+| Quality gates | 3 red, 6 of 9 trustworthy | **1 red, 8 of 9 trustworthy** |
+| ERD entities | 14 | **16** |
+| Unit tests | 194 (api 127) | **207 (api 140)** |
+| `docs:verify` references | 207 | **227** |
+| Integration cases | 9, 14 tables, 11 FKs | **17, 16 tables, 13 FKs** |
+| Stories completed | 0, PLT-101 not started | 0 complete, but tranche 1 landed; flow blocked on the owner |
+
+Two rows were not merely stale but **wrong in a way worth recording**:
+
+- The version-control row had claimed a dirty tree for three consecutive sessions while
+  every change in them was in fact committed and pushed. It has now read "clean" against
+  `git status` rather than against memory.
+- The integration row described the gate as green without mentioning that it was green
+  **only because a reviewer exported `DATABASE_URL` by hand**. A reader would have taken
+  that as a working gate. The cell now says so, and says the config loads `.env` now.
+
+### Files Changed
+
+- `docs/work/RESUME_2026-10-02.md` — **new.** Measured state, the two owner decisions,
+  the Google console steps, the tranche-2 build order, and the encoding trap.
+- `docs/core/SSOT.md` — eleven cells re-measured; §1, §1a and the header dates moved to
+  2026-10-01.
+- `docs/work/TODO.md` — a "START HERE TOMORROW" pointer under the how-to-use line.
+- `docs/work/WORKLOG.md` — this entry.
+
+### Deliberately NOT done
+
+- **No OIDC variables were added to `.env.example`.** They are not in `env.ts` yet, and
+  `AGENTS.md` §11 says that file documents every variable. Documenting four variables
+  the application does not read would be a second, quieter version of the same defect
+  the file exists to prevent. They land together with the env schema.
+- **No historical `WORKLOG` or `CHANGELOG` entries were rewritten.** `format:check:docs`
+  was left red across its 44 files. Reformatting prose that is already recorded history
+  would bury a 300-line diff inside a housekeeping commit.
+
+### Quality
+
+- Gates re-run after the doc edits: `lint` 0 → `typecheck` 0 → `test` 0 →
+  `docs:verify` 0 → `format:check` 0 → `build` 0 →
+  `test:integration` 0 → `test:e2e` 0 → **`test:coverage` 1**.
+- `test:integration` was run with **no exported `DATABASE_URL`**, which is the honest test
+  now that the config loads `.env` itself.
+- `docs:verify` resolves **228 references across 8 documents**. It has moved
+  188 → 207 → 227 → **228** across three sessions, each time purely from documents gaining
+  cross-references. That is the argument for `G2-2` restated a third time.
+
+### Next Steps
+
+Read `docs/work/RESUME_2026-10-02.md` first. The three owner decisions, in order: clear
+or hold the `PLT-101` sign-off gate — approve `jose` (recommendation) or direct an
+alternative for ID-token verification — supply the email domain and the
+Workspace/consumer answer.
+
+Two items are independent of all three and can be started at any time: sweeping the 10
+remaining U+FFFD in `docs/superpowers/plans/2026-09-30-gap-remediation.md`, and wiring
+`audit-immutability.sql` so `audit_records` stops being mutable (`AGENTS.md` §2.7).
+
+**Still outstanding from earlier and not forgotten:** rotate the database password. It was
+shared in chat during setup, the owner accepted the risk on 2026-09-28 (`D16`), and it has
+not been done.

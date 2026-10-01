@@ -1,7 +1,18 @@
 # TODO — Next Actions
 
-**Last updated:** 2026-09-30 (end of session)
+**Last updated:** 2026-10-01 (session close)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
+
+> ## ▶ START HERE TOMORROW — `docs/work/RESUME_2026-10-02.md`
+>
+> Written at the close of 2026-10-01. It carries the measured state, the two owner
+> decisions blocking `PLT-101`, the Google OAuth console steps, the build order for
+> tranche 2, and the PowerShell encoding trap that cost real time.
+>
+> **The one-line version:** `main` is clean and in sync at `e4b8232`, 8 of 9 gates
+> green, and **the next task is blocked on you, not on engineering** — clear the
+> `PLT-101` sign-off gate, and approve `jose` (or an alternative) for ID-token
+> verification.
 
 > ## ✔ DONE 2026-09-30 — `D-4.1`, multi-role (`UserRole` join)
 >
