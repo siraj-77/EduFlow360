@@ -1,6 +1,6 @@
 # Decisions to settle before `PLT-101` — BigInt and Google OAuth
 
-**Date:** 2026-09-30 · **Status:** owner decisions required · **Blocks:** `PLT-101`, `ARC-06`
+**Date:** 2026-09-30 · **Status:** ✅ **answered — see `PLT-101_DECISIONS_2026-09-30.md`** · **Blocks:** `PLT-101`, `ARC-06`
 
 `ADR-024` and `PLT-107` left two questions open that `PLT-101` has to answer before
 it can be written. Both are here because they are cheap to settle now and expensive
