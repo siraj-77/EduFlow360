@@ -3276,3 +3276,40 @@ only then the redirect and callback routes. `TODO.md` records the order.
 6. **`docs/work/TODO.md` and `docs/core/SSOT.md` were not touched.** `SSOT.md` by instruction;
    `TODO.md` because the brief authorised only `WORKLOG.md`. `AGENTS.md` §9 asks for both in the
    same commit, so whoever commits this needs to add the `TODO.md` line.
+
+## 2026-10-02 — A route that could not boot, and an HTTP harness to catch it
+
+| Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase         | `PLT-101` / testability                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Task          | SWC transform, an API HTTP harness, and the production defect both exposed                                                                                                                                                                                                                                                                                                                                                                                       |
+| Status        | ✔ Harness landed. **A shipped route could not boot** and is now fixed.                                                                                                                                                                                                                                                                                                                                                                                           |
+| Activity      | Added `unplugin-swc` so `emitDecoratorMetadata` is emitted under Vitest, plus a harness that boots the real Nest app and drives it over a socket — reading the real `Set-Cookie`, not a stub.                                                                                                                                                                                                                                                                    |
+| Findings      | **(1) `OidcSignInController` could not be constructed, in the shipped build.** It declared its dependency with `import type`, so `emitDecoratorMetadata` had no runtime value to emit: `tsc` wrote `[Function]`, SWC wrote `[Object]`, and `node dist/main.js` could not start. `tsc` accepted it, `lint` demanded it, and the build was green. **(2)** `IOIDC_STATE_STORE` had no `inject`, so the clock arrived `undefined` and every request would have died. |
+| Fix           | `@Inject(BeginOidcSignIn)` plus a value import. This resolves from an **explicit token** rather than reflected metadata, so correctness no longer depends on which transform compiled the file — the whole defect class is closed, not just this instance.                                                                                                                                                                                                       |
+| Test evidence | The characterisation test that **asserted the boot failure** was inverted rather than deleted, so the defect cannot return unnoticed. Proven by breaking the cookie flags and showing exactly the `HttpOnly` assertion go red, and by removing the plugin (4 red).                                                                                                                                                                                               |
+| Quality       | lint 0, typecheck 0, test 0, docs:verify 0, check:route-guards 0, format:check 0, build 0, integration 0, e2e 0.                                                                                                                                                                                                                                                                                                                                                 |
+
+### Two corrections I owe
+
+1. **I recommended deleting the `apps/web` zero-file coverage tiers. That was wrong.**
+   `scripts/check-coverage-tiers.mjs` prints, unprompted, "Do not delete a tier to make this
+   gate green — the tiers are correct forward-looking configuration for code that has not been written."
+   It is right and I was wrong. A tier matching zero files is a **promise** that the code will be
+   covered when it arrives; deleting it removes the ratchet and buys a green gate with no
+   engineering in it. The repo caught my bad advice with tooling, which is the tooling working.
+2. **I corrupted a source file with PowerShell mid-task** — backticks in a comment became a
+   newline and a tab, and the file would not parse. Repaired with Node. This is the third time
+   in this project that has happened, and it is now written down as a hard rule rather than
+   folklore.
+
+### Still open, deliberately
+
+- **`apps/web` hooks tiers** — ⚠ correctly red. The fix is to write the hooks,
+  not to weaken the tier.
+- **argon2 operational ceilings** (256 MiB / 10 passes) relabelled as a **DoS guard with no measured
+  authority**, in the source. They exist because `timeCost: -1` _hangs_ rather than erroring. The
+  security-relevant value is the default, which is OWASP-derived; the ceilings are not a claim
+  about strength in either direction. Revisit against measured hardware.
+- **`@RequirePermission` / `@RequireEntitlement` / `@Audited`** are still metadata. Nothing reads
+  them. `CsrfGuard` remains the only control that enforces anything.

@@ -1,10 +1,28 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Inject, Res } from '@nestjs/common';
 import { Public } from '../../../common/guards/public.decorator.js';
 import {
   ExpressCookieCarrier,
   type CookieWritingResponse,
 } from '../infrastructure/adapters/express-cookie-carrier.js';
-import type { BeginOidcSignIn } from '../use-cases/begin-oidc-sign-in.js';
+// A VALUE import, used by `@Inject` below — deliberately not `import type`.
+// Two rules collide here, and the resolution is worth recording:
+//
+//   1. `emitDecoratorMetadata` reads the RUNTIME value of a constructor
+//      parameter to emit `design:paramtypes`. Under `import type` that value
+//      does not exist, so tsc emitted `[Function]` and SWC emitted `[Object]`,
+//      Nest could not resolve the dependency, and THE WHOLE APP FAILED TO BOOT.
+//      `tsc` never flagged it, because a type-only import of a class is legal
+//      TypeScript and only fails later, at DI resolution.
+//   2. `@typescript-eslint/consistent-type-imports` demands `import type` when
+//      an import is used only in type position — which is exactly true here.
+//
+// Rather than disabling the lint rule or adding a suppression, this uses
+// `@Inject(...)`, which makes the import a genuine value use AND states the
+// dependency explicitly. Nest then resolves it from the token rather than from
+// reflected metadata, so this class of bug cannot recur here regardless of what
+// transform compiles it. That is strictly more robust than trusting a compiler
+// flag, in a file whose whole job is authentication.
+import { BeginOidcSignIn } from '../use-cases/begin-oidc-sign-in.js';
 
 /**
  * `GET /auth/oidc/redirect` — the route that starts a sign-in.
@@ -75,7 +93,7 @@ const OIDC_REDIRECT_PUBLIC_REASON =
  */
 @Controller('auth')
 export class OidcSignInController {
-  constructor(private readonly beginSignIn: BeginOidcSignIn) {}
+  constructor(@Inject(BeginOidcSignIn) private readonly beginSignIn: BeginOidcSignIn) {}
 
   /**
    * Begin a sign-in.

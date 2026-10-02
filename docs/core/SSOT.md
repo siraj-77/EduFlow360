@@ -344,6 +344,23 @@ semantics — `argon2.needsRehash` and `emitDecoratorMetadata` below.
 The gap is test-only, and closing it needs an SWC transform — a dependency decision, not
 yet taken.
 
+### Closed 2026-10-02 — D60: a route that passed every gate and could not boot
+
+| ID      | Decision                                                         | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D60** | **Constructors in `apps/api` take `@Inject(Token)` explicitly.** | `OidcSignInController` declared its one dependency with `import type`. `tsc` accepted it, `@typescript-eslint/consistent-type-imports` **demanded** it, `pnpm build` was green, and every gate passed — while `node dist/main.js` could not start, because `emitDecoratorMetadata` has no runtime value to emit for a type-only import. The defect was invisible until something tried to **boot**. An explicit token resolves from the registration rather than from reflected metadata, so it holds whichever transform compiled the file. |
+
+**The generalisable lesson, and it is not about Nest:** `AGENTS.md` §4 asks whether a gate is
+_sound_, not merely green. Nine green gates and an application that cannot start is the clearest
+possible statement that those two questions are different. It took an HTTP harness to find, and
+the harness is now the cheapest control in the repository.
+
+**Also now settled, from a third instance of the same shape:** a **coverage tier that matches zero
+files must not be deleted to go green.** `scripts/check-coverage-tiers.mjs` says so in its own
+output. It is correct: the tier is a promise about code not yet written. Deleting it removes the
+ratchet and buys a green gate with no engineering in it. I recommended deletion; the repo's own
+tooling overruled me, which is the tooling working.
+
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
 | Question                                       | Authoritative source                                                                                           |

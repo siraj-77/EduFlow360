@@ -101,13 +101,27 @@ export const DEFAULT_PASSWORD_HASH_PARAMETERS: PasswordHashParameters = Object.f
 });
 
 /**
- * Operational ceilings, ours rather than argon2's. See the header.
+ * Operational ceilings — a DoS guard, NOT a security parameter. See the header.
  *
- * 256 MiB is thirteen times the default, so no school on real hardware is
- * likely to reach it; the point is that a fat-fingered value cannot turn a
- * login into an outage. Ten passes at the default memory is roughly a quarter
- * of a second on a modern core, so the ceiling is generous for any deployment
- * that is not already broken.
+ * These numbers are ours, and they carry **no measured authority**. They are not
+ * derived from OWASP, from a benchmark, or from any deployment this project has
+ * run; they exist for one reason, and it is a defensive one:
+ * `argon2` accepts `timeCost: -1` and then **hangs** rather than erroring, so an
+ * unbounded value is an unbounded denial of service on the login path. The
+ * ceilings are how that is made survivable.
+ *
+ * What they are NOT is a claim about what makes a password strong. Raising the
+ * ceiling does not make any credential safer; lowering it below the floor does
+ * not either, because the floor is where argon2 stops being usable at all. The
+ * security-relevant value is the **default**, and that one is taken from a
+ * published recommendation (see `PASSWORD_HASH_PARAMETER_DEFAULTS`) rather than
+ * invented here.
+ *
+ * The 256 MiB figure is roughly thirteen times the default, so no school on real
+ * hardware is likely to reach it. Ten passes at the default memory is on the
+ * order of a quarter second on a modern core, so the ceiling is generous for any
+ * deployment that is not already broken. **Revisit these against measured
+ * hardware before treating them as tuned.**
  */
 export const PASSWORD_HASH_PARAMETER_CEILINGS = Object.freeze({
   memoryCost: 262_144,

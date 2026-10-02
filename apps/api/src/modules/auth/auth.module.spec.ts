@@ -25,29 +25,37 @@ import { BeginOidcSignIn } from './use-cases/begin-oidc-sign-in.js';
  * `GET /auth/oidc/redirect` answers `404` forever, because nobody registered the
  * controller.
  *
- * ## What it CANNOT do here, and the measured reason
+ * ## What this file does NOT cover, as of 2026-10-03
  *
- * **It cannot build the Nest container.** Vitest transforms with esbuild, and
- * esbuild does not implement `emitDecoratorMetadata`. Measured on 2026-10-02:
- * `Reflect.getMetadata('design:paramtypes', OidcSignInController)` is `undefined`
- * under this runner, so Nest has no constructor parameter types to resolve and
- * every container build fails with "can't resolve dependencies" regardless of
- * whether the wiring is right. `nest build` uses `tsc`, which does emit it — the
- * metadata is in `dist/` — so this is a limitation of the test runner, not of the
- * module. Fixing it properly means adding an SWC or `unplugin-swc` transform to
- * Vitest, which is a dependency decision and not this task's to take.
+ * **It does not build the Nest container, and that is now a choice rather than a
+ * limitation.** When this file was written, Vitest transformed with esbuild and
+ * esbuild does not implement `emitDecoratorMetadata`, so
+ * `Reflect.getMetadata('design:paramtypes', OidcSignInController)` was
+ * `undefined` and every container build failed. `vitest-swc-plugin.ts` replaces
+ * esbuild with SWC for the test suites and that is fixed; see
+ * `config/nest-dependency-injection.spec.ts` for the mechanism and for the
+ * measured failure mode, which was worse than a build error (Nest injected
+ * `undefined` and reported success).
  *
- * So these tests assert the two things that can be asserted honestly:
+ * The container is still not built *here*, because this file's subject is the
+ * module's declarative output: which controllers are registered, which
+ * factories exist, and what they build from which environment variable. Building
+ * the container is `config/nest-dependency-injection.spec.ts`, and driving a route
+ * over a real socket is `oidc-redirect-over-http.spec.ts`.
+ *
+ * ## What these tests assert
  *
  * 1. **Registration** — the controller is in the module that `AppModule` imports.
  * 2. **The factory bodies** — invoked directly, they build the real provider,
- *    the real store and the real origin from the real configuration. That is
- *    where a wrong environment variable name or a missing argument would live,
- *    and it is reachable without a container.
+ *    the real store and the real origin from the real configuration.
  *
- * What remains unproven by any test here: that a running process answers a real
- * `GET`. Nothing in this repository can yet show that, and this file does not
- * pretend otherwise.
+ * The second point now carries a warning rather than a reassurance. On
+ * 2026-10-03 the `IOIDC_STATE_STORE` factory was found to be missing its `inject`
+ * array, so the container called it with no arguments and the store was built
+ * with `clock === undefined`. Every test below passed regardless, because each
+ * one invoked the factory by hand and supplied the argument itself. That is the
+ * failure mode a hand-invoked factory cannot see and a real container test can,
+ * which is the argument for the other two files existing.
  */
 
 const CONFIGURED = {

@@ -1,6 +1,21 @@
 import { defineConfig } from 'vitest/config';
+import { swcPlugin } from './vitest-swc-plugin.js';
 
 export default defineConfig({
+  /**
+   * SWC replaces esbuild as the transform for this suite.
+   *
+   * The reason, the measurements behind it and the packages that were rejected
+   * are all in `vitest-swc-plugin.ts`. In one line: esbuild does not implement
+   * `emitDecoratorMetadata`, so without this plugin Nest silently injects
+   * `undefined` into every constructor-injected class in this package — the
+   * container still "builds", and `GET /auth/oidc/redirect` still answers 500.
+   *
+   * `vitest-swc-plugin.ts` is shared with `vitest.integration.config.ts` rather
+   * than duplicated, so there is one transform in this package and not two that
+   * can drift.
+   */
+  plugins: [swcPlugin()],
   test: {
     environment: 'node',
     /**

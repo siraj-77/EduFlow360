@@ -14,6 +14,25 @@ packages:
 #                        owner's explicit approval of the dependency
 #                        (`AGENTS.md` §8), not as a blanket native-module
 #                        exemption.
+#   @swc/core          - SWC, the test-only transform in apps/api that makes
+#                        Nest DI resolvable under Vitest (esbuild does not
+#                        implement `emitDecoratorMetadata`). Same class as
+#                        argon2 and esbuild: a native binding. Allowed on the
+#                        owner's explicit approval of the transform dependency.
+#                        Read before widening: its postinstall loads
+#                        `binding.js` and verifies the target triple, and ONLY
+#                        if that fails does it shell out to
+#                        `npm install @swc/wasm@<version>` as a fallback. On a
+#                        platform whose optional native package is installed
+#                        it is a no-op, which was verified on Windows
+#                        (`@swc/core-win32-x64-msvc`). Note it is also listed
+#                        as `false`-able in principle - pnpm accepts `false`
+#                        and the transform does work with the postinstall
+#                        blocked - but
+#                        `apps/api/src/config/workspace-config.spec.ts`
+#                        requires every entry to be `true`, on the stated
+#                        grounds that a deliberate denial must not collide
+#                        with packages that genuinely need their script.
 #
 # Everything not listed stays blocked, so a supply-chain postinstall
 # cannot run unapproved. That blocking is deliberate and is the point of
@@ -39,6 +58,7 @@ packages:
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
+  '@swc/core': true
   argon2: true
   esbuild: true
   prisma: true

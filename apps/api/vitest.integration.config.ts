@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import { swcPlugin } from './vitest-swc-plugin.js';
 
 /**
  * `DATABASE_URL` lives in the git-ignored `.env` at the repository root, and
@@ -95,6 +96,17 @@ if (!process.env.DATABASE_URL) {
  * Do not set this back to `true` to make the gate green.
  */
 export default defineConfig({
+  /**
+   * The same SWC transform the unit suite uses, for the reason given in
+   * `vitest-swc-plugin.ts`: without `emitDecoratorMetadata` a Nest container
+   * built in an integration spec would silently inject `undefined`.
+   *
+   * Nothing needs it yet — no integration spec builds a Nest application — and
+   * it is here anyway because the first one that does would otherwise inherit a
+   * defect that fails as a 500 rather than as an error, and an integration
+   * suite is exactly where a future route test would live.
+   */
+  plugins: [swcPlugin()],
   test: {
     environment: 'node',
     include: ['src/**/*.integration.spec.ts'],

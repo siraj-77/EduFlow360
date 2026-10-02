@@ -152,6 +152,25 @@ export class AuthModule {
             secret: requireString(config.JWT_ACCESS_SECRET, 'JWT_ACCESS_SECRET'),
             ttlMs: config.OIDC_STATE_TTL_MS,
           }),
+        // `inject` was MISSING here until 2026-10-03, and the route could not work
+        // because of it. Without it Nest has no argument list for this factory and
+        // calls it with none, so `clock` was `undefined` and the first request
+        // died in `HmacOidcStateStore.seal` with
+        //
+        //     TypeError: Cannot read properties of undefined (reading 'now')
+        //
+        // Nest does not fall back to the factory's own parameter types here: a
+        // `useFactory` arrow function carries no `design:paramtypes` because it
+        // is not decorated, so the reflected list is empty. Every other factory in
+        // this file already declared `inject`; this one did not, and the omission
+        // was invisible because `auth.module.spec.ts` invoked the factory by hand
+        // and passed `new SystemClock()` itself.
+        //
+        // It is worth recording that this is the second defect of its kind in one
+        // module: `OidcSignInController` declares its dependency with `import type`,
+        // which `emitDecoratorMetadata` cannot turn into a runtime value. That one
+        // lives in `controllers/` and is not fixed here.
+        inject: [SystemClock],
       },
       {
         provide: BeginOidcSignIn,

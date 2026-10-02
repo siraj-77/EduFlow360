@@ -1,8 +1,7 @@
 import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
 import { bootBanner, loadConfig } from './config/env.js';
 import { loadEnvFiles, workspaceEnvFilePaths } from './config/env-files.js';
-import { AppModule } from './app.module.js';
+import { createApp, DEFAULT_WEB_ORIGIN } from './create-app.js';
 
 /**
  * EduFlow API entry point.
@@ -36,18 +35,30 @@ async function bootstrap(): Promise<void> {
     }).join('\n'),
   );
 
-  // `forRoot` rather than the class: `AuthModule` needs the validated
-  // configuration, and `loadEnvFiles()` above has only just made the environment
-  // readable. Passing it in is what keeps module wiring after that read instead
-  // of at import time.
-  const app = await NestFactory.create(AppModule.forRoot(loaded.config), { bufferLogs: true });
+  // The application is built by `createApp()` in `create-app.ts`, not here, and
+  // the reason is ordering rather than style. `bootstrap()` is invoked at module
+  // scope (`void bootstrap()` on the last line), so a test importing this file
+  // would start a real server on `PORT` before its first assertion. Extracting
+  // the creation means a route test calls the very function this entry point
+  // calls, rather than a second bootstrap that could differ from the deployed
+  // one in ways no test would notice — a second bootstrap is a second thing that
+  // can be wrong.
+  //
+  // Configuration is passed in rather than read here because `AuthModule` needs
+  // the *validated* configuration, and `loadEnvFiles()` above has only just made
+  // the environment readable. That is the arrangement `AppModule.forRoot`
+  // documents as its own reason for taking `AppConfig` as a parameter.
+  const app = await createApp({
+    config: loaded.config,
+    // The one ambient read in the boot path, and it stays here: the allowed
+    // origin is a deployment fact, and this is where the environment becomes
+    // readable. `createApp` holds no `process.env` read of its own, so a test
+    // cannot be perturbed by whatever `WEB_ORIGIN` is in a developer's shell.
+    webOrigin: process.env.WEB_ORIGIN ?? DEFAULT_WEB_ORIGIN,
+  });
 
-  // The API is a separate service. It serves JSON only; the web app is UI
-  // (AGENTS.md 3.1). CORS is scoped to the local web origin until a
-  // deployment-specific origin is configured.
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:3500' });
-
-  app.enableShutdownHooks();
+  // `enableShutdownHooks()` is inside `createApp`, not here. Calling it in both
+  // places would register every signal handler twice.
   await app.listen(loaded.config.PORT);
 }
 
