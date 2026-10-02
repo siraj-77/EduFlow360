@@ -178,6 +178,36 @@ model User {
   passwordUpdatedAt       DateTime?                @map("password_updated_at")
   mustChangePassword      Boolean                  @default(false) @map("must_change_password")
   status                  UserStatus               @default(INVITED)
+  /// `PLT-107`: SHA-256 of the one-time bootstrap token, and ONLY the
+  /// hash. The token is an unauthenticated route to the administrator
+  /// account, so a cleartext copy in a database dump would be the
+  /// school's only administrator credential. Same rule, and same reason,
+  /// as `RefreshToken.tokenHash` (`AGENTS.md` 2.13).
+  ///
+  /// Option (b) of two, decided in the story: two columns on the one
+  /// `INVITED` row rather than a seventeenth model. The first
+  /// administrator is singular, so a table holding exactly one row that is
+  /// written once and consumed once is a generalisation with one instance.
+  /// `PLT-104` promotes these two columns into a real table when invites
+  /// become many.
+  ///
+  /// NULL after consumption, which is what makes the token single-use.
+  /// NULL is also the state of every user who never had one, so this
+  /// column alone cannot distinguish "never issued" from "already spent" —
+  /// the repository reads `status`/`passwordHash` for that, and the
+  /// distinction is a documented limitation of option (b), not an accident.
+  setupTokenHash          String?                  @map("setup_token_hash")
+  /// `PLT-107`: when the bootstrap token stops being valid. There is no
+  /// separate consumed-at column — nulling the hash above IS the
+  /// consumption, and a second timestamp is a second thing to get out of
+  /// step with the first.
+  ///
+  /// The comparison is `expiresAt > now` against an `IClock` (`AGENTS.md`
+  /// 2.4), so the expiry boundary is deterministic and testable rather than
+  /// a function of when the query happened to run. A row carrying a hash
+  /// with no expiry is treated as EXPIRED, because that is the fail-closed
+  /// reading.
+  setupTokenExpiresAt     DateTime?                @map("setup_token_expires_at")
   /// `PLT-101` lockout counter. Threshold and cooldown are settings.
   failedLoginAttempts     Int                      @default(0) @map("failed_login_attempts")
   lockedUntil             DateTime?                @map("locked_until")

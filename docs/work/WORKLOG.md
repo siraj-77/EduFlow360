@@ -3080,3 +3080,35 @@ time, and it loses it quietly.
 Owner: (1) cookie or bearer token for session transport; (2) the allowed email domain.
 Then `ISessionRepository` and its Prisma implementation, `@Public` and its allowlist, and
 only then the redirect and callback routes. `TODO.md` records the order.
+## 2026-10-02 — `PLT-107` token half — `builder`
+
+| Field | Value |
+| --- | --- |
+| Phase | `PLT-101` tranche / `PLT-107` bootstrap |
+| Task | Setup-token core: two `User` columns, `IPasswordHasher` port, issue/inspect/consume, concurrency proof |
+| Agent | `builder` (delegated), reviewed by `core` |
+| Status | ✔ **Token half complete. Controller deliberately NOT built.** |
+| Activity | Added `setupTokenHash` + `setupTokenExpiresAt` to `User` via `schema-source.mjs` (option (b), no sixteenth model). Added `IPasswordHasher` as a **port with no implementation**. Added the setup-token decision rule, use-case, Prisma repository and a fake repository. |
+| Files Changed | `schema-source.mjs`, `schema.prisma`, `ERD_PLATFORM_CORE.elements.json`, `prisma-schema.spec.ts`, `instant.ts`; new: `password-hasher.ts`, `setup-token.ts(+spec)`, `setup-token-repository.ts`, `prisma-setup-token-repository.ts(+integration.spec)`, `setup-token-service.ts(+spec)`, `fake-setup-token-repository.ts` |
+| Decisions Made | Consumption is **one conditional `UPDATE`**, verdict from the affected-row count. `id` deliberately absent from the `WHERE` so no read-then-write creeps in; `gt` not `gte` so a token is dead at its expiry instant. SHA-256 not argon2id: the token is 256 machine-generated bits, not a human password, and `ADR-007` governs `User.passwordHash` (a different secret in a different column). |
+| Test evidence | Unit 232 — **259**. Integration 29 — **48**. Concurrency proven with `Promise.all` at both repository and use-case level. The test was shown to **fail** against a deliberately reinstated naive read-then-write (5/5 red, 2-8 of 8 claims wrongly accepted). |
+| Quality | lint 0, typecheck 0, test 0, docs:verify 0, check:route-guards 0, format:check 0, build 0, integration 0, e2e 0. `test:coverage` still 1 on three **zero-file** tiers (`controllers.ts`, two `apps/web` hooks globs) — untouched by this story. |
+| Next Steps | `IPasswordHasher` needs an argon2id dependency — **owner approval required**, `AGENTS.md` §8. Until then no `POST /auth/setup/complete`. |
+
+**Open concerns carried forward, not resolved:**
+
+1. **A conflict inside the story itself.** It requires `404` for an unenrolled deployment ("does not
+   advertise the endpoint") *and* an error that "does not reveal whether the token ever existed".
+   Both are implemented as written and the tension is documented in code rather than hidden. The
+   reconciliation to decide: make the `404` a property of **deployment state** (so an unenrolled
+   deployment answers `404` to every request and therefore reveals nothing about any token), and
+   scope non-revelation *within* an enrolled deployment, where forged and expired must be
+   indistinguishable. That reading satisfies both clauses; implementing them as literal status codes
+   does not.
+2. **`consume` and the credential write must share one transaction.** A crash between them
+   destroys a single-school install's only way in. This is the controller's first requirement.
+3. **`consumed` is inferred from the account, not the token.** Option (b) NULLs the hash, which is
+   indistinguishable from "never issued". Breaks the moment a second no-credential `INVITED` row
+   exists — i.e. `PLT-104` OTP invites. Recorded, not hidden.
+4. **Repository port location is inconsistent.** This work followed `AGENTS.md` §3 and used `domain/repositories/`; the committed sibling (`ISessionRepository`) lives in `domain/ports/`. Flagged rather than silently moved.
+

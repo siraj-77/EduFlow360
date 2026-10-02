@@ -1,7 +1,7 @@
 ### Story PLT-107: First-Administrator Bootstrap via a One-Time Setup Token
 
 - **As a** school's principal **I want to** claim this installation by entering a one-time setup token **so that** a fresh deployment can have its first administrator without a seed script, a database console, or a shipped default password.
-- **Status:** ✅ **Approved by owner 2026-09-30** (`D-4.3`). Story written 2026-09-30. **Not started.**
+- **Status:** ⛧ **In progress.** Owner-approved 2026-09-30 (`D-4.3`). Story written 2026-09-30. **Token half done 2026-10-02** (columns, `IPasswordHasher` port, issue/inspect/consume, atomicity proven against real PostgreSQL). **Controller not started — blocked on an argon2id dependency decision, `AGENTS.md` §8.**
 - **Decides, not defers:** `EduFlow_School_Setup_Workflow_v1.md` §6.5 (Phase 3, first launch, first administrator) requires this and **no existing story covered it**. `PLT-101` is ordinary credential login and cannot deliver it.
 - **Why not a seed script:** a seed is cheaper and adequate for _one database per school_ (`ADR-003`), but it leaves the **documented** first-launch workflow unimplementable, so §6.5 would need amending instead. The seed then falls out of this story as a dev convenience rather than becoming the production path. The owner's decision, recorded.
 - **Depends on:** `PLT-101` (this consumes the credential-setting path it builds). **Blocks:** `PLT-101` acceptance, and therefore all of Epic 01.

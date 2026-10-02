@@ -33,7 +33,7 @@
     "x": 520,
     "y": 270,
     "width": 400,
-    "height": 308,
+    "height": 340,
     "strokeColor": "#4f46e5",
     "backgroundColor": "#e8ebff",
     "strokeWidth": 2,
@@ -78,8 +78,8 @@
     "x": 534,
     "y": 314,
     "width": 372,
-    "height": 240,
-    "text": "schoolId  String\nPK  id\nemail  String\nusername  String\npasswordHash  String\npasswordAlgorithm  String\npasswordUpdatedAt  DateTime\nmustChangePassword  Boolean\nstatus  UserStatus\nfailedLoginAttempts  Int\nlockedUntil  DateTime\nlastLoginAt  DateTime\npreferredLocale  String\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "height": 272,
+    "text": "schoolId  String\nPK  id\nemail  String\nusername  String\npasswordHash  String\npasswordAlgorithm  String\npasswordUpdatedAt  DateTime\nmustChangePassword  Boolean\nstatus  UserStatus\nsetupTokenHash  String\nsetupTokenExpiresAt  DateTime\nfailedLoginAttempts  Int\nlockedUntil  DateTime\nlastLoginAt  DateTime\npreferredLocale  String\ncreatedAt  DateTime\nupdatedAt  DateTime",
     "fontSize": 11,
     "fontFamily": 3,
     "textAlign": "left",
@@ -1061,7 +1061,7 @@
     "x": 400,
     "y": 406,
     "width": 120,
-    "height": 18,
+    "height": 34,
     "points": [
       [
         0,
@@ -1073,11 +1073,11 @@
       ],
       [
         60,
-        18
+        34
       ],
       [
         120,
-        18
+        34
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1129,7 +1129,7 @@
     "x": 920,
     "y": 796,
     "width": 0,
-    "height": -372,
+    "height": -356,
     "points": [
       [
         0,
@@ -1141,11 +1141,11 @@
       ],
       [
         44,
-        -372
+        -356
       ],
       [
         0,
-        -372
+        -356
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1163,7 +1163,7 @@
     "x": 1120,
     "y": 400,
     "width": -200,
-    "height": 24,
+    "height": 40,
     "points": [
       [
         0,
@@ -1175,11 +1175,11 @@
       ],
       [
         -126,
-        24
+        40
       ],
       [
         -200,
-        24
+        40
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1231,7 +1231,7 @@
     "x": 1120,
     "y": 690,
     "width": -200,
-    "height": -266,
+    "height": -250,
     "points": [
       [
         0,
@@ -1243,11 +1243,11 @@
       ],
       [
         -100,
-        -266
+        -250
       ],
       [
         -200,
-        -266
+        -250
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1265,7 +1265,7 @@
     "x": 1120,
     "y": 2468,
     "width": -200,
-    "height": -2044,
+    "height": -2028,
     "points": [
       [
         0,
@@ -1277,11 +1277,11 @@
       ],
       [
         -87,
-        -2044
+        -2028
       ],
       [
         -200,
-        -2044
+        -2028
       ]
     ],
     "strokeColor": "#8a8f98",
@@ -1299,7 +1299,7 @@
     "x": 1120,
     "y": 2768,
     "width": -200,
-    "height": -2344,
+    "height": -2328,
     "points": [
       [
         0,
@@ -1311,11 +1311,11 @@
       ],
       [
         -74,
-        -2344
+        -2328
       ],
       [
         -200,
-        -2344
+        -2328
       ]
     ],
     "strokeColor": "#8a8f98",
@@ -1333,7 +1333,7 @@
     "x": 1120,
     "y": 2138,
     "width": -200,
-    "height": -1714,
+    "height": -1698,
     "points": [
       [
         0,
@@ -1345,11 +1345,11 @@
       ],
       [
         -126,
-        -1714
+        -1698
       ],
       [
         -200,
-        -1714
+        -1698
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1367,7 +1367,7 @@
     "x": 1120,
     "y": 1004,
     "width": -200,
-    "height": -580,
+    "height": -564,
     "points": [
       [
         0,
@@ -1379,11 +1379,11 @@
       ],
       [
         -113,
-        -580
+        -564
       ],
       [
         -200,
-        -580
+        -564
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1401,7 +1401,7 @@
     "x": 1120,
     "y": 1406,
     "width": -200,
-    "height": -982,
+    "height": -966,
     "points": [
       [
         0,
@@ -1413,11 +1413,11 @@
       ],
       [
         -100,
-        -982
+        -966
       ],
       [
         -200,
-        -982
+        -966
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1469,7 +1469,7 @@
     "x": 1120,
     "y": 1816,
     "width": -200,
-    "height": -1392,
+    "height": -1376,
     "points": [
       [
         0,
@@ -1481,11 +1481,11 @@
       ],
       [
         -74,
-        -1392
+        -1376
       ],
       [
         -200,
-        -1392
+        -1376
       ]
     ],
     "strokeColor": "#4f46e5",

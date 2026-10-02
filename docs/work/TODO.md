@@ -481,11 +481,13 @@ Blocking the items marked ⚑.
 
 - **Required by:** `EduFlow_School_Setup_Workflow_v1.md` §6.5 (Phase 3, first launch, first administrator).
 - **Gap:** **no `PLT` story covers it.** The 33 stories in the Jira document do not include any bootstrap mechanism, and `PLT-101` is ordinary credential login against existing users — so a fresh deployment has **no way to create its first administrator.**
-- **Status:** **proposed.** IDs are never renumbered (`AGENTS.md` §7), so this is `PLT-107`, appended.
+- **Status:** **approved `D-4.3` 2026-09-30, story written 2026-09-30, token half built 2026-10-02.** IDs are never renumbered (`AGENTS.md` §7), so this is `PLT-107`, appended. Full story: `docs/work/STORY_PLT-107_first-admin-bootstrap.md`.
 - **Where it runs:** inside Epic 01, **before Epic 03 completes** (Prompt Pack §2.2), because licence activation (P8) and school settings (P10) both presuppose an administrator exists.
 - **Constraints it inherits:** no default credentials, ever; the setup token is single-use, short-lived, and consumed on first successful use; the act is audited; the route is `@Public('<reason>')` (there is no user to authenticate) and therefore allowlisted per `ADR-018`.
 
-**Next step:** the Prompt Pack P5 prompt asks for the story _text_ to be proposed for approval. Draft it as part of Epic 01, do not implement without sign-off.
+**✅ Done 2026-10-02 — `PLT-107` token half.** Two `User` columns (`setupTokenHash`, `setupTokenExpiresAt`), `IPasswordHasher` as a **port with no implementation**, and the issue/inspect/consume path. Consumption is **one conditional `UPDATE`** — the affected-row count is the verdict, `id` is deliberately absent from the `WHERE` so no read-then-write creeps in, and `gt` (not `gte`) means a token is dead at its expiry instant. Unit 259, integration 48. The naive read-then-write was reinstated to **prove the concurrency test fails** (5/5 red, 2–8 of 8 claims wrongly accepted), then restored.
+
+**⚠️ Blocked on an owner decision — argon2id.** `ADR-007` mandates argon2id; nothing is installed and `AGENTS.md` §8 forbids adding a dependency without explicit instruction. **`POST /auth/setup/complete` cannot be built until this is answered**, because it must set `User.passwordHash`. `node:crypto` *does* offer `scrypt` and it was deliberately **not** used — silently substituting it would contradict a governing ADR, which is the exact failure mode `AGENTS.md` §2 exists to prevent.
 
 ---
 

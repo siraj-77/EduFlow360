@@ -479,6 +479,57 @@ describe('schema.prisma — ARC-01 Platform Core data model', () => {
     expect(SCHEMA_CODE).not.toMatch(/licensePrivateKey/);
   });
 
+  /**
+   * `PLT-107` — the one-time setup token lives in TWO COLUMNS on the single
+   * `INVITED` row, not in a table.
+   *
+   * The story decided between (a) a `SetupToken` model and (b) columns on
+   * `User`, and chose (b) because the first administrator is singular: a table
+   * for exactly one row that is written once and consumed once is a
+   * generalisation with a single instance, and a seventeenth model would move
+   * THREE registration points (`PLATFORM_CORE_MODELS` here,
+   * `PLATFORM_CORE_ENTITIES` in `apps/api/erd/project-erd-source.mjs`, and
+   * `CLUSTER` in `apps/api/prisma/render-erd.mjs`) for no present benefit.
+   *
+   * The consequence the story records rather than hides: with one row there is
+   * no second copy, so a deployment that loses its token has no in-product
+   * recovery. `PLT-104` promotes these two columns into a real table.
+   */
+  it('carries the setup token as two nullable columns on User, never a new model', () => {
+    expectPlatformCoreModels();
+    const user = bodyOf('User');
+
+    expect(user, 'setupTokenHash must exist and be nullable — INVITED rows have none').toMatch(
+      /setupTokenHash\s+String\?\s*@map\("setup_token_hash"\)/,
+    );
+    expect(user, 'setupTokenExpiresAt must exist and be nullable').toMatch(
+      /setupTokenExpiresAt\s+DateTime\?\s*@map\("setup_token_expires_at"\)/,
+    );
+
+    // Option (a) is rejected ON THE RECORD, not merely unchosen: a reviewer
+    // must be able to see that the model count is deliberate.
+    expect(models(), 'a SetupToken model contradicts the story decision (b)').not.toContain(
+      'SetupToken',
+    );
+  });
+
+  it('stores only a setup token HASH, never the token itself', () => {
+    expectPlatformCoreModels();
+    // The same rule as `RefreshToken.tokenHash` (AGENTS.md 2.13). A setup token
+    // is an UNAUTHENTICATED route to the administrator account, so a database
+    // dump containing it in the clear is a dump containing the school's only
+    // administrator credential.
+    const user = bodyOf('User');
+
+    expect(user, 'a plaintext token column would defeat the whole column').not.toMatch(
+      /setupToken\s+String\??/,
+    );
+    expect(user).not.toMatch(/setupTokenPlaintext/);
+    // There is no separate issued-at column either: expiry is the whole
+    // validity window, and a second timestamp is a second thing to get wrong.
+    expect(user).not.toMatch(/setupTokenIssuedAt|setupTokenConsumedAt/);
+  });
+
   it('identifies the deployment by install id, never by MAC address', () => {
     expectPlatformCoreModels();
     // ADR-011: a container gets a new MAC on every restart, so a MAC-bound

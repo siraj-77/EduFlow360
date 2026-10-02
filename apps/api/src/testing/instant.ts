@@ -17,3 +17,14 @@ export const instant = (iso: string): Date => new Date(iso);
 /** `now`-relative, for the common "N minutes ago" shape in test tables. */
 export const minutesAgo = (minutes: number, from: Date = new Date()): Date =>
   new Date(from.getTime() - minutes * 60_000);
+
+/**
+ * `from` shifted FORWARD by `ms`, for the "expires in N ms" column of a table.
+ *
+ * `minutesAgo` only goes one way, and an expiry rule is mostly about the other
+ * direction: a token that is valid for a millisecond and a token that expired a
+ * millisecond ago are the two boundary rows, and neither can be written with a
+ * helper that only subtracts.
+ */
+export const instantAfter = (ms: number, from: Date = new Date()): Date =>
+  new Date(from.getTime() + ms);
