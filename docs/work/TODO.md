@@ -89,37 +89,54 @@
 >
 > ---
 >
-> ## ▶ BLOCKED — `PLT-101` tranche 2 cannot start yet. Two owner decisions.
+> ## ▶ UNBLOCKED 2026-10-02 — `PLT-101` tranche 2 may start
 >
-> Reconnaissance on 2026-10-01: `apps/api/src` contains **three** TypeScript files
-> (`main.ts`, `app.module.ts`, `config/env.ts`). `app.module.ts` has `imports: []`.
-> There is **no `I*` port anywhere** in project source, **no** session-minting code, and
-> **none** of the three guards exists as code — `@RequirePermission` and friends appear
-> only as string literals in tests. `ADR-008` session issuance must be built from scratch.
+> **Owner cleared the sign-off gate and approved `jose`** for ID-token verification on
+> 2026-10-02. That was the whole of the engineering block.
 >
-> **Blocker 1 — the sign-off gate is still open, and this is authentication.**
-> `TODO.md:211` reads `- [ ] **Sign-off recorded before PLT-101 starts** - still open`,
-> and `TODO.md:168` reads `**PLT-101 entry condition is NOT met.**`. Tranche 1 (the
-> schema) was reversible data work and went ahead; the flow itself is not, and it is
-> security-critical. It needs your sign-off before any code moves.
+> ### ⚠ Still missing, and it is not a decision
 >
-> **Blocker 2 — verifying the OIDC ID-token signature needs a new dependency.**
-> Zero of `apps/api`'s 21 dependencies are crypto, JWT or JOSE. Node's global `fetch`
-> covers the token exchange and `node:crypto` covers hashing, but **nothing installed can
-> validate an RS256 JWS**. `AGENTS.md` §8 requires explicit instruction to add one.
+> **No provider credentials exist in this repository.** A sweep on 2026-10-02 searched every
+> `.env*`, `.json`, `.ts`, `.js`, `.mjs` and `.yml` file outside `node_modules`: there is no
+> `GOOGLE_CLIENT_ID`, `MICROSOFT_CLIENT_ID` or `APPLE_CLIENT_ID` anywhere. `.env` holds only
+> `DATABASE_URL`.
 >
-> **Also still needed, and cheap to answer now:** the literal allowed email domain
-> (for example `@school.lk`), and Workspace tenant versus consumer Gmail. Neither
-> blocks the design; both must be decided before sign-in can gate on a real allowlist.
+> `.env.local` holds `DATABASE_URL`, `NEXTAUTH_SECRET` and `NEXTAUTH_URL` — **legacy
+> values from `EduFlowV3`**, not the new credentials; `.gitignore:2` already flags that file as
+> a legacy leftover. The two NextAuth variables should be deleted: `ADR-008` rules out Auth.js, so
+> `NEXTAUTH_SECRET` has no consumer and is a live secret on disk for no reason. **Neither file is
+> tracked** — `.env` is ignored by rule 7 and `.env.local` by rule 8, so nothing leaks.
 >
-> Recommended first slice once unblocked: `IClock` + `IOidcProvider` ports, the
-> `Session`/`RefreshToken` repository, and the OIDC env schema — no HTTP route
-> until the token-verification story is settled.
-> **Known gate gap:** `DATABASE_URL` lives in git-ignored `.env` but nothing loads it, so
-> `pnpm test:integration` fails on a fresh shell with a collection error. Not fixed here
-> because it is a build-config change outside this tranche; run it with the variable
-> exported until it is.
-> **Analysis:** `docs/analysis/CODE_AUDIT_2026-09-30.md` (**current** evidence) · `docs/work/ACTION_PLAN_2026-09-30.md` (**the action plan**) · `docs/analysis/CODE_AUDIT_2026-09-29.md` (prior audit) · `docs/work/REMEDIATION_PLAN_2026-09-29.md` (superseded for EPIC-00/EPIC-DOC scope) · `docs/work/GAP_ANALYSIS_2026-09-28.md` (pre-scaffold baseline) · `docs/work/PLATFORM_CORE_PLAN.md`
+> The keys tranche 2 expects:
+>
+>     GOOGLE_CLIENT_ID=
+>     GOOGLE_CLIENT_SECRET=
+>     GOOGLE_REDIRECT_URI=http://localhost:3001/auth/oidc/callback
+>
+> ### Scope question: three providers, or one?
+>
+> Credentials are prepared for Google, Microsoft **and** Apple. The recorded decision (owner,
+> 2026-09-30) is **"Google first, more providers expected"**, and `provider` is a **column**
+> precisely so that Microsoft or Apple later is a row and not a migration. So holding the
+> credentials costs nothing — but building three providers is three times the surface and only
+> one would be tested. **Recommendation: build Google, leave Microsoft and Apple as
+> configured-but-unimplemented**, and prove the seam with a test rather than assuming it.
+>
+> ### Build order once the credentials are in place
+>
+> 1. `IClock` in `apps/api/src/modules/auth/domain/ports/clock.ts`. The lint rule already bans
+>    `Date.now()` and `new Date()` under `domain/**` and `use-cases/**` and nothing provides the
+>    replacement yet, so all time-dependent code is blocked today.
+> 2. `IOidcProvider` / `IOidcClient` ports, then the Google adapter under
+>    `infrastructure/adapters/`. `AGENTS.md` §2.2 forbids a vendor SDK in the inner layers.
+> 3. The `Session` / `RefreshToken` repository. `ADR-008` requires our own revocable session with
+>    a `familyId` rotation chain; **no code touches those tables today**.
+> 4. The OIDC env schema in `env.ts`, and **only then** the variables in `.env.example`.
+>    Documenting a variable the app does not read is worse than omitting it.
+> 5. **No HTTP route until token verification is settled.** The redirect and callback come last,
+>    and `@Public` does not exist as code — `AGENTS.md` §2.3 makes a route carrying neither
+>    `@RequirePermission` nor `@Public` a defect, and nothing enforces either half today, so
+>    building the route means building the guard too.
 
 ---
 

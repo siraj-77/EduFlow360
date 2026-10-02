@@ -2816,8 +2816,8 @@ Two rows were not merely stale but **wrong in a way worth recording**:
   `test:integration` 0 → `test:e2e` 0 → **`test:coverage` 1**.
 - `test:integration` was run with **no exported `DATABASE_URL`**, which is the honest test
   now that the config loads `.env` itself.
-- `docs:verify` resolves **228 references across 8 documents**. It has moved
-  188 → 207 → 227 → **228** across three sessions, each time purely from documents gaining
+- `docs:verify` resolves **222 references across 8 documents**. It has moved
+  188 → 207 → 227 → 228 → **222** across four sessions, and it went **down** for the first time, each time purely from documents gaining
   cross-references. That is the argument for `G2-2` restated a third time.
 
 ### Next Steps
@@ -2834,3 +2834,78 @@ remaining U+FFFD in `docs/superpowers/plans/2026-09-30-gap-remediation.md`, and 
 **Still outstanding from earlier and not forgotten:** rotate the database password. It was
 shared in chat during setup, the owner accepted the risk on 2026-09-28 (`D16`), and it has
 not been done.
+
+## 2026-10-02 - Corrupted-character sweep finished, and `PLT-101` unblocked
+
+### Phase
+
+Housekeeping plus three owner decisions. The sweep closed a debt first raised on
+2026-09-28, and the decisions removed the last engineering block on `PLT-101`.
+
+### Activity
+
+**Swept the last 10 U+FFFD.** `docs/superpowers/plans/2026-09-30-gap-remediation.md` was
+the one file left out of the 2026-09-28 repair because it fell outside that
+delegation's scope. All ten were unambiguous from context: **3 section signs**
+(`§3.2.5`, an established house reference used the same way in `ACTION_PLAN_2026-09-30-v2.md`
+and `CHANGELOG.md`) and **7 em dashes** at sentence and clause breaks.
+
+Verified with a character-level two-pointer walk against `HEAD`: **10 substitutions,
+zero non-U+FFFD differences, tail fully consumed, zero remaining.** No reflow.
+
+**Owner decisions, recorded 2026-10-02:** the `PLT-101` sign-off gate is **cleared**, and
+**`jose` is approved** for OIDC ID-token verification. That was the whole of the
+engineering block. `jose` is the right call for it: reference implementation, no runtime
+dependencies, no native build, JWKS remote-set caching.
+
+### ⚑ The credentials are not in the repository
+
+The owner reported Google, Microsoft and Apple credentials written to `.env` and
+`.env.local`. **They are not there.** A sweep of every `.env*`, `.json`, `.ts`, `.js`,
+`.mjs` and `.yml` file outside `node_modules` found no `GOOGLE_CLIENT_ID`,
+`MICROSOFT_CLIENT_ID` or `APPLE_CLIENT_ID` anywhere in the repository.
+
+- `.env` holds `DATABASE_URL` only.
+- `.env.local` holds `DATABASE_URL`, `NEXTAUTH_SECRET` and `NEXTAUTH_URL` — **legacy
+  values from `EduFlowV3`**, not the new credentials.
+
+**Nothing leaked.** `.env` is ignored by `.gitignore:7` and `.env.local` by rule 8
+(`.env.*`), neither is tracked, and `.env.example` is the deliberately un-ignored
+template at rule 9. The check was done before any file was read, not after.
+
+**Side finding worth acting on:** `NEXTAUTH_SECRET` in `.env.local` is a live secret with
+**no consumer** — `ADR-008` rules out Auth.js, so nothing reads it. `.gitignore:2` already
+calls this file a legacy leftover. Those two NextAuth variables should be deleted.
+
+### Ruling I made
+
+- **Build Google, not three providers.** The owner holds credentials for Google, Microsoft
+  and Apple, but the recorded decision is "Google first, more providers expected", and
+  `provider` is a **column** so a second provider is a row rather than a migration. Holding
+  all three credentials costs nothing and is good; building all three is three times the
+  surface with one tested. Recommendation recorded in `TODO.md`: build Google, leave the
+  other two configured-but-unimplemented, and prove the seam with a test rather than
+  assuming it. *Costs if wrong:* two providers get added later, which is exactly what the
+  column was designed to make cheap.
+
+### Process note
+
+My first attempt at the `TODO.md` rewrite over-matched its terminator and deleted 350
+lines. Caught immediately by reading back what it had kept, restored from `git checkout`,
+and redone with a bounded search. **A destructive edit that is not verified by reading the
+result is not finished** — which is the same rule as the gates themselves.
+
+### Files Changed
+
+- `docs/superpowers/plans/2026-09-30-gap-remediation.md` — 10 characters repaired.
+- `docs/work/TODO.md` — BLOCKED section replaced with UNBLOCKED; credentials gap and
+  the provider-scope question recorded.
+- `docs/work/WORKLOG.md` — this entry.
+- `docs/core/SSOT.md` — the two decisions added to §4.
+
+### Next Steps
+
+Owner: add the three Google variables to `.env`, and delete the two NextAuth variables from
+`.env.local`. Then tranche 2 starts with `IClock`, which is the hard prerequisite — the
+lint rule already bans `Date.now()` and `new Date()` in the inner layers and nothing provides
+the replacement yet.

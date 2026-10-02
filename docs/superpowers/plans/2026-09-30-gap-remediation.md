@@ -660,22 +660,22 @@ Closes AUD-30-04, G1-5, FIX-10. Refs B-2."
 
 ---
 
-### Task 3b: ~~Give the four theme-less tokens a dark value~~ � WITHDRAWN, no code change
+### Task 3b: ~~Give the four theme-less tokens a dark value~~ — WITHDRAWN, no code change
 
 **This task was written from a false premise and has been withdrawn. No token was
 changed.** It is kept as a record because the reasoning error is the useful part.
 
 The first draft observed that `[data-theme='dark']` redefines only six of the ten
-�3.2.5 tokens, and inferred that the other four were a defect. The measurement was
+§3.2.5 tokens, and inferred that the other four were a defect. The measurement was
 correct. The inference was not.
 
 `packages/ui-kit/src/index.spec.ts` already splits the palette on purpose:
 
-- `SURFACE_TOKENS` = `--bg --surface --text --muted --border` � **must** differ per
+- `SURFACE_TOKENS` = `--bg --surface --text --muted --border` — **must** differ per
   theme, asserted by _"gives each surface token a DIFFERENT dark value, or dark mode
   is cosmetic"_.
-- `BRAND_TOKENS` = `--brand --brand-2 --accent --danger --ok` � **must not** be
-  overridden, asserted by _"brand tokens are theme-independent, as AGENTS.md �3.2.5
+- `BRAND_TOKENS` = `--brand --brand-2 --accent --danger --ok` — **must not** be
+  overridden, asserted by _"brand tokens are theme-independent, as AGENTS.md §3.2.5
   specifies"_, with a comment above the suite explaining that the contrast question
   needs a real screen and belongs to `DSN-01`.
 
@@ -684,14 +684,14 @@ So the four tokens with no dark value are the **correct** behaviour. The defect 
 contradicted a decision already written down and tested.
 
 **What was actually done:** the AC in `ACTION_PLAN_2026-09-30-v2.md` was amended to
-state the real contract, and `DSN-01` is left open. No test was added � the existing
+state the real contract, and `DSN-01` is left open. No test was added — the existing
 suite already covers the invariant, and a new test asserting the opposite of an
 existing test is not a contribution.
 
 **The lesson worth keeping:** a measurement is not a finding. "Four tokens have no dark
 value" was a fact; "therefore they should have one" was an assumption, and it
 contradicted a test three files away written for exactly this reason. The cheap check
-� grep for an existing test asserting the opposite � ran _after_ a recommendation had
+— grep for an existing test asserting the opposite — ran _after_ a recommendation had
 already gone to the owner.
 
 ---
@@ -711,6 +711,6 @@ already gone to the owner.
 | `TopNav` might need a client wrapper        | It is an `async` server component using `getTranslations` from `next-intl/server`; server → client is legal                                         | Step 6 corrected: no wrapper, and it must **not** be made client                       |
 | `apps/web` can run the unit test            | It has no `@testing-library/user-event`                                                                                                             | **Step 0 added** — the test would not have resolved                                    |
 | The e2e dark assertion `--bg === #0d0f16`   | Confirmed correct at `styles.css:76`                                                                                                                | Kept                                                                                   |
-| �3.2.5 has ten tokens that all vary in dark | Only six do, **and that is correct** � `index.spec.ts` already splits `SURFACE_TOKENS` (must differ) from `BRAND_TOKENS` (must not), and tests both | **I was wrong.** B-2's AC was the defect; Task 3b withdrawn and the AC amended instead |
+| §3.2.5 has ten tokens that all vary in dark | Only six do, **and that is correct** — `index.spec.ts` already splits `SURFACE_TOKENS` (must differ) from `BRAND_TOKENS` (must not), and tests both | **I was wrong.** B-2's AC was the defect; Task 3b withdrawn and the AC amended instead |
 
 **5. The one place this plan stops rather than continues.** Task 3b Step 1 requires an owner decision on brand colour, and Track 4 requires a machine with Docker. Neither is a gap in the plan; both are gaps in the environment, and writing code past them would mean inventing a brand hex or claiming a validation that was never run.

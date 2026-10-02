@@ -45,6 +45,10 @@ const ALLOWED_MISSING = new Map([
   ['infra/ci', 'P3 — CI pipeline definitions'],
   ['infra/terraform', 'AGENTS.md 3.1 marks this optional; OPS-06 provisions first'],
   ['keys', 'licence public key directory; created by OPS-06 provisioning'],
+  [
+    'apps/api/src/modules/auth/domain/ports/clock.ts',
+    'PLT-101 tranche 2, step 1 — IClock port. The path is fixed already: lint-rules.spec.ts asserts it as the example',
+  ],
 ]);
 
 /**
