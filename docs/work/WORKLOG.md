@@ -3008,3 +3008,75 @@ and only afterwards the redirect and callback routes.
 - Unit tests **225** (api 158 · web 22 · ui-kit 28 · i18n-resources 10 · shared-types 7), up from 207.
 - Integration **17/17**. Gates: `lint` 0 · `typecheck` 0 · `test` 0 · `docs:verify` 0 · `format:check` 0 · `build` 0 · `test:integration` 0 · `test:e2e` 0;
   `test:coverage` 1, unchanged and honest.
+
+## 2026-10-02 (3) - `PLT-101` tranche 2, steps 1 to 3a: and an honest stop
+
+### Phase
+
+`PLT-101` tranche 2. Three of the four requested steps landed; the fourth is not
+started, and the reason is written down rather than guessed at.
+
+### What landed
+
+**Step 1 — `IClock`.** The ESLint rule had banned ambient time under `domain/` and
+`use-cases/` for days with nothing on the other side of it, so every time-dependent line of
+application code was unwritable. Port, `SystemClock` adapter, and a shared `FakeClock`.
+
+**Step 2 — `IOidcProvider` + `GoogleOidcProvider` on `jose` 6.2.12.** Twenty cases against a
+locally generated RSA key, no network, no Google project, real signature verification. Each
+of the five checks has a forgery aimed at it.
+
+**Step 3a — the refresh-token reuse decision.** `decideRotation`, pure and table-driven,
+12 cases. `revoke-family-reuse` is provably the only verdict with a side effect.
+
+Total **54 new tests**. Gates 8 green, `test:coverage` unchanged.
+
+### What did NOT land, and why
+
+**Step 3b, the `Session`/`RefreshToken` repository. Step 4, `@Public` and the routes.
+
+Both were reachable only through two decisions that are security choices rather than
+implementation details, and neither is recorded anywhere in the repository:
+
+1. **Session transport.** An `httpOnly` `Secure` `SameSite=Lax` cookie, or a bearer token in a
+   response body. Different CSRF exposure, different mobile implications, and `AGENTS.md` —2.3
+   is about exactly this. Guessing it produces a route that looks finished and is not.
+2. **The allowed email domain.** Still unanswered. It gates which Google accounts may
+   create an account, so it belongs in configuration that fails fast when absent
+   (`AGENTS.md` —11), not in a default somebody assumed.
+
+**A route that is nearly right is harder to review than no route**, because it invites the
+assumption that the security was checked. That is the whole reason for stopping here rather
+than producing something plausible.
+
+A third dependency is recorded rather than routed around: a fresh install has no local
+`User` for an identity to attach to. That is `PLT-107`, written 2026-09-30, and the callback
+route depends on it.
+
+### Four things the tests caught that the tests did not intend to catch
+
+- **A doc comment closed itself.** `star star slash domain` contains a comment terminator,
+  so a JSDoc block naming the ESLint glob ended nine lines early and esbuild reported a
+  syntax error nowhere near the cause. The same footgun corrupted `schema-source.mjs` on
+  2026-10-01. Those globs are now written in words.
+- **Two tests passed for the wrong reason.** The untrusted-signing-key case signed with a
+  nonce from a different flow, so it failed on nonce rather than signature. Correct-looking,
+  and proving nothing.
+- **The expiry test never tested expiry.** `SignJWT.setExpirationTime` OVERWRITES an `exp`
+  already in the claims, so the override was being discarded. `exp` now goes in the claims.
+- **`new Date()` in a `domain/` spec.** The `AGENTS.md` —2.4 rule is absolute, and it should
+  stay that way: a guard with an exception shaped exactly like the tests is a guard that
+  gets widened. Date construction moved to `src/testing/instant.ts`.
+
+### Process
+
+Five attempts to write one documentation script failed on a stray `);` where a `,` belonged,
+each costing a round trip. The pattern is the same one that produced the
+`schema-source.mjs` corruption: tooling that rewrites text is where this repository loses
+time, and it loses it quietly.
+
+### Next Steps
+
+Owner: (1) cookie or bearer token for session transport; (2) the allowed email domain.
+Then `ISessionRepository` and its Prisma implementation, `@Public` and its allowlist, and
+only then the redirect and callback routes. `TODO.md` records the order.

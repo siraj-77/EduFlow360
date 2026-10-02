@@ -122,24 +122,55 @@
 > one would be tested. **Recommendation: build Google, leave Microsoft and Apple as
 > configured-but-unimplemented**, and prove the seam with a test rather than assuming it.
 >
-> ### Build order once the credentials are in place
+> ### Where tranche 2 actually stands (2026-10-02, after `028bb90`)
 >
-> 1. `IClock` in `apps/api/src/modules/auth/domain/ports/clock.ts`. The lint rule already bans
->    `Date.now()` and `new Date()` under `domain/**` and `use-cases/**` and nothing provides the
->    replacement yet, so all time-dependent code is blocked today.
-> 2. `IOidcProvider` / `IOidcClient` ports, then the Google adapter under
->    `infrastructure/adapters/`. `AGENTS.md` §2.2 forbids a vendor SDK in the inner layers.
-> 3. The `Session` / `RefreshToken` repository. `ADR-008` requires our own revocable session with
->    a `familyId` rotation chain; **no code touches those tables today**.
-> 4. ~~The OIDC env schema in `env.ts`, and the variables in `.env.example`.~~ **DONE
->    2026-10-02** (D47) — bundled with D46, the fix that let the API read
->    `.env` at all. That had been silently broken: the error message told a developer
->    to create a file nothing opened.
->    Documenting a variable the app does not read is worse than omitting it.
-> 5. **No HTTP route until token verification is settled.** The redirect and callback come last,
->    and `@Public` does not exist as code — `AGENTS.md` §2.3 makes a route carrying neither
->    `@RequirePermission` nor `@Public` a defect, and nothing enforces either half today, so
->    building the route means building the guard too.
+> ✔ **DONE — `IClock`.** `apps/api/src/modules/auth/domain/ports/clock.ts`, the
+>    `SystemClock` adapter, and a shared `FakeClock` in `src/testing/`. The ESLint rule that
+>    banned ambient time had no other side for days; this is it.
+> ✔ **DONE — `IOidcProvider` + `GoogleOidcProvider`** on `jose` 6.2.12. Both external
+>    seams injected, so 20 cases run against a locally generated RSA key with no network
+>    and no Google project, while still exercising real signature verification. Each of the
+>    five checks has a forgery aimed at it.
+> ✔ **DONE — the refresh-token reuse decision.** `decideRotation`, pure and
+>    table-driven, 12 cases. `revoke-family-reuse` is provably the only verdict with a side
+>    effect, reachable only on an already-used token in a live session and family.
+>
+> ### ⚠ NOT DONE — and deliberately not rushed
+>
+> **`Session`/`RefreshToken` repository.** The decision rule exists; nothing reads or writes
+> the two tables yet. Still needed: the port, the Prisma implementation, token hashing at
+> rest (`token_hash` is NOT NULL — a bearer credential cannot be stored in the clear),
+> the `familyId` rotation chain, and integration tests against real PostgreSQL proving
+> reuse actually revokes the family.
+>
+> **`@Public` and the redirect/callback routes.** Two decisions are still open and both are
+> security choices rather than implementation details:
+>
+> - **session transport** — an `httpOnly` `Secure` `SameSite=Lax` cookie, or a bearer token in a
+>   response body. They have different CSRF exposure and different mobile implications,
+>   and `AGENTS.md` §2.3 is about guarding routes. Nothing decides this today.
+
+> - **the allowed email domain** — still not answered. It gates which Google accounts may
+>   create an account, so it belongs in configuration that fails fast when absent
+>   (`AGENTS.md` §11), not in a default.
+>
+> There is also no local `User` for an identity to attach to on a fresh install. That is
+> `PLT-107`, written 2026-09-30, and it is a dependency of the callback route — not something
+> the callback route can route around.
+>
+> **Guessing on either would be the wrong trade.** A route that is nearly right is harder
+> to review than no route, because it invites the assumption that the security was checked.
+>
+> ### Order once those are answered
+>
+> 1. `ISessionRepository` port → Prisma implementation → integration tests proving
+>    reuse revokes a whole family against real PostgreSQL
+> 2. `@Public` decorator and its guard, with the allowlist `AGENTS.md` §2.3 requires
+> 3. `GET /auth/oidc/redirect` → `GET /auth/oidc/callback`
+> 4. The sign-in button in `apps/web`, then `PLT-104` OTP is milestone 2
+>
+> Nothing above touches a browser until 2 and 3, and 3 needs the two answers.
+
 
 ---
 
