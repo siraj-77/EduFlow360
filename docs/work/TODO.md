@@ -166,10 +166,13 @@
 >
 > **What remains, now that D48 and D49 are answered:**
 >
-> - **The `@Public` decorator and its guard do not exist as code.** `AGENTS.md§2.3` makes a
->   route carrying neither `@RequirePermission` nor `@Public('<reason>')` a defect, and today
->   nothing enforces either half. Building a route means building the guard first, plus the
->   checked-in allowlist every `@Public` use has to be listed in.
+> ✔ **DONE — the four decorators and `check-route-guards`.**
+>   `@Public('<reason>')`, `@RequirePermission`, `@RequireEntitlement` and `@Audited` exist, and
+>   a tenth gate `pnpm check:route-guards` fails on a route carrying neither a permission nor a
+>   public exemption. Proven by injecting a real unguarded controller and watching the build fail.
+>   **Still NOT enforced: what the decorators MEAN.** No global guard reads the metadata yet, so a
+>   guard can be present and inert. The reader needs a permission engine (`PLT-2xx`), session
+>   resolution and licence verification, none of which exist.
 > - **The cookie delivery adapter.** `SameSite=Lax`, `Secure`, `httpOnly`, path `/`, plus a
 >   required custom header on state-changing requests as CSRF defence in depth.
 > - **The allowlist setting** in `SchoolSettings`: a list, fail-closed when empty, and account

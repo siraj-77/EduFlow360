@@ -268,6 +268,34 @@ opposite assumption before it shipped.
 | **D50** | **`sessions.token_hash` added.** A session is hashed at rest exactly as a refresh token is. | The model had `refresh_tokens.token_hash` with the comment "a bearer credential, so it is hashed at rest", and **nothing on `sessions`**. Without it the only handle on a session is its `id`, so the cookie value would *be* a primary key — leaking table structure and turning any logged session id (an error message, a support screenshot, a proxy log) into a credential disclosure. A field, not a model, so the three model tripwires are untouched. |
 
 **SHA-256, deliberately not argon2id**, for both hashes. These are 256-bit random values; there is nothing to brute-force and no work factor to tune. Argon exists for low-entropy human passwords (`ADR-007`).
+### Closed 2026-10-02 — `AGENTS.md` §2.3 is no longer prose
+
+| ID | Decision | Rationale |
+| --- | --- | --- |
+| **D51** | **`check-route-guards` exists and fails the build.** It is the tenth gate, `pnpm check:route-guards`. It reads source rather than reflecting over the compiled app, because a reflection check only sees what has been *registered* and runs after boot — a missing decorator would be a runtime surprise instead of a build failure. | `SSOT.md` itself recorded that "`check-route-guards` does not exist, so `AGENTS.md` §2.3's _'CI must fail on a missing `@RequirePermission`'_ is prose". It now fails, proven by injecting a real unguarded controller and by adding `@Public` without an allowlist entry. |
+| **D52** | **A blank key or reason is refused at the decorator call site**, for all four guards. | An empty string satisfies the syntax `check-route-guards` greps for while instructing nothing. A route could carry `@RequirePermission('')`, pass the static check, and protect nothing — indistinguishable from a working guard on the route. |
+
+**What these decorators are NOT, stated plainly:** they are vocabulary, not
+enforcement. Nothing reads the metadata yet — there is no global `AuthGuard` in
+`app.module.ts`, no permission engine, no session resolution and no licence verification to
+enforce against. `check-route-guards` proves a guard is **present**; it cannot prove it
+**works**. That is the honest ceiling today, and shipping these without saying so would be
+the worst outcome: a file full of `@RequirePermission` reads exactly like an implemented
+control.
+### Closed 2026-10-02 — `AGENTS.md` §2.3 is no longer prose
+
+| ID | Decision | Rationale |
+| --- | --- | --- |
+| **D51** | **`check-route-guards` exists and fails the build.** It is the tenth gate, `pnpm check:route-guards`. It reads source rather than reflecting over the compiled app, because a reflection check only sees what has been *registered* and runs after boot — a missing decorator would be a runtime surprise instead of a build failure. | `SSOT.md` itself recorded that "`check-route-guards` does not exist, so `AGENTS.md` §2.3's _'CI must fail on a missing `@RequirePermission`'_ is prose". It now fails, proven by injecting a real unguarded controller and by adding `@Public` without an allowlist entry. |
+| **D52** | **A blank key or reason is refused at the decorator call site**, for all four guards. | An empty string satisfies the syntax `check-route-guards` greps for while instructing nothing. A route could carry `@RequirePermission('')`, pass the static check, and protect nothing — indistinguishable from a working guard on the route. |
+
+**What these decorators are NOT, stated plainly:** they are vocabulary, not
+enforcement. Nothing reads the metadata yet — there is no global `AuthGuard` in
+`app.module.ts`, no permission engine, no session resolution and no licence verification to
+enforce against. `check-route-guards` proves a guard is **present**; it cannot prove it
+**works**. That is the honest ceiling today, and shipping these without saying so would be
+the worst outcome: a file full of `@RequirePermission` reads exactly like an implemented
+control.
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
 | Question                                       | Authoritative source                                                                                           |

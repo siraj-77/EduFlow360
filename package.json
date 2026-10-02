@@ -20,6 +20,7 @@
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,cjs,json}\" \"packages/**/*.{ts,tsx,js,mjs,cjs,json}\" \"scripts/**/*.{mjs,js}\" \"*.{yml,yaml}\"",
     "format:check:docs": "prettier --check \"docs/**/*.md\" \"*.md\"",
     "docs:verify": "node scripts/docs-verify.mjs",
+    "check:route-guards": "node scripts/check-route-guards.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "migration:generate": "pnpm --filter @eduflow/api migration:generate",
     "migration:run": "pnpm --filter @eduflow/api migration:run"

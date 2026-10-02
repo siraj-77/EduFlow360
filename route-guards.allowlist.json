@@ -1,0 +1,4 @@
+{
+  "$comment": "AGENTS.md 2.3: every @Public use is listed here with its justification, so exemptions are reviewable rather than invisible. check-route-guards.mjs fails when the decorator and this file disagree in EITHER direction - a route with no entry, or an entry whose route no longer exists. An unreconciled allowlist decays into a historical document and stops constraining anything.",
+  "routes": []
+}
