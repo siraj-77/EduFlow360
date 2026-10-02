@@ -642,6 +642,25 @@ export const MODELS = [
     fields: [
       ID,
       {
+        name: 'tokenHash',
+        type: 'String',
+        attrs: ['@map("token_hash")', '@unique'],
+        kind: 'scalar',
+        comment: [
+          'A session is a bearer credential exactly as much as a refresh token is, and',
+          'it is hashed at rest for the same reason `refresh_tokens.token_hash` is.',
+          '',
+          'WITHOUT this column the only handle on a session is its `id`, so the value',
+          'carried in the cookie would BE a primary key. That leaks table structure, and it',
+          'turns any accidental logging of a session id - an error message, a support',
+          'screenshot, a proxy log - into a credential disclosure.',
+          '',
+          'SHA-256 is the right primitive here, and deliberately not argon2id: this is a',
+          '256-bit random string with nothing to brute-force, while argon exists for',
+          'low-entropy human passwords. `@unique` makes the lookup one indexed read.',
+        ],
+      },
+      {
         name: 'userId',
         type: 'String',
         attrs: ['@map("user_id")', '@db.Uuid'],

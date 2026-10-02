@@ -60,7 +60,9 @@
 >
 > **Two things only the owner can answer, neither of which blocks starting:**
 >
-> - the literal allowed email domain (for example `@school.lk`) — currently unknown
+> - the allowed email domain — **ANSWERED 2026-10-02 (D49): per-school list in
+>   `SchoolSettings`, fail-closed when empty, never an env var. `ADR-003` is one deployment
+>   per school, so there is no single product-wide domain.
 > - Workspace tenant or consumer Gmail — decides the consent screen and whether
 >   `email_verified` is asserted
 >
@@ -135,7 +137,22 @@
 >    table-driven, 12 cases. `revoke-family-reuse` is provably the only verdict with a side
 >    effect, reachable only on an already-used token in a live session and family.
 >
-> ### ⚠ NOT DONE — and deliberately not rushed
+> ### ✔ DONE 2026-10-02 — `ISessionRepository` + Prisma, and `sessions.token_hash`
+>
+> `PrismaSessionRepository` issues, rotates, revokes and sweeps. **29 integration tests**
+> against real PostgreSQL, up from 17. Neither token is stored: `issue` and `rotate` mint
+> 256-bit random strings, hand the plaintext over once, and keep only SHA-256.
+>
+> The reuse claim is proved against a real database rather than asserted: replaying a spent
+> token yields `revoke-family-reuse`, and after `revokeFamily` the family has **zero** live
+> tokens. A fake repository could not demonstrate atomicity, which is exactly the thing under
+> test.
+>
+> **`sessions.token_hash` added** (D50). The model had a hashed refresh token and nothing on
+> sessions, so the cookie value would have been a primary key. A field, not a model, so the
+> three model tripwires were untouched.
+>
+> ### ⚠ STILL NOT DONE — `AGENTS.md` §2.3 needs both halves before a route exists
 >
 > **`Session`/`RefreshToken` repository.** The decision rule exists; nothing reads or writes
 > the two tables yet. Still needed: the port, the Prisma implementation, token hashing at
@@ -143,20 +160,23 @@
 > the `familyId` rotation chain, and integration tests against real PostgreSQL proving
 > reuse actually revokes the family.
 >
-> **`@Public` and the redirect/callback routes.** Two decisions are still open and both are
+> **`@Public` and the redirect/callback routes.** The two blocking decisions are ANSWERED (D48,
+> D49). What remains:
 > security choices rather than implementation details:
 >
-> - **session transport** — an `httpOnly` `Secure` `SameSite=Lax` cookie, or a bearer token in a
->   response body. They have different CSRF exposure and different mobile implications,
->   and `AGENTS.md` §2.3 is about guarding routes. Nothing decides this today.
-
-> - **the allowed email domain** — still not answered. It gates which Google accounts may
->   create an account, so it belongs in configuration that fails fast when absent
->   (`AGENTS.md` §11), not in a default.
+> **What remains, now that D48 and D49 are answered:**
 >
-> There is also no local `User` for an identity to attach to on a fresh install. That is
-> `PLT-107`, written 2026-09-30, and it is a dependency of the callback route — not something
-> the callback route can route around.
+> - **The `@Public` decorator and its guard do not exist as code.** `AGENTS.md§2.3` makes a
+>   route carrying neither `@RequirePermission` nor `@Public('<reason>')` a defect, and today
+>   nothing enforces either half. Building a route means building the guard first, plus the
+>   checked-in allowlist every `@Public` use has to be listed in.
+> - **The cookie delivery adapter.** `SameSite=Lax`, `Secure`, `httpOnly`, path `/`, plus a
+>   required custom header on state-changing requests as CSRF defence in depth.
+> - **The allowlist setting** in `SchoolSettings`: a list, fail-closed when empty, and account
+>   creation gated on `email_verified === true`.
+> - **The identity-to-user resolution**, which needs `PLT-107` — a fresh install has no local
+>   `User` for an identity to attach to. That story is written and is a real dependency, not
+>   something the callback route can route around.
 >
 > **Guessing on either would be the wrong trade.** A route that is nearly right is harder
 > to review than no route, because it invites the assumption that the security was checked.

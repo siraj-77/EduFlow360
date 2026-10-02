@@ -393,7 +393,7 @@
     "x": 1120,
     "y": 270,
     "width": 400,
-    "height": 244,
+    "height": 260,
     "strokeColor": "#4f46e5",
     "backgroundColor": "#e8ebff",
     "strokeWidth": 2,
@@ -438,8 +438,8 @@
     "x": 1134,
     "y": 314,
     "width": 372,
-    "height": 176,
-    "text": "schoolId  String\nPK  id\n▶  userId → User\ndeviceLabel  String\nipAddress  String\nuserAgent  String\ncreatedAt  DateTime\nlastActiveAt  DateTime\nexpiresAt  DateTime\nrevokedAt  DateTime\nrevokedReason  String",
+    "height": 192,
+    "text": "schoolId  String\nPK  id\ntokenHash  String\n▶  userId → User\ndeviceLabel  String\nipAddress  String\nuserAgent  String\ncreatedAt  DateTime\nlastActiveAt  DateTime\nexpiresAt  DateTime\nrevokedAt  DateTime\nrevokedReason  String",
     "fontSize": 11,
     "fontFamily": 3,
     "textAlign": "left",
@@ -1161,9 +1161,9 @@
     "id": "edge_Session_userId",
     "type": "arrow",
     "x": 1120,
-    "y": 392,
+    "y": 400,
     "width": -200,
-    "height": 32,
+    "height": 24,
     "points": [
       [
         0,
@@ -1175,11 +1175,11 @@
       ],
       [
         -126,
-        32
+        24
       ],
       [
         -200,
-        32
+        24
       ]
     ],
     "strokeColor": "#4f46e5",
@@ -1197,7 +1197,7 @@
     "x": 1520,
     "y": 690,
     "width": 0,
-    "height": -298,
+    "height": -290,
     "points": [
       [
         0,
@@ -1209,11 +1209,11 @@
       ],
       [
         26,
-        -298
+        -290
       ],
       [
         0,
-        -298
+        -290
       ]
     ],
     "strokeColor": "#4f46e5",

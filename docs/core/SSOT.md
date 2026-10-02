@@ -259,6 +259,15 @@ providers while the recorded scope is **Google first**; see `TODO.md` §UNBLOCKE
 existing key. The shell therefore already beats any file, and `.env.local` cannot beat
 `.env` without the introduced-keys bookkeeping in `env-files.ts`. A test caught the
 opposite assumption before it shipped.
+### Decided 2026-10-02 — session transport, the email allowlist, and a missing column
+
+| ID | Decision | Rationale |
+| --- | --- | --- |
+| **D48** | **Session transport: an `httpOnly`/`Secure`/`SameSite=Lax` cookie for web.** The session token is an opaque random string hashed at rest, so delivery is a thin adapter and not an architectural fork. Mobile takes the same token from a response body in milestone 2. | Cookies are not readable by script, which a `localStorage` token is. The web app and the API are separate **origins** (`localhost:3500`, `:3001`) but the same **site**, so `SameSite=Lax` applies in dev and production alike. The cost is that cookies are sent automatically, so CSRF needs defence: `SameSite=Lax` plus a required custom header on state-changing requests. |
+| **D49** | **The allowed email domain is PER-SCHOOL configuration in `SchoolSettings`, not an env var.** A list, **fail-closed** when empty (external sign-in disabled, never "allow all"), and account creation requires `email_verified === true`. An explicit opt-in permits any verified address. | `ADR-003` is one deployment per school, so there is no single product-wide domain: one school is `@st-annes.lk`, the next `@royalcollege.lk`, and a third may use personal addresses for parents. A global `ALLOWED_EMAIL_DOMAIN` would be wrong for every school but one, and `AGENTS.md` §2.14 puts thresholds and toggles in settings, never constants. Requiring a verified address also dissolves the Workspace-versus-consumer question, since Workspace asserts it and consumer Gmail always carries it. |
+| **D50** | **`sessions.token_hash` added.** A session is hashed at rest exactly as a refresh token is. | The model had `refresh_tokens.token_hash` with the comment "a bearer credential, so it is hashed at rest", and **nothing on `sessions`**. Without it the only handle on a session is its `id`, so the cookie value would *be* a primary key — leaking table structure and turning any logged session id (an error message, a support screenshot, a proxy log) into a credential disclosure. A field, not a model, so the three model tripwires are untouched. |
+
+**SHA-256, deliberately not argon2id**, for both hashes. These are 256-bit random values; there is nothing to brute-force and no work factor to tune. Argon exists for low-entropy human passwords (`ADR-007`).
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
 | Question                                       | Authoritative source                                                                                           |
