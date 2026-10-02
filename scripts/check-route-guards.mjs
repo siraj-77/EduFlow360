@@ -62,6 +62,79 @@ function walk(dir, out = []) {
  * @param {string[]} files
  * @returns {Finding[]}
  */
+/**
+ * The decorator block attached to the route declared on line `i`.
+ *
+ * Why this exists: the first version of this checker read ONLY `lines[i - 1]`,
+ * so a decorator split across lines —
+ *
+ *     @Public(
+ *       'a reason long enough that Prettier wrapped it',
+ *     )
+ *     @Get('/thing')
+ *
+ * — was reported as an unguarded route. That fails CLOSED, so it could not let a
+ * defect through, but it teaches the only lesson that matters: if formatting a
+ * decorator makes a gate complain, people learn to reformat past the gate. A
+ * check that punishes correct formatting stops being read as a real control.
+ *
+ * So this walks outward from the route decorator, tracking parenthesis depth,
+ * and absorbs contiguous decorator lines in BOTH directions — the repo's
+ * convention puts `@Public` above `@Get`, but TypeScript permits either, and a
+ * checker that only understands one order is a checker that will eventually be
+ * wrong.
+ *
+ * The downward walk is deliberately conservative, because it is the direction
+ * that can create a BYPASS: absorbing blindly below would let an unguarded route
+ * borrow a guard belonging to the next method. So it absorbs only lines that are
+ * themselves decorator-ish — inside unbalanced parens, or opening with `@` — and
+ * stops at the first line that is neither. A method signature ends the walk.
+ *
+ * @param {string[]} lines
+ * @param {number} i index of the route decorator line
+ * @returns {string}
+ */
+export function decoratorContext(lines, i) {
+  const MAX_LINES = 24;
+  const parens = (raw) => {
+    let d = 0;
+    for (const ch of raw) {
+      if (ch === '(') d++;
+      else if (ch === ')') d--;
+    }
+    return d;
+  };
+  const isBoundary = (t) => t === '' || t.startsWith('*') || t.startsWith('//');
+
+  /** @type {string[]} */
+  const above = [];
+  let depth = 0;
+  for (let j = i - 1; j >= 0 && above.length < MAX_LINES; j--) {
+    const raw = lines[j] ?? '';
+    const t = raw.trim();
+    if (isBoundary(t)) break;
+    above.unshift(raw);
+    depth += parens(raw);
+    // Balanced and beginning with a decorator means we hold a whole decorator.
+    if (depth === 0 && t.startsWith('@')) break;
+  }
+
+  /** @type {string[]} */
+  const below = [];
+  depth = parens(lines[i] ?? '');
+  for (let k = i + 1; k < lines.length && below.length < MAX_LINES; k++) {
+    const raw = lines[k] ?? '';
+    const t = raw.trim();
+    if (isBoundary(t)) break;
+    if (depth === 0 && !t.startsWith('@')) break; // a method signature: stop
+    below.push(raw);
+    depth += parens(raw);
+    if (depth === 0 && !t.startsWith('@')) break;
+  }
+
+  return [...above, lines[i] ?? '', ...below].join('\n');
+}
+
 export function auditRoutes(files) {
   /** @type {Finding[]} */
   const findings = [];
@@ -77,7 +150,7 @@ export function auditRoutes(files) {
       // `@Controller` is a class declaration, not a route handler.
       if (line.includes('@Controller')) continue;
 
-      const window = [lines[i - 1] ?? '', line].join('\n');
+      const window = decoratorContext(lines, i);
       const guarded = window.includes(PERMISSION) || window.includes(PUBLIC);
 
       if (!guarded) {

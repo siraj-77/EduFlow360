@@ -134,6 +134,91 @@ describe('auditRoutes', () => {
   });
 });
 
+describe('a decorator split across lines', () => {
+  /**
+   * The first implementation read only `lines[i - 1]`, so a `@Public(...)`
+   * that Prettier wrapped was reported as an unguarded route. It failed
+   * CLOSED — nothing slipped through — but a gate that punishes correct
+   * formatting is a gate people learn to reformat past. These cases exist so
+   * that cannot regress quietly.
+   */
+  const cases: Array<{ name: string; lines: string[] }> = [
+    {
+      name: 'wrapped above the route decorator',
+      lines: [
+        '@Controller("probe")',
+        'export class C {',
+        '  @Get("/a")',
+        '  @Public(',
+        "    'a reason long enough that Prettier wrapped it',",
+        '  )',
+        '  a(): string { return "x"; }',
+        '}',
+      ],
+    },
+    {
+      name: 'wrapped below the route decorator',
+      lines: [
+        '@Controller("probe")',
+        'export class C {',
+        '  @Get("/b")',
+        '  @Public(',
+        "    'reason',",
+        '  )',
+        '  b(): string { return "x"; }',
+        '}',
+      ],
+    },
+  ];
+
+  for (const c of cases) {
+    it(`is recognised when ${c.name}`, () => {
+      const dir = mkdtempSync(join(tmpdir(), 'rg-'));
+      const file = join(dir, 'c.ts');
+      try {
+        writeFileSync(file, c.lines.join('\n'));
+        const findings = auditRoutes([file]);
+        // auditRoutes answers ONE question: is this route guarded? An empty
+        // result is the pass. (The allowlist is reconciled separately by
+        // auditAllowlist — asserting on it here would be asserting on the
+        // wrong function, and would pass for the wrong reason.)
+        expect(findings.filter((f) => f.message.startsWith('Route has neither'))).toEqual([]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  }
+
+  it('does NOT let one route borrow the next route decorator', () => {
+    // The direction that could create a real BYPASS: absorbing lines below a
+    // route without stopping would hand /unguarded the guard belonging to
+    // /guarded, with no blank line between them.
+    const dir = mkdtempSync(join(tmpdir(), 'rg-'));
+    const file = join(dir, 'c.ts');
+    try {
+      writeFileSync(
+        file,
+        [
+          '@Controller("probe")',
+          'export class C {',
+          '  @Get("/unguarded")',
+          '  unguarded(): string { return "x"; }',
+          '  @Get("/guarded")',
+          '  @Public("reason")',
+          '  guarded(): string { return "x"; }',
+          '}',
+        ].join('\n'),
+      );
+      const findings = auditRoutes([file]);
+      const unguarded = findings.filter((f) => f.message.startsWith('Route has neither'));
+      expect(unguarded).toHaveLength(1);
+      expect(unguarded[0].line).toBe(3);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('auditAllowlist', () => {
   const writeAllowlist = (body: string): { path: string; dir: string } => {
     const dir = mkdtempSync(join(tmpdir(), 'allow-'));
