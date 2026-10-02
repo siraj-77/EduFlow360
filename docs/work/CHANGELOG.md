@@ -13,27 +13,27 @@
 
 **The gates were being reported rather than run.** A full re-measurement on 2026-09-30 executed all nine gates and found **five of them green for reasons unrelated to the application** — four new findings, none in any prior document.
 
-| Finding | What is hollow | Severity |
-| ------- | -------------- | -------- |
-| `AUD-30-01` | `apps/web/web-port.spec.ts` matches neither of its package's `include` globs and **has never executed** | **P0** |
-| `AUD-30-02` | `test:integration` is hollow in **both** packages that declare it — one `passWithNoTests: true`, one `echo … && exit 0` | P1 |
-| `AUD-30-03` | The e2e nav-parity test passes with **zero** nav links, because the web app contains no `<a>` element | P1 |
-| `AUD-30-04` | The e2e theme test only ever asserts `light`; the dark path of `ThemeScript` never executes | P2 |
-| `AUD-30-05` | `packages/config` — the package every lint and typecheck config comes from — is itself unlinted and untypechecked | P1 |
+| Finding     | What is hollow                                                                                                          | Severity |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
+| `AUD-30-01` | `apps/web/web-port.spec.ts` matches neither of its package's `include` globs and **has never executed**                 | **P0**   |
+| `AUD-30-02` | `test:integration` is hollow in **both** packages that declare it — one `passWithNoTests: true`, one `echo … && exit 0` | P1       |
+| `AUD-30-03` | The e2e nav-parity test passes with **zero** nav links, because the web app contains no `<a>` element                   | P1       |
+| `AUD-30-04` | The e2e theme test only ever asserts `light`; the dark path of `ThemeScript` never executes                             | P2       |
+| `AUD-30-05` | `packages/config` — the package every lint and typecheck config comes from — is itself unlinted and untypechecked       | P1       |
 
 `AUD-30-01` is P0 because of what it is guarding. `web-port.spec.ts` exists because, on 2026-09-29, an unrelated application holding port 3000 answered Playwright's readiness probe and **all 11 e2e tests ran against it** — 11 failures, none of which mentioned the port. The port was centralised; the test holding the one accepted duplication in place matches no glob and has never run. **A test that does not run is worse than no test: it survives review and blocks deletion of the real fix.** (`D36`)
 
-**One root cause.** `coverage-gate.spec.ts` and `e2e-gate.spec.ts` were written on 2026-09-29 to answer *is this gate actually wired to anything?*, and they work. The class of defect then recurred in four adjacent places they do not cover. What is missing is a **general oracle**, which is why the plan's second story is a test-file oracle rather than a fifth targeted check.
+**One root cause.** `coverage-gate.spec.ts` and `e2e-gate.spec.ts` were written on 2026-09-29 to answer _is this gate actually wired to anything?_, and they work. The class of defect then recurred in four adjacent places they do not cover. What is missing is a **general oracle**, which is why the plan's second story is a test-file oracle rather than a fifth targeted check.
 
 **`docs/work/ACTION_PLAN_2026-09-30.md`** replaces `REMEDIATION_PLAN_2026-09-29.md` as the action plan for EPIC-00 and EPIC-DOC scope. `EPIC-G0` (commit what exists) · `EPIC-G1` (make the gates honest, 23 pts) · `EPIC-G2` (make the record accurate, 13 pts) · `EPIC-G3` (blocking scaffold, 9 pts) · `EPIC-G4` (P3 CI, 34 pts) · `EPIC-G5` (P4 kernel + web shell, 33 pts) · `EPIC-G6` (requirements extraction, 34 pts). Critical path `G0 → G1 → G3-1 → G4 → G5 → PLT-EPIC-01`, ~110 points before the first feature story.
 
 ### Changed — the state of record is corrected, and `SSOT.md` §1a now asks a new question
 
-- **`SSOT.md §1` git state corrected.** It read *"8 commits, working tree clean."* Measured 2026-09-30: **14 commits, 15 modified, 12 untracked.** The entire ARC-01 ERD, the FIX-01/02/22 fixes and the 11-test e2e suite exist only in the working tree and have never been pushed.
+- **`SSOT.md §1` git state corrected.** It read _"8 commits, working tree clean."_ Measured 2026-09-30: **14 commits, 15 modified, 12 untracked.** The entire ARC-01 ERD, the FIX-01/02/22 fixes and the 11-test e2e suite exist only in the working tree and have never been pushed.
 - **`SSOT.md §1a` gains a `Truthful?` column** and **`§1b` is new** — the four hollow gates with reproduction commands. The old table drew one distinction, exit code versus pass/fail. The exit code was never the claim; the enforcement was.
-- **Gate line corrected** from *"6 of 7 §4 gates green"* to **"5 of 9 green and trustworthy, 2 green but hollow, 1 red, 1 not run."**
+- **Gate line corrected** from _"6 of 7 §4 gates green"_ to **"5 of 9 green and trustworthy, 2 green but hollow, 1 red, 1 not run."**
 - **Six quantity classes corrected** — `docs:verify` 147/155/179 → **188**; tests 51/63/67/78 → **103**; commits 3/4/8 → **14**; ADRs 19/21 → **21**; tracked files 262 → **269**; tsconfigs excluding specs 5 → **4**. Six wrong numbers at once is evidence the class recurs, so the plan's `G2-2` **generates** the status report instead of writing it (`D38`).
-- **D8, D9 and D10 marked *applied*.** Verified in `8105a27`: `AGENTS.md:18` carries the full legacy path, `:116` says 21 keys and zero application keys, `:319` says 149 raw-SQL sites with the method named. Three of the four pending ⚑3 asks are retired.
+- **D8, D9 and D10 marked _applied_.** Verified in `8105a27`: `AGENTS.md:18` carries the full legacy path, `:116` says 21 keys and zero application keys, `:319` says 149 raw-SQL sites with the method named. Three of the four pending ⚑3 asks are retired.
 - **`SSOT.md §8` re-ordered.** The first fact is now a test that has never run and a git state that was never true.
 - **`D35…D40` added.**
 
@@ -41,7 +41,7 @@
 
 Recorded so a later audit does not "fix" them. Approving a fix for a non-defect is the same error class this audit exists to correct.
 
-- **`FIX-17`'s "mojibake" is a console artefact, not file corruption.** A byte-level scan for U+FFFD across every tracked source file returned **zero**; `ta.json` and `ar.json` are genuine UTF-8 Tamil and Arabic. The terminal is code page 850. A *console code page corrupting non-ASCII output* is now a recorded footgun, alongside the existing PowerShell-BOM one. (`D40`)
+- **`FIX-17`'s "mojibake" is a console artefact, not file corruption.** A byte-level scan for U+FFFD across every tracked source file returned **zero**; `ta.json` and `ar.json` are genuine UTF-8 Tamil and Arabic. The terminal is code page 850. A _console code page corrupting non-ASCII output_ is now a recorded footgun, alongside the existing PowerShell-BOM one. (`D40`)
 - The `web-port.ts` duplication in `package.json` is deliberate, documented and was guarded — the guard simply never ran.
 - `docs-verify.mjs`'s `ALLOWED_MISSING` list is correct for milestone-2 and not-yet-written paths.
 - `schema.prisma` having no `Student`/`Class`/`Teacher` is deliberate (`D33`); `BLG-102` records that inventing them was rejected.
@@ -257,3 +257,34 @@ Eleven real defects were caught by the gates during this phase, including: `{chi
 ## Version history
 
 _No tagged versions. The first tag follows the Foundation Harness milestone._
+
+## 2026-10-02 — 2026-10-03 — Authentication vertical slice
+
+Three routes now exist and all three are tested over a real socket against real
+PostgreSQL: `GET /auth/oidc/redirect`, `POST /auth/setup/complete`,
+`POST /auth/login`.
+
+- **Fixed: the application could not boot.** `import type` on a constructor dependency
+  breaks `emitDecoratorMetadata`, so Nest could not resolve it. `tsc` accepted it, lint
+  demanded it, and nine gates were green. Repaired with `@Inject(Token)`, which resolves
+  from an explicit token rather than reflected metadata.
+- **Fixed: the route-guard gate punished correct formatting.** A `@Public(...)` that
+  Prettier wrapped was reported as unguarded. Now parses stacked and multi-line
+  decorators, with a test proving an unguarded route still cannot borrow a neighbour
+  guard.
+- **argon2id** 0.45.1 behind `IPasswordHasher`, parameters injected from
+  `SchoolSettings` rather than hard-coded.
+- **Allowed email domains**, per school, fail-closed when empty, exact-equality
+  matching. A suffix rule would have made `evilmicrosoft.com` match `microsoft.com`.
+- **Global `CsrfGuard`** — the first control in this repository that enforces
+  anything rather than merely declaring intent.
+- **HTTP harness.** The Nest container could not previously be built in a unit test at
+  all, so no route was testable.
+
+⚠ **Two open items carried into the next session**, both in
+`docs/work/RESUME_2026-10-03.md`:
+
+1. `pnpm test:integration` is **flaky** (about 1 run in 8) and the failure is inside the
+   setup-token concurrency test. Not root-caused.
+2. `test:coverage` is red for two independent reasons, and the password policy is
+   **provisional and invented** pending owner sign-off.
