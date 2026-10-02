@@ -65,8 +65,8 @@ function walk(dir, out = []) {
 /**
  * The decorator block attached to the route declared on line `i`.
  *
- * Why this exists: the first version of this checker read ONLY `lines[i - 1]`,
- * so a decorator split across lines —
+ * Why this exists: the first version of this checker read ONLY `lines[i - 1]`, so a
+ * decorator split across lines —
  *
  *     @Public(
  *       'a reason long enough that Prettier wrapped it',
@@ -75,20 +75,24 @@ function walk(dir, out = []) {
  *
  * — was reported as an unguarded route. That fails CLOSED, so it could not let a
  * defect through, but it teaches the only lesson that matters: if formatting a
- * decorator makes a gate complain, people learn to reformat past the gate. A
- * check that punishes correct formatting stops being read as a real control.
+ * decorator makes a gate complain, people learn to reformat past the gate. A check
+ * that punishes correct formatting stops being read as a real control.
  *
- * So this walks outward from the route decorator, tracking parenthesis depth,
- * and absorbs contiguous decorator lines in BOTH directions — the repo's
- * convention puts `@Public` above `@Get`, but TypeScript permits either, and a
- * checker that only understands one order is a checker that will eventually be
- * wrong.
+ * So this walks outward from the route decorator, tracking parenthesis depth, and
+ * absorbs contiguous decorator lines in BOTH directions — the repo's convention puts
+ * `@Public` above `@Get`, but TypeScript permits either, and a checker that only
+ * understands one order is a checker that will eventually be wrong.
  *
- * The downward walk is deliberately conservative, because it is the direction
- * that can create a BYPASS: absorbing blindly below would let an unguarded route
- * borrow a guard belonging to the next method. So it absorbs only lines that are
- * themselves decorator-ish — inside unbalanced parens, or opening with `@` — and
- * stops at the first line that is neither. A method signature ends the walk.
+ * Both walks are deliberately conservative, because they are the direction that can
+ * create a BYPASS: absorbing blindly would let an unguarded route borrow a guard
+ * belonging to the next method. So each absorbs only lines that are themselves
+ * decorator-ish — inside unbalanced parens, or opening with `@` — and stops at the
+ * first line that is neither. A method signature ends the walk.
+ *
+ * Both walks absorb a WHOLE stack, not one line. See the second version of the upward
+ * walk below for why that turned out to matter: `AGENTS.md` 2.3 requires `@Audited`
+ * on sensitive routes, so a guarded route here routinely carries three decorators, and
+ * a walk that stopped after the first reported the guard as absent.
  *
  * @param {string[]} lines
  * @param {number} i index of the route decorator line
@@ -106,17 +110,45 @@ export function decoratorContext(lines, i) {
   };
   const isBoundary = (t) => t === '' || t.startsWith('*') || t.startsWith('//');
 
-  /** @type {string[]} */
+  /**
+   * The upward walk, second version.
+   *
+   * The first version broke as soon as it had read ONE balanced line beginning with
+   * `@` — on the rule "that line is a whole decorator, so stop". True of the line it
+   * had just read, and wrong as a stopping condition: `AGENTS.md` 2.3 requires
+   * `@Audited` on every sensitive route, so the required shape of a guarded route is
+   *
+   *     @Public('<reason>')
+   *     @Audited('<ACTION>')
+   *     @Post('thing')
+   *
+   * and the checker reported a guard two lines up as absent. `PLT-107`'s two routes
+   * are the first in this repository to stack decorators, and `pnpm check:route-guards`
+   * failed on both.
+   *
+   * It failed CLOSED, which is why the fix belongs here rather than in the routes.
+   * Both workarounds were worse: reordering so `@Public` sits immediately above the
+   * route decorator satisfies a checker whose bug is that it reads one line, and the
+   * next person to add `@HttpCode` above `@Post` reintroduces it silently; and
+   * dropping `@Audited` contradicts `AGENTS.md` 2.3.
+   *
+   * So this now mirrors the downward walk exactly: absorb contiguous decorator-ish
+   * lines — inside unbalanced parens, or opening with `@` — and stop at the first line
+   * that is neither. A method signature ends the walk, so a route still cannot borrow
+   * the next route's guard, which is the property the "one route borrows the next"
+   * case in `route-guards.spec.ts` exists to protect.
+   */
   const above = [];
   let depth = 0;
   for (let j = i - 1; j >= 0 && above.length < MAX_LINES; j--) {
     const raw = lines[j] ?? '';
     const t = raw.trim();
     if (isBoundary(t)) break;
+    // Balanced and not a decorator: an ordinary statement. Stop rather than absorb it,
+    // or a field declaration above a route would be read as part of its guard block.
+    if (depth === 0 && !t.startsWith('@')) break;
     above.unshift(raw);
     depth += parens(raw);
-    // Balanced and beginning with a decorator means we hold a whole decorator.
-    if (depth === 0 && t.startsWith('@')) break;
   }
 
   /** @type {string[]} */

@@ -493,14 +493,27 @@ Blocking the items marked ⚑.
 
 **✅ Landed 2026-10-02 — `GET /auth/oidc/redirect`.** First controller in the repository. State travels in an **HMAC-signed cookie**, deliberately **not** Redis: no Redis deployment is verified here (`G1-10`), and login must not depend on a service that may be down. `pnpm check:route-guards` proven load-bearing — removing the allowlist entry fails the build.
 
-### ⚠️ Gaps this work created
+### ⏥ Gaps this work created
 
-- **The Nest DI container cannot be built in a unit test.** `emitDecoratorMetadata` is not implemented by esbuild, so `design:paramtypes` is `undefined` under Vitest. The built `dist/` carries it, so the real artifact is fine. Closing the test gap needs an SWC transform — a dependency decision, not yet taken.
-- **argon2 operational ceilings** (256 MiB / 10 passes) exist only because `timeCost: -1` _hangs_ rather than erroring. These are the only numbers in the system with no measured authority. `AGENTS.md` §6 gap — owner decision.
-- **`check-route-guards` cannot parse a multi-line decorator.** It reads the line above the route decorator, so `@Public(` split across lines reports as unguarded. This **fails closed** — annoying, never a bypass — and was confirmed by injecting one.
-- **`pnpm add` silently breaks every gate on pnpm 11** by writing the literal placeholder `argon2: set this to true or false` into `pnpm-workspace.yaml`. Fixed to `true`. Anything that reads that file without evaluating it as YAML is now uninterpretable.
-
----
+- ⚠ **`pnpm test:integration` is FLAKY, and the flake is a security test.** Reproduced at
+  roughly 1 run in 8: `expected { action: "reject-unclaimed" } to deeply equal
+{ action: "reject-consumed" }` in `prisma-setup-token-repository.integration.spec.ts`.
+  A flaky gate is worse than a red one, because it teaches people to re-run until green.
+  **Not root-caused.** No `deleteMany` or `TRUNCATE` exists in any spec, so it is not another
+  file deleting the row; `deploymentState()` is inferring "bootstrap claimed" from account
+  state, which is exactly the ambiguity flagged when the token core was written. This is
+  treated as a real open defect, not test noise.
+- **The password policy is provisional and needs owner sign-off.** Length bounds only, marked
+  `provisional: true`. No complexity, breached-password or dictionary rule exists. `AGENTS.md` §6 forbids inventing
+  one; `School_Setup_Workflow` §4 defers it. It exists only because the `PLT-107` acceptance criteria need
+  something to test against. Recorded in `SSOT.md` D62.
+- **`test:coverage` has TWO independent failures, not one.** Measured against clean `HEAD`: the
+  `apps/api` domain tier was already at **89.72% against a 90% threshold**, before any of this work.
+  I told every subagent it was red only on the `apps/web` zero-file tiers, which was wrong and
+  unchecked. Cause is mechanical: SWC emits `export { }` for type-only interface files that esbuild
+  emitted nothing for, so v8 scores `0/0`. Every domain file **with** code is at 100%. Not fixed here — the
+  right fix is a decision about what the tier means, and lowering the threshold is what the gate forbids.
+- **Five environment variables have no corpus source** (`env.ts` says so on each).
 
 ## Do Not
 

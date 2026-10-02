@@ -3313,3 +3313,199 @@ only then the redirect and callback routes. `TODO.md` records the order.
   about strength in either direction. Revisit against measured hardware.
 - **`@RequirePermission` / `@RequireEntitlement` / `@Audited`** are still metadata. Nothing reads
   them. `CsrfGuard` remains the only control that enforces anything.
+
+## 2026-10-03 — The two credential routes, and two defects the tests found first
+
+| Field         | Value                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase         | `PLT-101` (password sign-in) and `PLT-107` (first-administrator bootstrap)                                                                                                                                                                                                                                                                                                               |
+| Task          | `POST /auth/setup/complete` and `POST /auth/login`, end to end over HTTP                                                                                                                                                                                                                                                                                                                 |
+| Status        | ✅ Both routes registered, tested over a socket against real PostgreSQL                                                                                                                                                                                                                                                                                                                  |
+| Activity      | New: the atomic claim port + Prisma adapter (one transaction for token consumption and credential write), the user-credential repository, a provisional password policy, an in-process fixed-window throttle, two Zod DTOs, two controllers, two use-cases, and 8 new env variables with provenance. Wired in `AuthModule`, which now supports four configuration states instead of one. |
+| Files changed | 24 new, 8 modified (see the report)                                                                                                                                                                                                                                                                                                                                                      |
+| Quality       | lint 0 · typecheck 0 · test 0 (844) · test:integration 0 (164) · docs:verify 0 · check:route-guards 0 · format:check 0 · build 0 · test:e2e 0 (forced, 37) · **test:coverage RED — pre-existing, see below**                                                                                                                                                                             |
+
+### How the token consumption and the credential write were made atomic
+
+`PrismaBootstrapClaimRepository.claim` is ONE `$transaction` over three statements: locate the row
+by the presented token's SHA-256, spend it with a **conditional UPDATE whose WHERE includes the hash
+and a live expiry**, then write the credential. A conditional UPDATE is what makes two concurrent
+claims collapse to one winner — the loser blocks on the row lock, re-evaluates its WHERE against the
+committed row, finds the hash NULL and matches nothing — and throwing a sentinel aborts the
+transaction rather than returning a refusal that would commit.
+
+The proof is an integration test that makes the **third** statement throw and reads the row back:
+`a failure between the two writes leaves the token UNSPENT`. It was checked by deleting the
+`$transaction` wrapper and watching it go red with `setup_token_hash: null` — which is the lockout
+`STORY_PLT-107` warns about, reproduced deliberately.
+
+### How the enumeration timing oracle was handled
+
+Every sign-in performs **exactly one argon2id verification**. When no account matches, the password
+is verified against a fixed dummy digest built **at this deployment's own cost parameters** at boot.
+The naive fix — returning early when no account matches — makes the missing user _faster_, which is
+the oracle, because argon2id is deliberately expensive. The database cost was equalised too:
+`recordFailedSignIn` is keyed on the _identifier_, so an unknown one issues the same UPDATE and the
+same SELECT and simply matches zero rows. No early return anywhere.
+
+Two claims, asserted as two different kinds of evidence:
+
+- **A FACT**, in `sign-in-with-password.spec.ts`: `hasher.verify` was called exactly once on both
+  paths, and against the dummy when nothing matched. A counter, not a distribution.
+- **CORROBORATION**, in `login-over-http.integration.spec.ts`: real wall-clock time over a socket,
+  band `0.5x–2.0x` of the wrong-password median. Measured 1.02x.
+
+### Four defects found by the tests rather than by review
+
+1. **`check:route-guards` could not see a STACK of decorators.** Its upward walk absorbed one line
+   and stopped, so `@Public` / `@Audited` / `@Post` — the shape `AGENTS.md` 2.3 _requires_ — was
+   reported as unguarded. Both new routes failed the gate. Fixed in the gate, fail-closed preserved:
+   the walk now absorbs contiguous decorator-ish lines like the downward walk already did, and still
+   stops at a method signature. The two rejected alternatives (reorder the decorators; drop
+   `@Audited`) are recorded in `scripts/check-route-guards.mjs`.
+2. **The 404 for an unenrolled deployment announced the very fact D58 withholds.** The body read
+   "This deployment has no setup token outstanding". Now a bare `NotFoundException()`, which is what
+   D58's operative clause requires. Byte-identity with Nest's own route-not-found was aimed at and
+   abandoned: Nest's body echoes the requested path, so matching it means hand-writing framework text.
+3. **The throttle did not bound its own memory inside one window.** Thousands of distinct keys in one
+   window produced thousands of _current_ entries, so a stale-only sweep reclaimed nothing —
+   40 960 keys held at once, and a version that swept on every request took 12.5 s for 40 960 of them.
+   Now: O(1) oldest-eviction on every request at the cap, plus an O(n) stale sweep at most once per
+   window. Bounded at 4096; 121 ms.
+4. **The timing test could not fail.** At argon2's 8 KiB floor a verification costs 1–2 ms and HTTP
+   overhead buries it: with the mitigation deliberately **removed** the ratio was 0.91x — inside the
+   band. The file now runs at `DEFAULT_PASSWORD_HASH_PARAMETERS`, where removing the mitigation
+   measures **0.16x** and the band fails loudly.
+
+### Corrections and limits I owe
+
+- **`IClock` was injected as a concrete class into the login controller, and the test caught the
+  consequence.** The controller and its use-case held clocks 15 hours apart, the cookie TTL came out
+  large and positive, and a test asserting the session's _remaining_ lifetime passed while asserting
+  nothing. Fixed with a `CLOCK` token in `domain/ports/clock.ts`. **A clock seam that cannot be
+  faked at the last point of use is not a seam.**
+- **`database-contract.integration.spec.ts` asserted "no account ANYWHERE carries a password".**
+  Sound only while nothing in this repository ever wrote one. `PLT-107` now does. The assertion was
+  over-broad — it was testing that a shared dev database is untouched, not that the seed invented
+  nothing — and is now scoped to the seed's own school id, which is what its message always claimed.
+- **A bespoke message is not audit evidence.** `@Audited` is metadata; nothing reads it; `PLT-402`
+  writes the rows. Both controllers say so in their file comments, and the constraint that a login
+  FAILURE record must carry no identifier and no credential — or the audit log becomes the enumeration
+  oracle the route exists to prevent — is written down now, where it is cheap.
+- **429 says an account exists.** Accepted, per the corpus (Prompt Pack `PLT-101`: "lockout at 5
+  fails/10 min -> 429"), bounded by the source throttle, and recorded. The alternative would make a
+  lockout invisible to the person it protects.
+- **`test:coverage` was ALREADY RED before this work** — measured by stashing everything and running
+  it: the API `domain` tier was **89.72%** against a 90% threshold at `HEAD`. It is **89.08%** now.
+  The cause is pre-existing and mechanical: type-only files under `domain/` (`oidc-provider.ts`,
+  `password-hasher.ts`, `session-repository.ts`) are counted at 0% by v8, and two more such ports
+  joined them. **Not fixed here** — it needs a decision about how the coverage config treats a file
+  with no executable statements, and that is not a routes task.
+- **The password policy is INVENTED and flagged as such.** The corpus has none:
+  `EduFlow_School_Setup_Workflow_v1.md` line 452 defers it to Phase 4 and line 395 cites "Phase 4
+  defaults" that do not exist. `AGENTS.md` 6 says a gap is recorded, never filled with a number that
+  looks chosen — and `PLT-107`'s acceptance criterion demands a policy exist. So
+  `domain/services/password-policy.ts` implements the smallest rule that makes the criterion
+  testable: length bounds, no composition rules, `provisional: true` **on the value** so a caller sees
+  it without opening a comment. It needs owner sign-off.
+- **`SESSION_TTL_MS`, `REFRESH_TOKEN_TTL_MS`, `PASSWORD_MAX_LENGTH`, `SETUP_MAX_ATTEMPTS` and
+  `SETUP_ATTEMPT_WINDOW_MS` have no corpus source either.** Each says so in `env.ts`. Only
+  `LOGIN_MAX_FAILED_ATTEMPTS` / `LOGIN_LOCKOUT_MS` are stated by the governing documents.
+- **The story's task line says the route accepts `email` and `username`; its acceptance criteria do
+  not mention them.** They are implemented as OPTIONAL and applied only when supplied, because the
+  token already identifies exactly one row and making them required would force a principal typing a
+  43-character token to retype identifiers the deployment already has.
+- **`docs/work/TODO.md` and `docs/core/SSOT.md` were not touched.** `SSOT.md` by instruction;
+  `TODO.md` because the brief authorised only `WORKLOG.md`. `AGENTS.md` §9 asks for both in the same
+  commit, so whoever commits this needs the `TODO.md` line.
+
+### Still open, deliberately
+
+- **`test:coverage`, both tiers.** `apps/web` hooks tiers — correctly red; write the hooks. API
+  `domain` tier — pre-existing, above.
+- **No recovery path for a lost setup token**, which is option (b)'s recorded consequence. A console
+  procedure, documented, not a product feature.
+- **`@RequirePermission` / `@RequireEntitlement` / `@Audited` are still metadata.** `CsrfGuard`
+  remains the only control that enforces anything — and this task added two `POST` routes it now
+  actually guards, asserted over a socket in both HTTP specs.
+
+## 2026-10-02 — `POST /auth/setup/complete` and `POST /auth/login` — `builder`, reviewed by `core`
+
+| Field         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase         | `PLT-107` controller + the must-link chain (`SSOT.md` D57)                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Task          | The two password-based routes that make any login possible at all                                                                                                                                                                                                                                                                                                                                                                                          |
+| Status        | ✔ Both landed. Third route — the callback — still to come.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Activity      | `POST /auth/setup/complete` consumes the one-time token and sets the first administrator. `POST /auth/login` verifies a password and issues a session. Both tested **over a real socket** against real PostgreSQL, using the HTTP harness rather than invoking controllers by hand.                                                                                                                                                                        |
+| Atomicity     | One `$transaction` over three statements: locate by hash, spend with a conditional `UPDATE` carrying the hash **and** a live expiry (affected-row count is the verdict), then write the credential. **Refusals throw a sentinel rather than return** — because Prisma's interactive `$transaction` COMMITS when its callback resolves, so a returned refusal would have spent the token and written nothing. argon2 runs **before** the transaction opens. |
+| Test evidence | Deliberate break, transaction removed: `expected null not to be null` — `setup_token_hash` spent, the school's only way in gone. The failure-between-statements test throws on the third statement and reads the row back to show the token is still unspent. Unit 844, integration 164.                                                                                                                                                                   |
+| Enumeration   | One argon2id verification on **every** request; a missing account verifies against a dummy digest at this deployment's own parameters, and `recordFailedSignIn` keys on the identifier so a miss issues the same statements and matches zero rows.                                                                                                                                                                                                         |
+| Quality       | lint 0, typecheck 0, test 0, docs:verify 0, check:route-guards 0, format:check 0, build 0, integration 0, e2e 0.                                                                                                                                                                                                                                                                                                                                           |
+
+### ⏥ The password policy is INVENTED, and needs owner sign-off
+
+**`AGENTS.md` §6 says a gap in the corpus is recorded as a gap and never filled with an invented
+threshold. But the `PLT-107` acceptance criteria require a policy that rejects weak passwords, so one
+had to exist to test against.** What was built is **length bounds only**, marked `provisional: true`
+on the value so it cannot be mistaken for a decided rule.
+
+This is recorded as a gap, not waved through: **no complexity rule, no breached-password check, no
+dictionary check, no minimum strength score** — none of those exist, and their absence is a
+decision you have not made. `EduFlow_School_Setup_Workflow_v1.md` §4 defers the policy to a
+later phase, which is why nothing was available to reuse.
+
+### Five environment variables have no corpus source
+
+Each says so in `env.ts`. They are operational knobs, not policy, and they should be reconciled
+against the corpus rather than left to accumulate silently.
+
+### A correction: `test:coverage` was ALREADY red at HEAD, and I said otherwise
+
+I briefed every subagent in this tranche that the tenth gate was "expected red on two `apps/web`
+zero-file tiers". That was **incomplete, and I repeated it without checking**. Measured against a
+stashed clean tree at `HEAD`:
+
+```
+ERROR: Coverage for lines (89.72%) does not meet "src/**/domain/**/*.ts" threshold (90%)
+```
+
+So there were **two** independent failures, not one: the `apps/web` zero-file tiers **and** the
+`apps/api` domain tier. The subagent measured it rather than trusting my brief — which is
+exactly the behaviour this repository keeps asking for and I did not practise myself.
+
+Cause is mechanical: type-only files under `domain/` are pure interfaces with no runtime code, and
+SWC compiles them to a real `export { }` statement where esbuild emitted nothing. v8 then scores
+`0/0`. Every domain file **with** executable code is at 100%. So the honest reading is that the tier
+is measuring interface files as though they were uncovered code — a reporting artifact, not a
+coverage regression. **It is not fixed here**, because the right fix is a decision about what the
+tier means, and lowering the threshold is precisely what `check-coverage-tiers.mjs` forbids.
+
+### ⚠ Unresolved: `test:integration` is flaky, and the failure is in a security test
+
+Reproduced at roughly **1 run in 8**, twice now across the session (this subagent and again
+independently afterwards). The failing assertion:
+
+```
+expected { action: 'reject-unclaimed' } to deeply equal { action: 'reject-consumed' }
+prisma-setup-token-repository.integration.spec.ts
+```
+
+This is the setup-token concurrency path: after exactly one caller wins, the losers are told
+"too late". Getting `reject-unclaimed` instead means `deploymentState()` classified the
+deployment as `bootstrap-claimed`, which requires **no** `INVITED` user with a null
+`passwordHash` to exist at that moment.
+
+**What was ruled out:** there is no `deleteMany` and no `TRUNCATE` anywhere in any spec, so
+another file is not deleting the row. Integration files each mint their own `schoolId` via
+`randomUUID()`, so they are not sharing a school.
+
+**What is NOT ruled out, and is the likely cause:** this is precisely the ambiguity recorded
+when the token core was written — option (b) NULLs the token columns, so "consumed" and
+"never issued" are indistinguishable from the token alone, and the code reads the ACCOUNT to
+disambiguate. `PLT-104`'s OTP invites create a second no-credential `INVITED` row,
+which is the documented way this breaks. Something is producing that state intermittently
+under parallel file execution.
+
+**Left open deliberately.** A flaky security test is worse than a red gate: a red gate stops
+work, a flaky one teaches re-running. It is recorded rather than papered over, and it should
+be root-caused before the setup path is trusted in production.

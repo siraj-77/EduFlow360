@@ -124,6 +124,197 @@ const schema = z
 
     LOG_LEVEL: z.enum(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']).default('INFO'),
     LOG_DIR: z.string().min(1).default('logs'),
+
+    /**
+     * Which deployment owns this database.
+     *
+     * `AGENTS.md` 2.1 makes isolation physical — one database per school — while
+     * still requiring a `schoolId` column on school-scoped rows, as metadata for
+     * auditability and licence portability. Something therefore has to name that
+     * one school, and it is configuration rather than a constant: a constant
+     * would be the same UUID in every school in the world.
+     *
+     * **No default, deliberately.** `seed.mjs` carries a documented default
+     * because it is a local convenience; a default here would mean an operator
+     * who never set it silently inherits one and discovers it from a support
+     * ticket. `AGENTS.md` 11 — no silent defaults.
+     *
+     * Validated as a UUID because every repository interpolates it into a `uuid`
+     * column predicate. A typo would not throw: it would match no row, and the
+     * symptom would be an installation where every login 401s and no login can
+     * ever succeed.
+     */
+    SCHOOL_ID: z
+      .string()
+      .uuid('SCHOOL_ID must be a UUID. Every repository scopes its reads and writes by it.')
+      .optional(),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Credential-route thresholds.
+    //
+    // `AGENTS.md` 2.14 puts every threshold in settings rather than in code, and
+    // 8 forbids hard-coding one. `OIDC_STATE_TTL_MS` above is the precedent:
+    // a documented default, configurable per deployment, validated rather than
+    // trusted.
+    //
+    // PROVENANCE IS NOT UNIFORM, and saying which is which matters more than the
+    // numbers:
+    //
+    //   - LOGIN_MAX_FAILED_ATTEMPTS / LOGIN_LOCKOUT_MS are STATED BY THE CORPUS.
+    //     docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md line 723 gives
+    //     PLT-101 "lockout at 5 fails/10 min -> 429 with FakeClock".
+    //   - PASSWORD_MIN_LENGTH is a GAP. The corpus contains no password policy at
+    //     all: EduFlow_School_Setup_Workflow_v1.md line 452 lists "Password policy
+    //     (length, complexity, history, expiry if any)" as a **Phase 4** item, and
+    //     line 395 says the first administrator sets "a strong password (policy
+    //     from Phase 4 defaults)". Twelve is a judgement call above the NIST
+    //     SP 800-63B floor of eight, chosen because this particular credential is
+    //     the whole installation. It needs owner sign-off and must be revisited
+    //     when Phase 4 designs the policy. Recorded rather than presented as
+    //     chosen.
+    //   - SESSION_TTL_MS, REFRESH_TOKEN_TTL_MS, PASSWORD_MAX_LENGTH,
+    //     SETUP_MAX_ATTEMPTS and SETUP_ATTEMPT_WINDOW_MS are ALSO GAPS, with the
+    //     reasoning in the comments at their use sites.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * How long a session cookie and its session row live.
+     *
+     * One hour, with no corpus source. Chosen because a school day is roughly
+     * that long and because a shorter window forces a re-authentication in the
+     * middle of a lesson. Recorded as a gap: `AGENTS.md` 6 requires a missing
+     * requirement to be visible rather than filled with a number that looks
+     * chosen, and this comment is that visibility.
+     */
+    SESSION_TTL_MS: z.coerce
+      .number()
+      .int('SESSION_TTL_MS must be a whole number of milliseconds')
+      .positive('SESSION_TTL_MS must be greater than zero')
+      .default(3_600_000),
+
+    /**
+     * How long a refresh token stays valid.
+     *
+     * Fourteen days, no corpus source. Long enough that a teacher who closes a
+     * laptop overnight is not asked to sign in again; short enough that a lost
+     * laptop does not carry a renewable credential for months. `ADR-008`'s
+     * rotation is what actually limits the damage — the window only decides how
+     * long the theft is useful.
+     *
+     * Must exceed `SESSION_TTL_MS`, enforced by the cross-field refinement
+     * below: a refresh token that expires before its session turns every sign-in
+     * into a session that cannot be renewed, which is a product failure wearing a
+     * security control's clothes.
+     */
+    REFRESH_TOKEN_TTL_MS: z.coerce
+      .number()
+      .int('REFRESH_TOKEN_TTL_MS must be a whole number of milliseconds')
+      .positive('REFRESH_TOKEN_TTL_MS must be greater than zero')
+      .default(1_209_600_000),
+
+    /**
+     * Failed sign-ins before an account is locked, and for how long.
+     *
+     * The only threshold here the corpus actually states — see the provenance
+     * block above. Five attempts is also what
+     * EduFlow_School_Setup_Workflow_v1.md line 1080 names as the authentication
+     * test ("lockout after 5 failures"), so two governing documents agree.
+     *
+     * The floor of two matters: a threshold of one locks an account on a single
+     * typo, which is a denial of service available to anyone who knows a
+     * username. Even that floor leaves the property exposed — see
+     * `sign-in-with-password.ts` for why a locked account answering 429 is a
+     * deliberate, documented leak rather than an oversight.
+     */
+    LOGIN_MAX_FAILED_ATTEMPTS: z.coerce
+      .number()
+      .int('LOGIN_MAX_FAILED_ATTEMPTS must be a whole number of attempts')
+      .min(
+        2,
+        'LOGIN_MAX_FAILED_ATTEMPTS must be at least 2. A threshold of 1 locks an account on a single typo, which is a denial of service available to anyone who knows a username.',
+      )
+      .default(5),
+
+    /**
+     * How long a locked account stays locked. Ten minutes, from the corpus.
+     *
+     * Long enough that an attacker cannot grind a small password space, short
+     * enough that a locked-out principal is not waiting until the next morning.
+     */
+    LOGIN_LOCKOUT_MS: z.coerce
+      .number()
+      .int('LOGIN_LOCKOUT_MS must be a whole number of milliseconds')
+      .positive('LOGIN_LOCKOUT_MS must be greater than zero')
+      .default(600_000),
+
+    /**
+     * The provisional password policy.
+     *
+     * LENGTH BOUNDS AND NOTHING ELSE, and that is a statement about the corpus
+     * rather than about security. There is no policy to implement:
+     * EduFlow_School_Setup_Workflow_v1.md line 452 defers it to Phase 4, and
+     * line 395 says the first administrator sets "a strong password (policy from
+     * Phase 4 defaults)" — a reference to something that does not exist yet.
+     *
+     * So this is the smallest thing that makes `PLT-107`'s acceptance criterion
+     * ("a password that fails the password policy does not consume the token")
+     * testable at all, and it is deliberately boring: a minimum and a maximum,
+     * no composition rules. NIST SP 800-63B is explicit that character-class
+     * rules and periodic expiry make passwords WORSE, and inventing them here
+     * would be inventing policy this repository has been told does not exist yet.
+     *
+     * The minimum of twelve is above the NIST floor of eight because this
+     * particular credential is the entire installation — there is no second
+     * administrator to call. It is a judgement, flagged as a gap, and it must be
+     * replaced when Phase 4 designs the real policy.
+     */
+    PASSWORD_MIN_LENGTH: z.coerce
+      .number()
+      .int('PASSWORD_MIN_LENGTH must be a whole number of characters')
+      .min(
+        8,
+        'PASSWORD_MIN_LENGTH must be at least 8. NIST SP 800-63B requires eight characters for a user-chosen password; nothing published goes lower.',
+      )
+      .default(12),
+
+    /**
+     * The upper bound, which is a DoS guard rather than a security rule.
+     *
+     * 128 characters. argon2 has no 72-byte truncation problem (that is bcrypt's),
+     * so this bound exists for one reason only: the request body is
+     * attacker-controlled and reaches an intentionally expensive function. 128
+     * comfortably exceeds NIST's "at least 64" allowance while bounding the work.
+     */
+    PASSWORD_MAX_LENGTH: z.coerce
+      .number()
+      .int('PASSWORD_MAX_LENGTH must be a whole number of characters')
+      .positive('PASSWORD_MAX_LENGTH must be greater than zero')
+      .default(128),
+
+    /**
+     * The throttle on `POST /auth/setup/complete`.
+     *
+     * Ten attempts per source per fifteen minutes, and there is no corpus source
+     * for either number. Ten rather than five because the legitimate caller is a
+     * principal copying a 43-character token off a printed line: a throttle that
+     * fires mid-copy is a throttle on the school's only way in, and this route
+     * has no recovery path by design (`STORY_PLT-107`, option (b)).
+     *
+     * The window is per source address, not per token, because an attacker holds
+     * no token to key on. See `fixed-window-throttle.ts` for why the counter is
+     * in-process and why that is acceptable for a single-school deployment.
+     */
+    SETUP_MAX_ATTEMPTS: z.coerce
+      .number()
+      .int('SETUP_MAX_ATTEMPTS must be a whole number of attempts')
+      .positive('SETUP_MAX_ATTEMPTS must be greater than zero')
+      .default(10),
+
+    SETUP_ATTEMPT_WINDOW_MS: z.coerce
+      .number()
+      .int('SETUP_ATTEMPT_WINDOW_MS must be a whole number of milliseconds')
+      .positive('SETUP_ATTEMPT_WINDOW_MS must be greater than zero')
+      .default(900_000),
   })
   /**
    * Cross-field check, applied only when at least one provider variable is
@@ -144,7 +335,28 @@ const schema = z
         'Set all three, or none.',
       path: ['GOOGLE_CLIENT_ID'],
     },
-  );
+  )
+  /**
+   * A refresh token that dies before its session it renews is a product failure
+   * wearing a security control's clothes, so it is refused at boot rather than
+   * discovered by a teacher whose sign-in silently stops working.
+   */
+  .refine((v) => v.REFRESH_TOKEN_TTL_MS > v.SESSION_TTL_MS, {
+    message:
+      'REFRESH_TOKEN_TTL_MS must be greater than SESSION_TTL_MS. A refresh token that expires ' +
+      'first leaves every session unable to be renewed.',
+    path: ['REFRESH_TOKEN_TTL_MS'],
+  })
+  /**
+   * A maximum at or below the minimum is a policy no password can satisfy, which
+   * would lock every administrator out of their own installation.
+   */
+  .refine((v) => v.PASSWORD_MAX_LENGTH > v.PASSWORD_MIN_LENGTH, {
+    message:
+      'PASSWORD_MAX_LENGTH must be greater than PASSWORD_MIN_LENGTH, or no password could ' +
+      'satisfy the policy and the first administrator could never be created.',
+    path: ['PASSWORD_MAX_LENGTH'],
+  });
 
 export type AppConfig = z.infer<typeof schema>;
 

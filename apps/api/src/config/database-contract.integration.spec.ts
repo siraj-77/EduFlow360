@@ -477,7 +477,55 @@ describe('the bootstrap seed is idempotent and leaves no credential behind', () 
       expect(user.mustChangePassword).toBe(false);
     }
 
-    const withHash = await prisma.user.count({ where: { passwordHash: { not: null } } });
-    expect(withHash, 'no seeded account may carry a password').toBe(0);
+    // SCOPED, not global. The global form of this assertion used to live here and was
+    // wrong for the reason the next describe block sets out: it only held while nothing
+    // in the repository ever wrote a password, and `PLT-107` now does.
+    const withHash = await prisma.user.count({
+      where: { schoolId: SCHOOL_ID, passwordHash: { not: null } },
+    });
+    expect(withHash, "no account in this suite's school may carry a password").toBe(0);
+  });
+});
+
+/**
+ * The global "no account anywhere carries a password" assertion, and why it moved.
+ *
+ * It used to sit above, and it counted `users` with a non-null `passwordHash` across
+ * the WHOLE database. That was sound only while nothing in this repository ever wrote
+ * a password — true under `D42`, when the seed was the only writer and `PLT-107` did
+ * not exist.
+ *
+ * `PLT-107` now exists. `POST /auth/setup/complete` sets a credential, and
+ * `login-over-http.integration.spec.ts` creates accounts that already have one, so the
+ * count is no longer zero and the assertion started failing for a reason that had
+ * nothing to do with the seed.
+ *
+ * ## Why the correct scope is the SEED's school, and not a shared schema
+ *
+ * Because "no seeded account may carry a password" is a claim about the seed, and the
+ * seed writes to `SEED_SCHOOL_ID`. The global count was asserting something else
+ * entirely — that this database has never been written to by anything — which is a
+ * property of a developer's shared dev database rather than of any code, and which any
+ * legitimate future test would break.
+ *
+ * Scoped to the seed's own school id, which is what the row above already reads, the
+ * claim is exactly what its message says and it is `D42`'s claim: the bootstrap
+ * administrator has no password, and a password in the database is one somebody
+ * invented rather than one somebody chose.
+ */
+describe('the seed did not invent a credential', () => {
+  const SEED_SCHOOL_ID = process.env.SEED_SCHOOL_ID ?? '00000000-0000-4000-8000-000000000001';
+
+  it("no account in the seed's school carries a password", async () => {
+    const withHash = await prisma.user.count({
+      where: { schoolId: SEED_SCHOOL_ID, passwordHash: { not: null } },
+    });
+
+    expect(
+      withHash,
+      `an account in the seed's school (${SEED_SCHOOL_ID}) carries a password. ` +
+        'D42: the bootstrap administrator has none, and the production path to a ' +
+        "credential is PLT-107's one-time setup token, never a seed script.",
+    ).toBe(0);
   });
 });

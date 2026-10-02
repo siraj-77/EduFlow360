@@ -361,6 +361,17 @@ output. It is correct: the tier is a promise about code not yet written. Deletin
 ratchet and buys a green gate with no engineering in it. I recommended deletion; the repo's own
 tooling overruled me, which is the tooling working.
 
+### Closed 2026-10-02 — D61 and D62, both recorded rather than assumed
+
+| ID      | Decision                                                                                    | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D61** | **Refusals inside a Prisma `$transaction` THROW a sentinel; they do not return.**           | `PrismaClient.$transaction(async () => ...)` **commits when its callback resolves**. A use-case that returns a refusal therefore spends the setup token and writes no credential — leaving a single-school install with neither a token nor an administrator, and no in-product recovery (`PLT-107` option (b) has exactly one row and no second copy). Returning is the natural shape and it is the wrong one.             |
+| **D62** | **The password policy is PROVISIONAL and length-bounds only. It is a gap, not a decision.** | `AGENTS.md` §6 forbids inventing a threshold to fill a corpus gap, and `EduFlow_School_Setup_Workflow_v1.md` §4 defers the policy to a later phase. But the `PLT-107` acceptance criteria require one to exist, so length bounds were built and marked `provisional: true`. No complexity rule, breached-password check, dictionary check or strength score exists. Recorded so it reads as unfinished rather than decided. |
+
+**D61 is the kind of thing that looks like a style choice and is a data-loss bug.** A refused setup
+is the common case, not the exception, and the return-style version of it compiles, passes review, and
+produces an install that can never be claimed.
+
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
 | Question                                       | Authoritative source                                                                                           |

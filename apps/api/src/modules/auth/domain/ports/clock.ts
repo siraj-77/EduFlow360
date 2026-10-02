@@ -28,3 +28,25 @@ export interface IClock {
    */
   now(): Date;
 }
+
+/**
+ * The DI token for a clock.
+ *
+ * ## Why this exists rather than injecting `SystemClock` by class
+ *
+ * Because `IClock` is an interface, and an interface has no runtime value for Nest
+ * to resolve against — the same trap `@Inject` exists to avoid, and the one that
+ * made this repository's application fail to boot once. Injecting the concrete
+ * `SystemClock` by class works, and it also **binds every consumer to the wall
+   clock**, which is the opposite of what the seam is for.
+ *
+ * That binding is not theoretical. `password-sign-in.controller.spec.ts` built a
+ * controller with the real clock while its use-case held a `FakeClock`; the two
+ * disagreed by fifteen hours, the cookie TTL came out positive instead of
+ * negative, and a test asserting the session's *remaining* lifetime passed for the
+ * wrong reason until the clock was injected as a port. A clock seam that cannot be
+ * faked at the last point of use is not a seam.
+ *
+ * `AuthModule` registers `SystemClock` as the implementation of this token.
+ */
+export const CLOCK = Symbol('IClock');

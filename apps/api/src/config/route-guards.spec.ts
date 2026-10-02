@@ -219,6 +219,107 @@ describe('a decorator split across lines', () => {
   });
 });
 
+describe('a decorator STACKED above another one', () => {
+  /**
+   * The second defect of the same class, found 2026-10-03.
+   *
+   * The upward walk absorbed ONE line and then stopped, on the rule "a balanced
+   * line beginning with `@` is a whole decorator, so stop". That is true of the line
+   * it just read and wrong as a stopping condition: `AGENTS.md` 2.3 requires
+   * `@Audited` on every sensitive route, so the required shape of a guarded route is
+   *
+   *     @Public('<reason>')
+   *     @Audited('<ACTION>')
+   *     @Post('thing')
+   *
+   * and the checker reported the guard two lines up as absent.
+   *
+   * It failed CLOSED, which is why the fix belongs in the gate rather than in the
+   * routes. The two available workarounds were both worse than fixing it:
+   *
+   *   - reorder the decorators so `@Public` sits immediately above the route
+   *     decorator. That satisfies a checker whose bug is that it only reads one
+   *     line — and the next person to add `@HttpCode` above `@Post` reintroduces it
+   *     silently;
+   *   - drop `@Audited`. That contradicts `AGENTS.md` 2.3 outright.
+   *
+   * The fix absorbs contiguous decorator-ish lines upward, exactly as the downward
+   * walk already did, and stops at the first line that is neither. A method
+   * signature still ends the walk, so a route still cannot borrow the next route's
+   * guard — the property `does NOT let one route borrow the next route decorator`
+   * below exists to protect.
+   */
+  const stacked = [
+    '@Controller("probe")',
+    'export class C {',
+    '  @Public("a real reason")',
+    "  @Audited('LOGIN')",
+    "  @Post('login')",
+    '  @HttpCode(200)',
+    '  a(): string { return "x"; }',
+    '}',
+  ];
+
+  it('is recognised when @Public sits two lines above the route decorator', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rg-stack-'));
+    const file = join(dir, 'c.ts');
+    try {
+      writeFileSync(file, stacked.join('\n'));
+      const findings = auditRoutes([file]);
+      expect(findings.filter((f) => f.message.startsWith('Route has neither'))).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('is recognised when @RequirePermission is the stacked one', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rg-stack-'));
+    const file = join(dir, 'c.ts');
+    try {
+      writeFileSync(
+        file,
+        [
+          '@Controller("probe")',
+          'export class C {',
+          "  @Audited('SETUP_COMPLETE')",
+          "  @RequirePermission('LOGIN')",
+          "  @Post('login')",
+          '  a(): string { return "x"; }',
+          '}',
+        ].join('\n'),
+      );
+      const findings = auditRoutes([file]);
+      expect(findings.filter((f) => f.message.startsWith('Route has neither'))).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('STILL reports an unguarded route that happens to sit under a decorator', () => {
+    // The property the absorption must not break: absorbing decorator-ish lines
+    // upward must not start treating ordinary code as a guard.
+    const dir = mkdtempSync(join(tmpdir(), 'rg-stack-'));
+    const file = join(dir, 'c.ts');
+    try {
+      writeFileSync(
+        file,
+        [
+          '@Controller("probe")',
+          'export class C {',
+          '  private readonly helper = 1;',
+          "  @Post('login')",
+          '  a(): string { return "x"; }',
+          '}',
+        ].join('\n'),
+      );
+      const findings = auditRoutes([file]);
+      expect(findings.filter((f) => f.message.startsWith('Route has neither'))).toHaveLength(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('auditAllowlist', () => {
   const writeAllowlist = (body: string): { path: string; dir: string } => {
     const dir = mkdtempSync(join(tmpdir(), 'allow-'));
