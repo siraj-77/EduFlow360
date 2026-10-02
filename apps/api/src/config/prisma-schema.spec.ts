@@ -569,6 +569,80 @@ describe('schema.prisma — ARC-01 Platform Core data model', () => {
     expect(SCHEMA_CODE).toMatch(/@@map\("refresh_tokens"\)/);
   });
 
+  /**
+   * `D49` — the allowed email domains are PER-SCHOOL configuration.
+   *
+   * One nullable `Json` column on the single settings row, and specifically NOT
+   * a product-wide default, because `ADR-003` means one deployment is one school:
+   * a global `ALLOWED_EMAIL_DOMAIN` would be wrong for every school but one.
+   *
+   * `Json` and not a `String[]`, decided against a `text[]` list column because
+   * of what the TYPE makes a caller handle. A `String[]` is typed non-nullable,
+   * so a null sitting in the column — from a raw migration, a non-Prisma
+   * writer, a future column rewrite — reaches the reader typed as impossible,
+   * and the fail-closed branch looks unnecessary and gets deleted. That branch
+   * IS the control. `Json?` makes the dangerous state representable in the type
+   * so it has to be written. The cost is recorded on the column: nothing in the
+   * database constrains the contents to strings, and the reader is the only
+   * thing that can notice.
+   *
+   * Nullable and with NO default, and the reason is the same in both parts. A
+   * `DEFAULT '[]'` writes a value nobody chose and makes "this school has
+   * deliberately locked everyone out" indistinguishable from "this school has
+   * never been configured". Null is the honest state, and it is also the safe
+   * one: the reader treats null, `[]`, and a list whose every entry is unusable
+   * as the same administrative state — nothing permitted — which is exactly
+   * what `D49` requires.
+   */
+  it('carries the allowed email domains as a nullable, undefaulted Json column on SchoolSettings', () => {
+    expectPlatformCoreModels();
+    const settings = bodyOf('SchoolSettings');
+
+    expect(
+      settings,
+      'the per-school allowlist must be its own column, not a key inside the settings blob',
+    ).toMatch(/allowedEmailDomains\s+Json\?\s*@map\("allowed_email_domains"\)/);
+
+    // The absence is the point. A `@default` here is a value an operator never
+    // typed, and it is the one shape that could ever be mistaken for "the list
+    // has been considered and is empty" rather than "nobody has configured it".
+    expect(settings, 'the allowlist must not carry a database default').not.toMatch(
+      /allowedEmailDomains[^\n]*@default/,
+    );
+    // No global default domain, and matched against CODE with the case flag OFF.
+    // Two self-trips had to be designed out rather than discovered later:
+    // the column's own comment names the env var `D49` rejects, so a check
+    // against the raw text would trip on its own explanation; and the column
+    // itself is `allowed_email_domains`, which a case-INSENSITIVE match on that
+    // name hits anyway. Case-sensitive is correct on the merits too — every env
+    // var in this repository is SHOUTING_CASE (`DATABASE_URL`, `REDIS_URL`), so
+    // the lowercase column name cannot be one.
+    expect(SCHEMA_CODE, 'a global default domain is exactly what D49 rejects').not.toMatch(
+      /ALLOWED_EMAIL_DOMAIN/,
+    );
+    expect(SCHEMA_CODE, 'the allowlist must not read an environment variable').not.toMatch(
+      /env\(\s*"[^"]*DOMAIN/i,
+    );
+  });
+
+  /**
+   * The allowlist is per-school and lives in ONE place.
+   *
+   * A copy on `User` or on `ExternalIdentity` would be a second source of truth
+   * for an authorisation control, and the two would disagree the moment an
+   * administrator edited the school list — with the user's copy still permitting
+   * a domain the school has revoked. Asserted absent so adding one is a
+   * deliberate change rather than an accident.
+   */
+  it('keeps the allowlist on SchoolSettings alone, never copied onto a user or an identity', () => {
+    expectPlatformCoreModels();
+    for (const model of models().filter((m) => m !== 'SchoolSettings')) {
+      expect(bodyOf(model), `${model} must not carry an allowed-email-domain column`).not.toMatch(
+        /allowedEmailDomain/i,
+      );
+    }
+  });
+
   it('gives every column an explicit snake_case name', () => {
     // A camelCase column would make the generated SQL disagree with the table
     // definition the hardening script and the grants are written against.

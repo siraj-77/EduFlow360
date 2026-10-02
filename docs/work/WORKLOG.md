@@ -2540,7 +2540,6 @@ own package's runner `include` globs, so `AUD-30-01` cannot recur. It generalise
   this commit edits `.md` files, which are among the 60 that gate reports, so it
   neither fixes nor worsens `FIX-05`.
 
-
 ## 2026-09-30 - `PLT-101` tranche 1: `ExternalIdentity`, keyed on the provider subject
 
 ### Phase
@@ -2671,7 +2670,7 @@ structure, only the symbol destroyed. Now repaired.
 
 **3. `pnpm test:integration` can now reach its own database.** `DATABASE_URL` lives in
 the git-ignored `.env` and nothing loaded it, so on a clean shell the gate died as a
-*collection* error while telling the developer to set a variable no tool read. Every
+_collection_ error while telling the developer to set a variable no tool read. Every
 earlier green observation came from a reviewer exporting it by hand.
 
 Delegated. The fix uses Node's built-in `process.loadEnvFile()`. **No dependency added.**
@@ -2688,17 +2687,17 @@ Verified independently, with turbo forced uncached:
 - **`SSOT.md:45` keeps `§1c`, unrepaired target.** The section sign is near-certain, but
   SSOT has sections 1, 1a and 1b and **no 1c**, and `1c` occurs nowhere else in the
   repository. Retargeting it to a decision ID would be inventing a reference. Left for
-  the owner. *Costs if wrong:* one stale cross-reference in a status table, no
+  the owner. _Costs if wrong:_ one stale cross-reference in a status table, no
   behavioural effect.
 - **`TODO.md:326` cell 3 left as-is.** Its sibling cells hold full sentences; a lone `?`
   standing for a whole cell of prose is not a character-level corruption, so there is
-  nothing to reconstruct. *Costs if wrong:* a status cell reads as `?` until the owner
+  nothing to reconstruct. _Costs if wrong:_ a status cell reads as `?` until the owner
   rewrites it.
 - **`PLT-101` tranche 2 was NOT started**, despite being the next task and having a
   clear plan. `TODO.md:211` records `- [ ] Sign-off recorded before PLT-101 starts -
-  still open` and `TODO.md:168` records the entry condition as NOT met. Tranche 1 was
+still open` and `TODO.md:168` records the entry condition as NOT met. Tranche 1 was
   reversible schema work; this is authentication, and the gate exists precisely because
-  that is not reversible. Reported rather than started. *Costs if wrong:* a day of
+  that is not reversible. Reported rather than started. _Costs if wrong:_ a day of
   elapsed time.
 
 ### What PLT-101 tranche 2 actually faces
@@ -2707,12 +2706,12 @@ Delegated reconnaissance, spot-verified. `apps/api/src` contains **three** TypeS
 files: `main.ts`, `app.module.ts`, `config/env.ts`. `app.module.ts` is `imports: []`.
 There is **no `I*` port anywhere** in project source, **no** code that reads or writes
 `Session` or `RefreshToken`, and **none** of the three guards exists as code
-(@RequirePermission`, `@RequireEntitlement`, `@Audited`, `@Public` appear only as
-string literals inside tests). `IClock` is a rule with no implementation: the lint rule
-bans `Date.now()` in domain and use-cases, and nothing provides the replacement.
+(@RequirePermission`, `@RequireEntitlement`, `@Audited`, `@Public`appear only as
+string literals inside tests).`IClock`is a rule with no implementation: the lint rule
+bans`Date.now()` in domain and use-cases, and nothing provides the replacement.
 
 So `ADR-008` session issuance is greenfield. That is not a blocker, it is the size of the
-tranche. Two things *are* blockers:
+tranche. Two things _are_ blockers:
 
 1. The sign-off gate above.
 2. **No dependency can verify an OIDC ID-token signature.** Zero of `apps/api`'s 21
@@ -2771,15 +2770,15 @@ without archaeology, and to stop the measured numbers in `SSOT.md` from drifting
 **Re-measured everything, because `SSOT.md` §1 says in its own words that every row is
 measured and never carried forward.** Ten cells had gone stale across three sessions:
 
-| Cell | Was | Now |
-|---|---|---|
-| Version control | 24 commits, 27 modified + 3 untracked | **48 commits, clean, 0 ahead / 0 behind** at `e4b8232` |
-| Quality gates | 3 red, 6 of 9 trustworthy | **1 red, 8 of 9 trustworthy** |
-| ERD entities | 14 | **16** |
-| Unit tests | 194 (api 127) | **207 (api 140)** |
-| `docs:verify` references | 207 | **227** |
-| Integration cases | 9, 14 tables, 11 FKs | **17, 16 tables, 13 FKs** |
-| Stories completed | 0, PLT-101 not started | 0 complete, but tranche 1 landed; flow blocked on the owner |
+| Cell                     | Was                                   | Now                                                         |
+| ------------------------ | ------------------------------------- | ----------------------------------------------------------- |
+| Version control          | 24 commits, 27 modified + 3 untracked | **48 commits, clean, 0 ahead / 0 behind** at `e4b8232`      |
+| Quality gates            | 3 red, 6 of 9 trustworthy             | **1 red, 8 of 9 trustworthy**                               |
+| ERD entities             | 14                                    | **16**                                                      |
+| Unit tests               | 194 (api 127)                         | **207 (api 140)**                                           |
+| `docs:verify` references | 207                                   | **227**                                                     |
+| Integration cases        | 9, 14 tables, 11 FKs                  | **17, 16 tables, 13 FKs**                                   |
+| Stories completed        | 0, PLT-101 not started                | 0 complete, but tranche 1 landed; flow blocked on the owner |
 
 Two rows were not merely stale but **wrong in a way worth recording**:
 
@@ -2885,7 +2884,7 @@ calls this file a legacy leftover. Those two NextAuth variables should be delete
   all three credentials costs nothing and is good; building all three is three times the
   surface with one tested. Recommendation recorded in `TODO.md`: build Google, leave the
   other two configured-but-unimplemented, and prove the seam with a test rather than
-  assuming it. *Costs if wrong:* two providers get added later, which is exactly what the
+  assuming it. _Costs if wrong:_ two providers get added later, which is exactly what the
   column was designed to make cheap.
 
 ### Process note
@@ -2932,8 +2931,8 @@ them. Every earlier verification of this project had exported `DATABASE_URL` by 
 which hid exactly this.
 
 **The 2026-10-01 fix was half a fix.** Closing the hole in
-`vitest.integration.config.ts` made the *test* gate load the file and left the
-*application* still broken — which is the usual way this defect survives: one caller
+`vitest.integration.config.ts` made the _test_ gate load the file and left the
+_application_ still broken — which is the usual way this defect survives: one caller
 repaired, the other forgotten.
 
 ### Activity
@@ -2953,7 +2952,7 @@ consequences
 - therefore `.env.local` could not override `.env`, because `.env` set the key first and
   the loader left it alone.
 
-Fixed by tracking which keys earlier files *introduced* and clearing only those before
+Fixed by tracking which keys earlier files _introduced_ and clearing only those before
 loading a later file. Precedence is now `process.env` → `.env.local` → `.env`,
 matching Next.js, which `apps/web` already gets for free and `.gitignore:8` already
 anticipates.
@@ -2978,7 +2977,7 @@ The real API was booted with **nothing exported** and reported:
     ✓ persistence enabled
 
 It then failed on `EADDRINUSE :::3001`, because a stale `node` process from 13:50 still
-holds the port. That failure is *downstream* of configuration and is exactly where it
+holds the port. That failure is _downstream_ of configuration and is exactly where it
 should be: the env loaded, validated, and the banner rendered before any socket was
 opened. The stale process was left running rather than killed, since it may be the
 owner's dev server.
@@ -3003,6 +3002,7 @@ under `domain/**` and `use-cases/**` and nothing provides the replacement, so ev
 time-dependent line of code — including session expiry — is blocked until that port
 exists. Then `IOidcProvider`, the Google adapter with `jose`, the `Session` repository,
 and only afterwards the redirect and callback routes.
+
 ### Measured at close of this session
 
 - Unit tests **225** (api 158 · web 22 · ui-kit 28 · i18n-resources 10 · shared-types 7), up from 207.
@@ -3080,29 +3080,30 @@ time, and it loses it quietly.
 Owner: (1) cookie or bearer token for session transport; (2) the allowed email domain.
 Then `ISessionRepository` and its Prisma implementation, `@Public` and its allowlist, and
 only then the redirect and callback routes. `TODO.md` records the order.
+
 ## 2026-10-02 — `PLT-107` token half — `builder`
 
-| Field | Value |
-| --- | --- |
-| Phase | `PLT-101` tranche / `PLT-107` bootstrap |
-| Task | Setup-token core: two `User` columns, `IPasswordHasher` port, issue/inspect/consume, concurrency proof |
-| Agent | `builder` (delegated), reviewed by `core` |
-| Status | ✔ **Token half complete. Controller deliberately NOT built.** |
-| Activity | Added `setupTokenHash` + `setupTokenExpiresAt` to `User` via `schema-source.mjs` (option (b), no sixteenth model). Added `IPasswordHasher` as a **port with no implementation**. Added the setup-token decision rule, use-case, Prisma repository and a fake repository. |
-| Files Changed | `schema-source.mjs`, `schema.prisma`, `ERD_PLATFORM_CORE.elements.json`, `prisma-schema.spec.ts`, `instant.ts`; new: `password-hasher.ts`, `setup-token.ts(+spec)`, `setup-token-repository.ts`, `prisma-setup-token-repository.ts(+integration.spec)`, `setup-token-service.ts(+spec)`, `fake-setup-token-repository.ts` |
+| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Phase          | `PLT-101` tranche / `PLT-107` bootstrap                                                                                                                                                                                                                                                                                                                                                          |
+| Task           | Setup-token core: two `User` columns, `IPasswordHasher` port, issue/inspect/consume, concurrency proof                                                                                                                                                                                                                                                                                           |
+| Agent          | `builder` (delegated), reviewed by `core`                                                                                                                                                                                                                                                                                                                                                        |
+| Status         | ✔ **Token half complete. Controller deliberately NOT built.**                                                                                                                                                                                                                                                                                                                                    |
+| Activity       | Added `setupTokenHash` + `setupTokenExpiresAt` to `User` via `schema-source.mjs` (option (b), no sixteenth model). Added `IPasswordHasher` as a **port with no implementation**. Added the setup-token decision rule, use-case, Prisma repository and a fake repository.                                                                                                                         |
+| Files Changed  | `schema-source.mjs`, `schema.prisma`, `ERD_PLATFORM_CORE.elements.json`, `prisma-schema.spec.ts`, `instant.ts`; new: `password-hasher.ts`, `setup-token.ts(+spec)`, `setup-token-repository.ts`, `prisma-setup-token-repository.ts(+integration.spec)`, `setup-token-service.ts(+spec)`, `fake-setup-token-repository.ts`                                                                        |
 | Decisions Made | Consumption is **one conditional `UPDATE`**, verdict from the affected-row count. `id` deliberately absent from the `WHERE` so no read-then-write creeps in; `gt` not `gte` so a token is dead at its expiry instant. SHA-256 not argon2id: the token is 256 machine-generated bits, not a human password, and `ADR-007` governs `User.passwordHash` (a different secret in a different column). |
-| Test evidence | Unit 232 — **259**. Integration 29 — **48**. Concurrency proven with `Promise.all` at both repository and use-case level. The test was shown to **fail** against a deliberately reinstated naive read-then-write (5/5 red, 2-8 of 8 claims wrongly accepted). |
-| Quality | lint 0, typecheck 0, test 0, docs:verify 0, check:route-guards 0, format:check 0, build 0, integration 0, e2e 0. `test:coverage` still 1 on three **zero-file** tiers (`controllers.ts`, two `apps/web` hooks globs) — untouched by this story. |
-| Next Steps | `IPasswordHasher` needs an argon2id dependency — **owner approval required**, `AGENTS.md` §8. Until then no `POST /auth/setup/complete`. |
+| Test evidence  | Unit 232 — **259**. Integration 29 — **48**. Concurrency proven with `Promise.all` at both repository and use-case level. The test was shown to **fail** against a deliberately reinstated naive read-then-write (5/5 red, 2-8 of 8 claims wrongly accepted).                                                                                                                                    |
+| Quality        | lint 0, typecheck 0, test 0, docs:verify 0, check:route-guards 0, format:check 0, build 0, integration 0, e2e 0. `test:coverage` still 1 on three **zero-file** tiers (`controllers.ts`, two `apps/web` hooks globs) — untouched by this story.                                                                                                                                                  |
+| Next Steps     | `IPasswordHasher` needs an argon2id dependency — **owner approval required**, `AGENTS.md` §8. Until then no `POST /auth/setup/complete`.                                                                                                                                                                                                                                                         |
 
 **Open concerns carried forward, not resolved:**
 
 1. **A conflict inside the story itself.** It requires `404` for an unenrolled deployment ("does not
-   advertise the endpoint") *and* an error that "does not reveal whether the token ever existed".
+   advertise the endpoint") _and_ an error that "does not reveal whether the token ever existed".
    Both are implemented as written and the tension is documented in code rather than hidden. The
    reconciliation to decide: make the `404` a property of **deployment state** (so an unenrolled
    deployment answers `404` to every request and therefore reveals nothing about any token), and
-   scope non-revelation *within* an enrolled deployment, where forged and expired must be
+   scope non-revelation _within_ an enrolled deployment, where forged and expired must be
    indistinguishable. That reading satisfies both clauses; implementing them as literal status codes
    does not.
 2. **`consume` and the credential write must share one transaction.** A crash between them
@@ -3112,3 +3113,33 @@ only then the redirect and callback routes. `TODO.md` records the order.
    exists — i.e. `PLT-104` OTP invites. Recorded, not hidden.
 4. **Repository port location is inconsistent.** This work followed `AGENTS.md` §3 and used `domain/repositories/`; the committed sibling (`ISessionRepository`) lives in `domain/ports/`. Flagged rather than silently moved.
 
+## 2026-10-02 — Session cookie delivery + allowed-email-domain — `builder` x2, reviewed by `core`
+
+| Field          | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase          | `PLT-101` tranche / `D48` + `D49`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Task           | How a session token reaches the browser; which domains may sign in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Status         | ✔ Both complete. `GET /auth/oidc/redirect` is now unblocked.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Activity       | **Cookie:** `ISessionCookie` port (framework-free), `SessionCookieAdapter` (`httpOnly`, `secure`, `SameSite=Lax`, path `/`), an Express carrier, and a global `CsrfGuard`. **Allowlist:** `allowedEmailDomains Json?` on `SchoolSettings`, `normalizeDomain`, and a fail-closed decision rule.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Decisions Made | **CSRF lives in a guard, not the adapter** — they face opposite directions (outbound response vs inbound request), the adapter never sees a request, and the two populations differ (`POST /api/grades` sends a cookie and sets none; `POST /auth/login` sets one and sends none). **Safe methods are an ALLOW-list** (`GET, HEAD, OPTIONS`), because a denylist treats every verb nobody anticipated as safe. **Allowlist column is `Json?`, nullable, no default** — a `String[]` is typed non-nullable, so a `null` from a raw migration reaches the reader typed as impossible and the fail-closed branch gets deleted as dead code. The dangerous state must be representable. **No subdomains** — exact equality only; honouring all subdomains grants hostnames the administrator never chose. |
+| Test evidence  | Unit 259 — **449**. Integration 48 — **61**. e2e 37 passed. Both properties were proven by mutation, not assertion: a suffix rule instead of exact equality — 5 unit failures; an empty list permitting everyone — 12 unit + 6 integration failures; a narrow safe-method list — 5 failures, and adding `PURGE`/`M-SEARCH`/`WAT` caught each by name; flipping the `secure` default — 5 failures. All reverted and re-verified clean.                                                                                                                                                                                                                                                                                                                                                                 |
+| Quality        | lint 0, typecheck 0, test 0, docs:verify 0, check:route-guards 0, format:check 0, build 0, integration 0, e2e 0, coverage 1 (3 zero-file tiers, untouched). Zero framework or ORM imports anywhere under `domain/` — verified across every file, because `AGENTS.md` §2.2 makes that a hard rule rather than a style preference.                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Next Steps     | `GET /auth/oidc/redirect` can now land — it needs only the OIDC adapter and this cookie transport.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+**Open concerns carried forward, not resolved:**
+
+1. **A session currently cannot carry a Google identity.** Sessions are Google-credential-free by
+   design, so the cookie has no `provider`/`providerSubject` and the callback cannot tell _which_
+   identity just authenticated. With one school per database that ambiguity is invisible today;
+   `PLT-104` (first-login must-link) is where it becomes real. **This blocks the callback route,
+   and it was not in the story.**
+2. **The `__Host-` cookie prefix was not used.** It is the stronger form, but it forbids
+   `__Host-` without `Secure`, which would break the plain-HTTP LAN-dev escape. Judgement call,
+   recorded rather than buried; overrule it if the deployment is always HTTPS.
+3. **The `secure: false` escape is constructor-only and unreachable from config.** That is the
+   safe direction. If an env var is ever wired it must bind BOTH keys, or it can be opened
+   silently.
+4. **Two things landed beyond the brief:** the Express carrier (without it nothing reaches a
+   browser) and the `APP_GUARD` registration. An unwired guard reads exactly like a working one.
+5. **The `PLT-107` 404-versus-non-revelation conflict is still open** — the reading I
+   proposed (make the `404` a property of deployment state) has not been ratified.
