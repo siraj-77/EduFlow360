@@ -2909,3 +2909,102 @@ Owner: add the three Google variables to `.env`, and delete the two NextAuth var
 `.env.local`. Then tranche 2 starts with `IClock`, which is the hard prerequisite — the
 lint rule already bans `Date.now()` and `new Date()` in the inner layers and nothing provides
 the replacement yet.
+
+## 2026-10-02 (2) - The API can read its own configuration, and Google OIDC is declared
+
+### Phase
+
+`PLT-101` tranche 2, step 0. Not the flow yet — the configuration the flow reads.
+
+### The defect this found
+
+**The API could not read its own `.env`, and its error message told developers to
+create one.** `env.ts` says "cp .env.example .env, then fill in the values". The
+tracked `.env.example` exists. But nothing ever opened either file: `main.ts` called
+`loadConfig()`, which reads `process.env`, and in a plain Nest process that holds
+whatever the shell exported and nothing else.
+
+So the documented setup path was a fiction. It surfaced on 2026-10-02 when real
+Google credentials sat complete in `.env.local` — `GOOGLE_CLIENT_ID`, a 35-character
+`GOOGLE_CLIENT_SECRET`, and a 40-character redirect URI matching
+`http://localhost:3001/auth/oidc/callback` exactly — and the API would never have read
+them. Every earlier verification of this project had exported `DATABASE_URL` by hand,
+which hid exactly this.
+
+**The 2026-10-01 fix was half a fix.** Closing the hole in
+`vitest.integration.config.ts` made the *test* gate load the file and left the
+*application* still broken — which is the usual way this defect survives: one caller
+repaired, the other forgotten.
+
+### Activity
+
+**TDD, and the test caught a wrong assumption.** Six cases for `loadEnvFiles`: it
+loads a file, `.env.local` overrides `.env`, an already-exported variable is never
+displaced, a missing file is skipped not fatal, it reports what it loaded, and it reads
+nothing outside the paths it was given.
+
+One failed, and the reason was worth having: **Node's `process.loadEnvFile` does NOT
+overwrite an existing key.** Measured on Node 26.7.0 rather than assumed. Two
+consequences
+
+- the shell already wins over any file, for free — the restore-guard I had written
+  was defending against a behaviour that does not exist, and its justifying comment
+  asserted something false;
+- therefore `.env.local` could not override `.env`, because `.env` set the key first and
+  the loader left it alone.
+
+Fixed by tracking which keys earlier files *introduced* and clearing only those before
+loading a later file. Precedence is now `process.env` → `.env.local` → `.env`,
+matching Next.js, which `apps/web` already gets for free and `.gitignore:8` already
+anticipates.
+
+**Why a marker file and not `import.meta.url`.** This module compiles to CommonJS for
+the Nest build and runs as ESM under Vitest, so neither `__dirname` nor `import.meta`
+is honest in both. The workspace root is found by walking up to `pnpm-workspace.yaml`
+or `.git`, which behaves identically either way.
+
+**The three Google variables are all-or-nothing**, enforced by a Zod `.refine`. A
+partial set is the configuration that costs an afternoon: the app boots, the sign-in
+button renders, and the failure arrives at the token exchange as an error that reads
+like a Google fault. Twelve cases prove each partial combination is rejected, that
+none is accepted, and that the `.env.example` placeholder is still refused.
+
+### Proof, not assertion
+
+The real API was booted with **nothing exported** and reported:
+
+    env files: .env → .env.local
+    ✓ Google OIDC credentials configured (PLT-101)
+    ✓ persistence enabled
+
+It then failed on `EADDRINUSE :::3001`, because a stale `node` process from 13:50 still
+holds the port. That failure is *downstream* of configuration and is exactly where it
+should be: the env loaded, validated, and the banner rendered before any socket was
+opened. The stale process was left running rather than killed, since it may be the
+owner's dev server.
+
+### Files Changed
+
+- `apps/api/src/config/env-files.ts` — **new.** `loadEnvFiles`, `findWorkspaceRoot`,
+  `workspaceEnvFilePaths`. Node built-in, no dependency.
+- `apps/api/src/config/env-files.spec.ts` — 6 cases.
+- `apps/api/src/config/env-oidc.spec.ts` — **new.** 12 cases for the all-or-nothing rule
+  and for the banner.
+- `apps/api/src/config/env.ts` — the three Google variables plus the group `.refine`;
+  `bootBanner` reports which env files it read and whether OIDC is configured.
+- `apps/api/src/main.ts` — loads the env files **before** validating, because
+  validating first would validate an environment missing what the files supply.
+- `.env.example` — a documented OIDC section with placeholders.
+
+### Next Steps
+
+`IClock`, then the OIDC ports. The lint rule already bans `Date.now()` and `new Date()`
+under `domain/**` and `use-cases/**` and nothing provides the replacement, so every
+time-dependent line of code — including session expiry — is blocked until that port
+exists. Then `IOidcProvider`, the Google adapter with `jose`, the `Session` repository,
+and only afterwards the redirect and callback routes.
+### Measured at close of this session
+
+- Unit tests **225** (api 158 · web 22 · ui-kit 28 · i18n-resources 10 · shared-types 7), up from 207.
+- Integration **17/17**. Gates: `lint` 0 · `typecheck` 0 · `test` 0 · `docs:verify` 0 · `format:check` 0 · `build` 0 · `test:integration` 0 · `test:e2e` 0;
+  `test:coverage` 1, unchanged and honest.

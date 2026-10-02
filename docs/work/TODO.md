@@ -131,7 +131,10 @@
 >    `infrastructure/adapters/`. `AGENTS.md` §2.2 forbids a vendor SDK in the inner layers.
 > 3. The `Session` / `RefreshToken` repository. `ADR-008` requires our own revocable session with
 >    a `familyId` rotation chain; **no code touches those tables today**.
-> 4. The OIDC env schema in `env.ts`, and **only then** the variables in `.env.example`.
+> 4. ~~The OIDC env schema in `env.ts`, and the variables in `.env.example`.~~ **DONE
+>    2026-10-02** (D47) — bundled with D46, the fix that let the API read
+>    `.env` at all. That had been silently broken: the error message told a developer
+>    to create a file nothing opened.
 >    Documenting a variable the app does not read is worse than omitting it.
 > 5. **No HTTP route until token verification is settled.** The redirect and callback come last,
 >    and `@Public` does not exist as code — `AGENTS.md` §2.3 makes a route carrying neither
