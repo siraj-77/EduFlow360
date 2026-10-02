@@ -1,4 +1,4 @@
-import type { ICookieCarrier, SessionCookie } from '../../domain/ports/session-cookie.js';
+import type { ICookieCarrier, OutboundCookie } from '../../domain/ports/session-cookie.js';
 
 /**
  * `ICookieCarrier`, backed by an Express response.
@@ -48,7 +48,22 @@ export interface CookieWritingResponse {
 }
 
 /**
- * Translate `SessionCookie` into `res.cookie` arguments.
+ * Translate a cookie into `res.cookie` arguments.
+ *
+ * ## The parameter is the general `OutboundCookie`, and that is deliberate
+ *
+ * A response carries more than one cookie now that
+ * `GET /auth/oidc/redirect` writes the OIDC state bundle, and this class is the
+ * one place that knows how `Set-Cookie` is constructed. Narrowing its parameter
+ * back to `SessionCookie` would not have made the class safer — it would have
+ * forced a *second* carrier for the state cookie, which is a second
+ * serialisation of the same header, and this file's whole argument is that the
+ * sharp edges of `Set-Cookie` live in exactly one place.
+ *
+ * It is still a carrier, not a policy: it applies the attributes it is given
+ * verbatim and decides nothing. `SessionCookieAdapter` and `HmacOidcStateStore`
+ * decide, and their literal types (`httpOnly: true`, `path: '/'`) mean they
+ * cannot be widened by anything that happens here.
  *
  * ## The mapping, and what is deliberately absent
  *
@@ -63,22 +78,23 @@ export interface CookieWritingResponse {
  * Three things are **not** passed, and each omission is a decision:
  *
  * - **No `domain`.** A `Domain` attribute widens the cookie to sibling
- *   subdomains, which hands an attacker-controlled `shop.school.edu` the ability
- *   to overwrite the session cookie — cookie tossing. Omitting it scopes the
- *   cookie to the exact host.
+ *    subdomains, which hands an attacker-controlled `shop.school.edu` the ability
+ *    to overwrite the session cookie — cookie tossing. Omitting it scopes the
+ *    cookie to the exact host.
  * - **No `maxAge`.** `Expires` alone is enough, and RFC 6265 gives `Max-Age`
- *   precedence when both are present. Passing both means the browser picks
- *   whichever it likes, from two values computed from two clocks. `expiresAt` is
- *   already derived from the single injected `IClock`.
+ *    precedence when both are present. Passing both means the browser picks
+ *    whichever it likes, from two values computed from two clocks. `expiresAt` is
+ *    already derived from the single injected `IClock`.
  * - **No `encode`.** Express URL-encodes the value by default, which is the
- *   right default for a cookie whose value must not contain a separator. The
- *   session token is base64url and needs no encoding, so overriding the default
- *   would only add a way for a semicolon to reach the header.
+ *    right default for a cookie whose value must not contain a separator. Both
+ *    values written here — the base64url session token and the base64url-signed
+ *    state bundle — need no encoding, so overriding the default would only add a
+ *    way for a semicolon to reach the header.
  */
 export class ExpressCookieCarrier implements ICookieCarrier {
   constructor(private readonly response: CookieWritingResponse) {}
 
-  setCookie(cookie: SessionCookie): void {
+  setCookie(cookie: OutboundCookie): void {
     this.response.cookie(cookie.name, cookie.value, {
       httpOnly: cookie.attributes.httpOnly,
       secure: cookie.attributes.secure,

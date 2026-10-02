@@ -36,7 +36,11 @@ async function bootstrap(): Promise<void> {
     }).join('\n'),
   );
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // `forRoot` rather than the class: `AuthModule` needs the validated
+  // configuration, and `loadEnvFiles()` above has only just made the environment
+  // readable. Passing it in is what keeps module wiring after that read instead
+  // of at import time.
+  const app = await NestFactory.create(AppModule.forRoot(loaded.config), { bufferLogs: true });
 
   // The API is a separate service. It serves JSON only; the web app is UI
   // (AGENTS.md 3.1). CORS is scoped to the local web origin until a

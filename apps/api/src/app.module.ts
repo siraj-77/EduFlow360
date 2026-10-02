@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, type DynamicModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { CsrfGuard } from './common/guards/csrf.guard.js';
+import type { AppConfig } from './config/env.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 
 /**
  * Application root module.
- *
- * P2 scope: infrastructure only, no business logic (Prompt Pack P2).
  *
  * Feature modules are registered here one per epic as they are built
  * (P5 auth, P6 rbac, P7 audit, ...), so the module graph grows visibly
@@ -21,17 +21,31 @@ import { CsrfGuard } from './common/guards/csrf.guard.js';
  * failure `route-guards.decorator.ts` documents about itself — a control whose
  * absence from a file is invisible in review.
  *
- * It is safe to apply globally right now because there are no controllers yet.
- * The first controller added inherits it.
+ * The first controller has now landed, and it inherits this: `GET` is in the
+ * safe-method allow-list, so `GET /auth/oidc/redirect` is reachable without a
+ * CSRF header, and any future `POST` on the same controller is not.
  *
  * Note this is a *fourth*, orthogonal control. The three AGENTS.md 2.3
  * requires are permission, entitlement and audit; this one asks only whether
  * the request could have been made by a browser the user did not intend to
  * make it. It enforces none of the other three.
+ *
+ * ## Why `forRoot`, and why it takes the configuration
+ *
+ * Because `AuthModule` needs validated configuration, and because the
+ * environment is only readable after `loadEnvFiles()` has run. Both happen in
+ * `main.ts`, before `NestFactory.create`, so the configuration is *passed in*
+ * rather than read from a closure evaluated while this decorator is applied —
+ * which would run at import time, before the env files exist. `auth.module.ts`
+ * states that hazard in full; this is the other half of the same decision.
  */
-@Module({
-  imports: [],
-  controllers: [],
-  providers: [{ provide: APP_GUARD, useClass: CsrfGuard }],
-})
-export class AppModule {}
+@Module({})
+export class AppModule {
+  static forRoot(config: AppConfig): DynamicModule {
+    return {
+      module: AppModule,
+      imports: [AuthModule.forRoot(config)],
+      providers: [{ provide: APP_GUARD, useClass: CsrfGuard }],
+    };
+  }
+}

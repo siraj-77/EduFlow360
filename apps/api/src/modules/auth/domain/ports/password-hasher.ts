@@ -10,18 +10,23 @@
  * admitted under the reuse whitelist is upgraded on login instead of forcing a
  * reset.
  *
- * ## ⚠️ THERE IS NO IMPLEMENTATION, AND THAT IS A KNOWN GAP
+ * ## ✅ IMPLEMENTED — owner approved the dependency 2026-10-02
  *
- * `argon2` is a native module and is NOT installed. `AGENTS.md` 8 forbids adding
- * a library without the owner's explicit instruction, so `PLT-107` ships the port
- * and the rest of the setup flow, and stops there. Nothing in this repository
- * hashes a password yet, which is why the bootstrap admin is `INVITED` with a
- * null `passwordHash` rather than holding a credential invented by a seed
- * script.
+ * `Argon2idPasswordHasher` (infrastructure/adapters) implements this against
+ * `argon2` 0.45.1. The approval is what `AGENTS.md` §8 required and what
+ * `PLT-107`'s controller was blocked on.
  *
- * The seam exists so that the algorithm is a decision rather than an import.
- * `ADR-007`'s own wording is that the port makes a swap "a new implementation,
- * not a refactor" — and a swap that had to rewrite a use-case would not be one.
+ * **The parameters are injected, not defaulted here.** A per-school deployment
+ * may run on modest hardware, so memory cost and iteration count are per-school
+ * settings (`school_settings.password_hash_parameters`, `AGENTS.md` §2.14) and
+ * argon2 tuned too high will stall logins on the weakest target. This port
+ * therefore declares no parameter defaults — a default here would be the exact
+ * constant §2.14 forbids.
+ *
+ * The algorithm is argon2id, and it is decided at the *adapter*, not here. That
+ * asymmetry is deliberate: `ADR-007`'s own wording is that the port makes a swap
+ * "a new implementation, not a refactor", and a swap that had to rewrite a
+ * use-case would not be one.
  *
  * ## What `verify` is shaped around
  *

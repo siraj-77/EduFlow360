@@ -633,7 +633,7 @@
     "x": 1120,
     "y": 1992,
     "width": 400,
-    "height": 308,
+    "height": 324,
     "strokeColor": "#0e7490",
     "backgroundColor": "#e0f5fa",
     "strokeWidth": 2,
@@ -678,8 +678,8 @@
     "x": 1134,
     "y": 2036,
     "width": 372,
-    "height": 240,
-    "text": "schoolId  String\nPK  id\nname  String\nlegalName  String\ntimezone  String\ndefaultLocale  String\ncurrencyCode  String\nminorUnitScale  Int\nroundingMode  RoundingMode\nacademicYearStartMonth  Int\nsettings  Json\nallowedEmailDomains  Json\n▶  updatedById → User\ncreatedAt  DateTime\nupdatedAt  DateTime",
+    "height": 256,
+    "text": "schoolId  String\nPK  id\nname  String\nlegalName  String\ntimezone  String\ndefaultLocale  String\ncurrencyCode  String\nminorUnitScale  Int\nroundingMode  RoundingMode\nacademicYearStartMonth  Int\nsettings  Json\nallowedEmailDomains  Json\npasswordHashParameters  Json\n▶  updatedById → User\ncreatedAt  DateTime\nupdatedAt  DateTime",
     "fontSize": 11,
     "fontFamily": 3,
     "textAlign": "left",
@@ -1331,9 +1331,9 @@
     "id": "edge_SchoolSettings_updatedById",
     "type": "arrow",
     "x": 1120,
-    "y": 2146,
+    "y": 2154,
     "width": -200,
-    "height": -1706,
+    "height": -1714,
     "points": [
       [
         0,
@@ -1345,11 +1345,11 @@
       ],
       [
         -126,
-        -1706
+        -1714
       ],
       [
         -200,
-        -1706
+        -1714
       ]
     ],
     "strokeColor": "#4f46e5",

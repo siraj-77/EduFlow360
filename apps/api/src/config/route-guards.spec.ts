@@ -229,9 +229,14 @@ describe('the analyser is not vacuous', () => {
   });
 
   it('reports zero findings on the real source tree as it stands', () => {
-    // Today's state: no controller routes exist yet, so nothing is unguarded.
-    // When PLT-101's callback route lands, this stays green only if the route
-    // carries a guard AND is in the allowlist.
+    // Scans a file that exists, rather than a synthetic string, so the analyser
+    // is exercised against real source. `system-clock.ts` is an infrastructure
+    // adapter and holds no routes — which is the point: this asserts that
+    // scanning real source reports nothing, not that some route is guarded.
+    //
+    // The routes that DO exist are reconciled by `pnpm check:route-guards`,
+    // which reads this repository's allowlist as well as the decorators. It is
+    // the gate that covers `src/modules/auth/controllers/oidc-sign-in.controller.ts`.
     const findings = auditRoutes([
       join(
         import.meta.dirname,

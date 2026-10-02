@@ -315,6 +315,35 @@ vocabulary, and `check-route-guards` proves a decorator is present rather than o
 still **zero controllers**, so `CsrfGuard` is armed and pointing at nothing. It will matter the
 moment the first route lands, which is precisely why it should be right by then.
 
+### Closed 2026-10-02 — four owner decisions on authentication
+
+| ID      | Decision                                                                                                                                                                                                                                                                                          | Rationale                                                                                                                                                                                                                                                                                                                                 |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D56** | **`argon2` 0.45.1 is approved as a dependency** and `Argon2idPasswordHasher` implements `IPasswordHasher`.                                                                                                                                                                                        | `ADR-007` already decided the algorithm, so the burden of proof belongs to _reversing_ an ADR, not to following one. `node:crypto` `scrypt` was genuinely tempting — zero dependencies, memory-hard, RFC 7914 — but substituting it quietly is the exact failure `AGENTS.md` §2 exists to prevent, and it means a second migration later. |
+| **D57** | **Google sign-in MUST-LINKS to an existing `User`. It never auto-provisions.**                                                                                                                                                                                                                    | The domain allowlist is a **pre-filter, not authorisation**. Auto-creating a `User` for any verified `@school.lk` Google account means **any student with a school Gmail becomes a system user**. `email_verified` + allowlist selects; `ExternalIdentity` lookup by `(provider, sub)` authorises; no match means reject.                 |
+| **D58** | **The `PLT-107` `404` is a property of DEPLOYMENT STATE, not of the token.** An unenrolled deployment answers `404` to every request and therefore reveals nothing about any token. Non-revelation is scoped _within_ an enrolled deployment, where forged and expired must be indistinguishable. | The story demands both a `404` for unenrolled ("does not advertise the endpoint") and an error that "does not reveal whether the token ever existed". As literal status codes those conflict. This reading satisfies both clauses; the literal reading satisfies neither.                                                                 |
+| **D59** | **The `__Host-` cookie prefix is deferred, not rejected.**                                                                                                                                                                                                                                        | `__Host-` forbids a cookie without `Secure`, which would break the plain-HTTP LAN-dev escape. Revisit if the deployment is committed to HTTPS-only. A judgement call worth recording rather than burying.                                                                                                                                 |
+
+### One finding from implementing D56 that is worth more than the decision
+
+**`argon2.needsRehash` from `node-argon2` cannot be trusted for `ADR-007`'s migration, and using it would
+have silently disabled the upgrade it exists to drive.** Two measured defects:
+
+- it returns `true` by **exact equality**, so a hash STRONGER than current settings reports
+  `true` — a downgrade path, letting an attacker walk a login down to weaker parameters;
+- it destructures `id` without using it, so **algorithm drift is invisible**: an `argon2i` hash
+  checked against argon2id options returns `false`, meaning `ADR-007`'s migration would never run.
+
+Replaced with a one-directional comparison (rehash only when the stored hash is weaker). This is
+the second time in this repository that a vendor helper's plausible name concealed the wrong
+semantics — `argon2.needsRehash` and `emitDecoratorMetadata` below.
+
+**Also recorded:** the Nest DI container **cannot be built in a unit test at all**.
+`design:paramtypes` is `undefined` under Vitest because esbuild does not implement
+`emitDecoratorMetadata`. The built `dist/` _does_ carry it, so DI resolves in the real artifact.
+The gap is test-only, and closing it needs an SWC transform — a dependency decision, not
+yet taken.
+
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
 | Question                                       | Authoritative source                                                                                           |

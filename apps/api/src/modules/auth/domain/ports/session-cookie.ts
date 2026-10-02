@@ -73,23 +73,37 @@ export const SESSION_COOKIE_NAME = 'eduflow_session' as const;
 export const SESSION_COOKIE_PATH = '/' as const;
 
 /**
- * The policy for one session cookie.
+ * The attribute set any cookie on this origin is written with.
  *
- * Two of these are literal types rather than booleans or strings. That is not
- * decoration: `httpOnly: true` and `path: '/'` mean it is a compile error for
- * any future code — a config option, an override, a refactor — to construct a
- * session cookie that a script can read or that is scoped to a subpath. The
- * attributes `D48` settles are the ones that cannot be weakened by accident.
+ * ## Why this was widened out of `SessionCookieAttributes`
+ *
+ * It did not exist until `GET /auth/oidc/redirect` needed a *second* cookie. The
+ * alternative was to give the OIDC state store its own carrier interface and its
+ * own serialiser, which would have been a second implementation of `Set-Cookie`
+ * construction in the same codebase — and the exact failure this file's `Expires`
+ * / `Max-Age` discussion is about, one level up.
+ *
+ * The widening is deliberately narrow, and the narrowing is what remains below:
+ * `ICookieCarrier` takes the *general* type, while `ISessionCookieDelivery` still
+ * takes `SessionCookie`, whose `httpOnly: true` and `path: '/'` are literal types.
+ * So the thing that decides the session cookie's policy cannot weaken it, and the
+ * thing that can write any cookie at all still cannot invent attributes the
+ * serialiser does not map.
+ *
+ * `httpOnly` is a plain `boolean` here rather than `true` because a state cookie
+ * is not a session credential and the difference is not expressible in one shared
+ * type — but every cookie this repository actually writes is `httpOnly`, and both
+ * adapters refuse to build one that is not. See `OidcStateCookie`.
  */
-export interface SessionCookieAttributes {
+export interface CookieAttributes {
   /**
-   * Always `true`.
+   * Not readable by script.
    *
-   * JavaScript must never read a session credential. An XSS that steals the
-   * token is worse than the XSS itself, because the stolen token works from
-   * anywhere, forever, with no further vulnerability needed.
+   * True for every cookie EduFlow writes. An XSS that steals a credential out of
+   * the document is worse than the XSS itself, because the stolen value works
+   * from anywhere, indefinitely, with no further vulnerability needed.
    */
-  readonly httpOnly: true;
+  readonly httpOnly: boolean;
 
   /**
    * Sent only over TLS.
@@ -112,16 +126,44 @@ export interface SessionCookieAttributes {
    */
   readonly sameSite: 'lax' | 'strict' | 'none';
 
+  /**
+   * Always `/` for a session cookie, narrower for anything else.
+   *
+   * Expiry is absolute, UTC, computed from an injected `IClock` — never from
+   * ambient time, so a test can place the boundary exactly.
+   */
+  readonly path: string;
+  readonly expiresAt: Date;
+}
+
+/** Any cookie this codebase writes onto a response. */
+export interface OutboundCookie {
+  readonly name: string;
+  readonly value: string;
+  readonly attributes: CookieAttributes;
+}
+
+/**
+ * The policy for one session cookie.
+ *
+ * Two of these are literal types rather than booleans or strings. That is not
+ * decoration: `httpOnly: true` and `path: '/'` mean it is a compile error for
+ * any future code — a config option, an override, a refactor — to construct a
+ * session cookie that a script can read or that is scoped to a subpath. The
+ * attributes `D48` settles are the ones that cannot be weakened by accident.
+ */
+export interface SessionCookieAttributes extends CookieAttributes {
+  /**
+   * Always `true`.
+   *
+   * JavaScript must never read a session credential. An XSS that steals the
+   * token is worse than the XSS itself, because the stolen token works from
+   * anywhere, forever, with no further vulnerability needed.
+   */
+  readonly httpOnly: true;
+
   /** Always `/`. See `SESSION_COOKIE_PATH`. */
   readonly path: typeof SESSION_COOKIE_PATH;
-
-  /**
-   * Absolute expiry, UTC.
-   *
-   * Set by the adapter from an injected `IClock`, never from ambient time, so a
-   * test can place the boundary exactly.
-   */
-  readonly expiresAt: Date;
 }
 
 /**
@@ -150,9 +192,13 @@ export interface SessionCookie {
  * An implementation must apply `attributes` verbatim: no adding a `Domain`, no
  * widening `sameSite`, no substituting a default when `secure` is false. A
  * serialiser that "helpfully" repairs the policy is a second policy.
+ *
+ * The parameter is the general `OutboundCookie`, not `SessionCookie`, because a
+ * response carries more than one cookie: see `CookieAttributes` for why, and for
+ * why the session's own literal types were kept rather than widened.
  */
 export interface ICookieCarrier {
-  setCookie(cookie: SessionCookie): void;
+  setCookie(cookie: OutboundCookie): void;
 }
 
 /**

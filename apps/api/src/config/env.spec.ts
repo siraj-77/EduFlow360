@@ -77,6 +77,34 @@ describe('loadConfig', () => {
   });
 });
 
+describe('OIDC_STATE_TTL_MS — how long a sign-in may stay open', () => {
+  it('defaults to ten minutes when nothing is configured', () => {
+    // A default, and deliberately a short one. AGENTS.md 8 forbids hardcoding a
+    // school's *values*; this is a protocol window, not a school setting, and a
+    // never-written configuration should produce the conservative answer rather
+    // than no answer at all.
+    expect(loadConfig(base).config.OIDC_STATE_TTL_MS).toBe(600_000);
+  });
+
+  it('is read from the environment when a school sets one', () => {
+    expect(loadConfig({ ...base, OIDC_STATE_TTL_MS: '900000' }).config.OIDC_STATE_TTL_MS).toBe(
+      900_000,
+    );
+  });
+
+  it.each([
+    { label: 'zero', value: '0' },
+    { label: 'a negative window', value: '-1' },
+    { label: 'a fractional window', value: '1500.5' },
+    { label: 'text', value: 'ten minutes' },
+  ])('refuses $label', ({ value }) => {
+    // Each of these produces an `Expires` the browser either discards or
+    // misreads, and a browser that discards the attribute leaves a state cookie
+    // with no expiry at all.
+    expect(() => loadConfig({ ...base, OIDC_STATE_TTL_MS: value })).toThrow(/OIDC_STATE_TTL_MS/);
+  });
+});
+
 describe('bootBanner', () => {
   it('states loudly that persistence is disabled, rather than staying silent', () => {
     const banner = bootBanner(loadConfig(base)).join('\n');

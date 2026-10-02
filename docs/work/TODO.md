@@ -127,15 +127,15 @@
 > ### Where tranche 2 actually stands (2026-10-02, after `028bb90`)
 >
 > ✔ **DONE — `IClock`.** `apps/api/src/modules/auth/domain/ports/clock.ts`, the
->    `SystemClock` adapter, and a shared `FakeClock` in `src/testing/`. The ESLint rule that
->    banned ambient time had no other side for days; this is it.
+> `SystemClock` adapter, and a shared `FakeClock` in `src/testing/`. The ESLint rule that
+> banned ambient time had no other side for days; this is it.
 > ✔ **DONE — `IOidcProvider` + `GoogleOidcProvider`** on `jose` 6.2.12. Both external
->    seams injected, so 20 cases run against a locally generated RSA key with no network
->    and no Google project, while still exercising real signature verification. Each of the
->    five checks has a forgery aimed at it.
+> seams injected, so 20 cases run against a locally generated RSA key with no network
+> and no Google project, while still exercising real signature verification. Each of the
+> five checks has a forgery aimed at it.
 > ✔ **DONE — the refresh-token reuse decision.** `decideRotation`, pure and
->    table-driven, 12 cases. `revoke-family-reuse` is provably the only verdict with a side
->    effect, reachable only on an already-used token in a live session and family.
+> table-driven, 12 cases. `revoke-family-reuse` is provably the only verdict with a side
+> effect, reachable only on an already-used token in a live session and family.
 >
 > ### ✔ DONE 2026-10-02 — `ISessionRepository` + Prisma, and `sessions.token_hash`
 >
@@ -167,12 +167,13 @@
 > **What remains, now that D48 and D49 are answered:**
 >
 > ✔ **DONE — the four decorators and `check-route-guards`.**
->   `@Public('<reason>')`, `@RequirePermission`, `@RequireEntitlement` and `@Audited` exist, and
->   a tenth gate `pnpm check:route-guards` fails on a route carrying neither a permission nor a
->   public exemption. Proven by injecting a real unguarded controller and watching the build fail.
->   **Still NOT enforced: what the decorators MEAN.** No global guard reads the metadata yet, so a
->   guard can be present and inert. The reader needs a permission engine (`PLT-2xx`), session
->   resolution and licence verification, none of which exist.
+> `@Public('<reason>')`, `@RequirePermission`, `@RequireEntitlement` and `@Audited` exist, and
+> a tenth gate `pnpm check:route-guards` fails on a route carrying neither a permission nor a
+> public exemption. Proven by injecting a real unguarded controller and watching the build fail.
+> **Still NOT enforced: what the decorators MEAN.** No global guard reads the metadata yet, so a
+> guard can be present and inert. The reader needs a permission engine (`PLT-2xx`), session
+> resolution and licence verification, none of which exist.
+>
 > - **The cookie delivery adapter.** `SameSite=Lax`, `Secure`, `httpOnly`, path `/`, plus a
 >   required custom header on state-changing requests as CSRF defence in depth.
 > - **The allowlist setting** in `SchoolSettings`: a list, fail-closed when empty, and account
@@ -193,7 +194,6 @@
 > 4. The sign-in button in `apps/web`, then `PLT-104` OTP is milestone 2
 >
 > Nothing above touches a browser until 2 and 3, and 3 needs the two answers.
-
 
 ---
 
@@ -485,9 +485,20 @@ Blocking the items marked ⚑.
 - **Where it runs:** inside Epic 01, **before Epic 03 completes** (Prompt Pack §2.2), because licence activation (P8) and school settings (P10) both presuppose an administrator exists.
 - **Constraints it inherits:** no default credentials, ever; the setup token is single-use, short-lived, and consumed on first successful use; the act is audited; the route is `@Public('<reason>')` (there is no user to authenticate) and therefore allowlisted per `ADR-018`.
 
-**✅ Done 2026-10-02 — `PLT-107` token half.** Two `User` columns (`setupTokenHash`, `setupTokenExpiresAt`), `IPasswordHasher` as a **port with no implementation**, and the issue/inspect/consume path. Consumption is **one conditional `UPDATE`** — the affected-row count is the verdict, `id` is deliberately absent from the `WHERE` so no read-then-write creeps in, and `gt` (not `gte`) means a token is dead at its expiry instant. Unit 259, integration 48. The naive read-then-write was reinstated to **prove the concurrency test fails** (5/5 red, 2–8 of 8 claims wrongly accepted), then restored.
+**✅ Done 2026-10-02 — `PLT-107` token half.** Two `User` columns (`setupTokenHash`, `setupTokenExpiresAt`), `IPasswordHasher`, and the issue/inspect/consume path. Consumption is **one conditional `UPDATE`** — the affected-row count is the verdict, `id` is deliberately absent from the `WHERE` so no read-then-write creeps in, and `gt` (not `gte`) means a token is dead at its expiry instant. Unit 259, integration 48. The naive read-then-write was reinstated to **prove the concurrency test fails** (5/5 red, 2–8 of 8 claims wrongly accepted), then restored.
 
-**⚠️ Blocked on an owner decision — argon2id.** `ADR-007` mandates argon2id; nothing is installed and `AGENTS.md` §8 forbids adding a dependency without explicit instruction. **`POST /auth/setup/complete` cannot be built until this is answered**, because it must set `User.passwordHash`. `node:crypto` *does* offer `scrypt` and it was deliberately **not** used — silently substituting it would contradict a governing ADR, which is the exact failure mode `AGENTS.md` §2 exists to prevent.
+**✅ Resolved 2026-10-02 — argon2id approved and implemented** (`SSOT.md` D56). `argon2` 0.45.1 installed; `Argon2idPasswordHasher` implements the port. Parameters are **injected from `school_settings.password_hash_parameters`** (`AGENTS.md` §2.14) with a documented OWASP-derived default when unset, so an unconfigured school can still log in. `argon2.needsRehash` was **rejected** — see D56. This unblocks `POST /auth/setup/complete`.
+
+**✅ Resolved 2026-10-02 — sign-in policy** (`SSOT.md` D57). **Must-link, never auto-provision.** The allowlist is a pre-filter, not authorisation; without this rule any student with a school Gmail becomes a system user. Unblocks `GET /auth/oidc/callback`.
+
+**✅ Landed 2026-10-02 — `GET /auth/oidc/redirect`.** First controller in the repository. State travels in an **HMAC-signed cookie**, deliberately **not** Redis: no Redis deployment is verified here (`G1-10`), and login must not depend on a service that may be down. `pnpm check:route-guards` proven load-bearing — removing the allowlist entry fails the build.
+
+### ⚠️ Gaps this work created
+
+- **The Nest DI container cannot be built in a unit test.** `emitDecoratorMetadata` is not implemented by esbuild, so `design:paramtypes` is `undefined` under Vitest. The built `dist/` carries it, so the real artifact is fine. Closing the test gap needs an SWC transform — a dependency decision, not yet taken.
+- **argon2 operational ceilings** (256 MiB / 10 passes) exist only because `timeCost: -1` _hangs_ rather than erroring. These are the only numbers in the system with no measured authority. `AGENTS.md` §6 gap — owner decision.
+- **`check-route-guards` cannot parse a multi-line decorator.** It reads the line above the route decorator, so `@Public(` split across lines reports as unguarded. This **fails closed** — annoying, never a bypass — and was confirmed by injecting one.
+- **`pnpm add` silently breaks every gate on pnpm 11** by writing the literal placeholder `argon2: set this to true or false` into `pnpm-workspace.yaml`. Fixed to `true`. Anything that reads that file without evaluating it as YAML is now uninterpretable.
 
 ---
 

@@ -94,6 +94,34 @@ const schema = z
     GOOGLE_CLIENT_SECRET: optionalSecret('GOOGLE_CLIENT_SECRET'),
     GOOGLE_REDIRECT_URI: optionalSecret('GOOGLE_REDIRECT_URI'),
 
+    /**
+     * How long a begun sign-in stays open.
+     *
+     * The window in which `GET /auth/oidc/callback` will accept the signed state
+     * bundle that `GET /auth/oidc/redirect` issued. It bounds a credential that
+     * is sitting in a browser, so it is deliberately short and deliberately
+     * configurable rather than a constant in the store.
+     *
+     * Ten minutes by default: long enough for a password manager and a second
+     * factor on a slow connection, short enough that a bundle left in a browser
+     * is worthless quickly. It must exceed the provider's own authorization-code
+     * lifetime, or a legitimate sign-in can expire server-side while the user is
+     * still typing. It is validated as a positive whole number of milliseconds
+     * because anything else produces an `Expires` the browser discards — and a
+     * discarded `Expires` is a cookie with *no* expiry, which is the opposite of
+     * what was asked for.
+     *
+     * Not a secret, so it takes a default: `AGENTS.md` 8 forbids hardcoding a
+     * school's timezone, currency, language or academic calendar, and a protocol
+     * window is none of those. A never-written configuration should produce the
+     * conservative answer, not a boot failure.
+     */
+    OIDC_STATE_TTL_MS: z.coerce
+      .number()
+      .int('OIDC_STATE_TTL_MS must be a whole number of milliseconds')
+      .positive('OIDC_STATE_TTL_MS must be greater than zero')
+      .default(600_000),
+
     LOG_LEVEL: z.enum(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']).default('INFO'),
     LOG_DIR: z.string().min(1).default('logs'),
   })

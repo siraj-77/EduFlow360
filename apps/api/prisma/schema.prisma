@@ -627,6 +627,33 @@ model SchoolSettings {
   /// Read through `IAllowedEmailDomainStore`; matched by exact equality
   /// after normalisation, never by `endsWith`.
   allowedEmailDomains    Json?        @map("allowed_email_domains")
+  /// The argon2id cost parameters for THIS school (`ADR-007`). `Json?`,
+  /// following `allowedEmailDomains` above, and for the same reason: the
+  /// column constrains nothing, so the reader is the only thing that can
+  /// notice a nonsense value.
+  ///
+  /// These are per-school rather than per-product because argon2 is tuned
+  /// for MEMORY hardness, and the right memory cost is a property of the
+  /// hardware the school runs on. `ADR-007` rejected a hard-coded factor
+  /// outright: a factor tuned on a laptop is too slow on a small school VM,
+  /// which stalls logins, and a factor lowered to suit that VM is weak
+  /// everywhere else. One deployment is one school (`ADR-003`), so the
+  /// value has to be configurable per school and nowhere else.
+  ///
+  /// Keyed by argon2's own names - memoryCost (KiB), timeCost (passes),
+  /// parallelism (lanes). Not `m`/`t`/`p`: node-argon2 SILENTLY IGNORES an
+  /// option key it does not recognise, so the compact spelling would be
+  /// accepted, ignored, and every hash would be written at the library
+  /// default while the settings row claimed otherwise. That failure is
+  /// invisible, which is why the key names are spelled out here and
+  /// asserted in `argon2-password-hasher.spec.ts`.
+  ///
+  /// No `@default`, deliberately. A default in the catalog is a value
+  /// nobody typed, and "this school chose 19 MiB" must not be
+  /// indistinguishable from "nothing was configured". Null resolves to the
+  /// documented default in `resolvePasswordHashParameters`, which reports
+  /// that it did so rather than presenting the default as a choice.
+  passwordHashParameters Json?        @map("password_hash_parameters")
   updatedById            String?      @map("updated_by_id") @db.Uuid
   updatedBy              User?        @relation("fk_school_settings_updated_by", fields: [updatedById], references: [id], onDelete: SetNull)
   createdAt              DateTime     @default(now()) @map("created_at")
