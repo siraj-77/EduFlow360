@@ -28,6 +28,16 @@
  */
 export type StoredEmailDomainAllowlist = unknown;
 
+/**
+ * DI token for this port.
+ *
+ * Declared here rather than in `auth.module.ts` for the same structural reason
+ * `CLOCK` is declared in `clock.ts`: a token has to be importable by the consumer,
+ * and the callback controller imports it while `auth.module.ts` imports that
+ * controller — so a token declared in the module would close an import cycle.
+ */
+export const I_ALLOWED_EMAIL_DOMAIN_STORE = Symbol('IAllowedEmailDomainStore');
+
 export interface IAllowedEmailDomainStore {
   /**
    * Read this school's configured domains, verbatim.

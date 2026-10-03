@@ -62,12 +62,29 @@ const MAC_CONTEXT = 'eduflow:oidc-state:v1:';
 /** SHA-256, and therefore the exact length of every signature this store writes. */
 const SIGNATURE_BYTES = 32;
 
-/** Bumped if the payload shape ever changes, so old cookies fail closed. */
-const PAYLOAD_VERSION = 1;
+/**
+ * Bumped to 2 when the payload gained `mode` and `userId`.
+ *
+ * A version bump is what makes bundles sealed by the PREVIOUS build fail closed.
+ * They carry no mode, so there is no honest way to complete them: treating them as
+ * `sign-in` would be a guess about which of the two flows was in progress, and
+ * guessing is how a link bundle becomes a sign-in. The cost is that a sign-in
+ * already in flight across a deploy is refused — which is a failed login, never an
+ * accepted one, and the same trade `JWT_ACCESS_SECRET` rotation already makes
+ * above.
+ */
+const PAYLOAD_VERSION = 2;
+
+/** The only two modes. Anything else on the wire is refused by `decode`. */
+const FLOW_MODES: ReadonlySet<string> = new Set(['sign-in', 'link']);
 
 /** Compact field names. A cookie is a constrained medium, not a log line. */
 interface WirePayload {
   readonly v: number;
+  /** `sign-in` or `link`. See `OidcFlowMode`. */
+  readonly m: string;
+  /** The account a `link` bundle is bound to. ABSENT in a `sign-in` bundle. */
+  readonly u?: string;
   readonly s: string;
   readonly n: string;
   readonly c: string;
@@ -163,7 +180,7 @@ export class HmacOidcStateStore implements IOidcStateStore {
 
   seal(payload: OidcStatePayload): OidcStateCookie {
     const issuedAtMs = this.clock.now().getTime();
-    const encoded = this.encode({ ...payload, issuedAtMs });
+    const encoded = this.encode(payload, issuedAtMs);
 
     return this.cookie(encoded, issuedAtMs + this.ttlMs);
   }
@@ -187,13 +204,23 @@ export class HmacOidcStateStore implements IOidcStateStore {
     // browser is the party an attacker controls.
     if (this.clock.now().getTime() - decoded.t >= this.ttlMs) return null;
 
-    return {
+    // Narrow the union here, once, rather than making every consumer re-check the
+    // pairing of `m` and `u`. A `link` bundle with no account never gets this far:
+    // `decode` refuses it.
+    const values = {
       state: decoded.s,
       nonce: decoded.n,
       codeVerifier: decoded.c,
       redirectUri: decoded.r,
       issuedAtMs: decoded.t,
     };
+
+    if (decoded.m === 'sign-in') return { mode: 'sign-in', ...values };
+
+    // The only remaining mode is `link`, and `decode` proved `u` is a non-empty
+    // string. The assertion narrows it for the type system; it cannot be false.
+    if (typeof decoded.u !== 'string' || decoded.u.length === 0) return null;
+    return { mode: 'link', userId: decoded.u, ...values };
   }
 
   expired(): OidcStateCookie {
@@ -222,14 +249,20 @@ export class HmacOidcStateStore implements IOidcStateStore {
     return timingSafeEqual(expected, given);
   }
 
-  private encode(payload: OidcStatePayload & { readonly issuedAtMs: number }): string {
+  private encode(payload: OidcStatePayload, issuedAtMs: number): string {
     const wire: WirePayload = {
       v: PAYLOAD_VERSION,
+      m: payload.mode,
+      // Conditional spread, not `u: payload.userId`. `exactOptionalPropertyTypes`
+      // is on, and a `sign-in` bundle must not carry the field at all — `decode`
+      // rejects a `sign-in` bundle that does, so writing it would be a value this
+      // store can seal and not open.
+      ...(payload.mode === 'link' ? { u: payload.userId } : {}),
       s: payload.state,
       n: payload.nonce,
       c: payload.codeVerifier,
       r: payload.redirectUri,
-      t: payload.issuedAtMs,
+      t: issuedAtMs,
     };
 
     const encodedPayload = Buffer.from(JSON.stringify(wire), 'utf8').toString('base64url');
@@ -251,6 +284,21 @@ export class HmacOidcStateStore implements IOidcStateStore {
    * signature — so the JSON and shape checks below are defence against a *bug*
    * rather than against an attacker, and are deliberately fail-closed: a parse
    * failure is a refusal, never a 500.
+   *
+   * **The mode/account pairing is checked here and it is the load-bearing check.**
+   * A `link` bundle must carry an account and a `sign-in` bundle must not:
+   *
+   * - `link` without `u` is the shape a forged bundle would take to say "link, and
+   *   work out who from the session cookie". Refusing it is the difference between
+   *   *cannot link* and *links to whoever is signed in*.
+   * - `sign-in` **with** `u` is refused for symmetry. An extra account on a bundle
+   *   that is supposed to have none is a sign the value did not come from `encode`,
+   *   and continuing would mean reading a field the mode says is meaningless.
+   *
+   * Note that both branches require a **valid** signature to reach, so neither is
+   * reachable without the key. They are reported rather than tested: a test would
+   * have to re-implement this store's MAC to reach them, which is precisely the
+   * "second MAC to get wrong" this design avoids.
    */
   private decode(encodedPayload: string): WirePayload | null {
     let parsed: unknown;
@@ -264,12 +312,18 @@ export class HmacOidcStateStore implements IOidcStateStore {
     const wire = parsed as Partial<WirePayload>;
 
     if (wire.v !== PAYLOAD_VERSION) return null;
+    if (typeof wire.m !== 'string' || !FLOW_MODES.has(wire.m)) return null;
+    if (wire.m === 'link' ? !isNonEmptyString(wire.u) : wire.u !== undefined) return null;
     if (!isNonEmptyString(wire.s) || !isNonEmptyString(wire.n)) return null;
     if (!isNonEmptyString(wire.c) || !isNonEmptyString(wire.r)) return null;
     if (typeof wire.t !== 'number' || !Number.isFinite(wire.t)) return null;
 
     return {
       v: wire.v,
+      m: wire.m,
+      // Conditional spread for the same `exactOptionalPropertyTypes` reason as in
+      // `encode`: a `sign-in` wire payload has no `u` key at all.
+      ...(wire.u !== undefined ? { u: wire.u } : {}),
       s: wire.s,
       n: wire.n,
       c: wire.c,

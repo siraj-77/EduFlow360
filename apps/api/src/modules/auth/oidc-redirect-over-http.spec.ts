@@ -227,6 +227,23 @@ describe('the state cookie, as it arrives on the wire', () => {
     expect(opened?.redirectUri).toBe(TEST_ENVIRONMENT.GOOGLE_REDIRECT_URI);
   });
 
+  it('seals SIGN-IN mode, and names no account', async () => {
+    // The property the whole callback design rests on, asserted on the wire.
+    //
+    // `GET /auth/oidc/redirect` is `@Public` and unauthenticated, so the bundle it
+    // mints must be incapable of carrying an account: if a session cookie is later
+    // present at the callback, there is nothing in this bundle for it to bind an
+    // identity to. That is what makes "session cookie present, therefore link" an
+    // unrepresentable design rather than a bug.
+    const sealed = (await harness.request('/auth/oidc/redirect')).cookie(
+      OIDC_STATE_COOKIE_NAME,
+    )?.value;
+    const opened = storeUnderTest().open(sealed ?? '');
+
+    expect(opened?.mode).toBe('sign-in');
+    expect('userId' in (opened ?? {})).toBe(false);
+  });
+
   it('holds a bundle this deployment can open, and a foreign key cannot', async () => {
     // Proves the signature is actually load-bearing rather than merely present:
     // a store with a different key must reject the same bytes.

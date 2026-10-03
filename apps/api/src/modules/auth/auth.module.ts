@@ -13,11 +13,23 @@ import {
 } from './controllers/password-sign-in.controller.js';
 import { OidcSignInController } from './controllers/oidc-sign-in.controller.js';
 import {
+  OIDC_CALLBACK_THROTTLE_POLICY,
+  OidcCallbackController,
+} from './controllers/oidc-callback.controller.js';
+import { OidcLinkController } from './controllers/oidc-link.controller.js';
+import {
   SETUP_THROTTLE_POLICY,
   SetupCompletionController,
 } from './controllers/setup-completion.controller.js';
+import { I_ALLOWED_EMAIL_DOMAIN_STORE } from '../settings/domain/ports/allowed-email-domain-store.js';
+import type { IAllowedEmailDomainStore } from '../settings/domain/ports/allowed-email-domain-store.js';
+import { PrismaAllowedEmailDomainStore } from '../settings/infrastructure/postgres/prisma-allowed-email-domain-store.js';
 import { CLOCK } from './domain/ports/clock.js';
 import type { IPasswordHasher } from './domain/ports/password-hasher.js';
+import { I_EXTERNAL_IDENTITY_REPOSITORY } from './domain/ports/external-identity-repository.js';
+import type { IExternalIdentityRepository } from './domain/ports/external-identity-repository.js';
+import { IOIDC_STATE_STORE } from './domain/ports/oidc-state-store.js';
+import { I_SESSION_REPOSITORY } from './domain/ports/session-repository.js';
 import type { ISessionRepository } from './domain/ports/session-repository.js';
 import type { IBootstrapClaimRepository } from './domain/repositories/bootstrap-claim-repository.js';
 import type { ISetupTokenRepository } from './domain/repositories/setup-token-repository.js';
@@ -28,11 +40,13 @@ import { HmacOidcStateStore } from './infrastructure/adapters/oidc-state-store.j
 import { SessionCookieAdapter } from './infrastructure/adapters/session-cookie.js';
 import { SystemClock } from './infrastructure/adapters/system-clock.js';
 import { PrismaBootstrapClaimRepository } from './infrastructure/postgres/prisma-bootstrap-claim-repository.js';
+import { PrismaExternalIdentityRepository } from './infrastructure/postgres/prisma-external-identity-repository.js';
 import { PrismaSessionRepository } from './infrastructure/postgres/prisma-session-repository.js';
 import { PrismaSetupTokenRepository } from './infrastructure/postgres/prisma-setup-token-repository.js';
 import { PrismaUserCredentialRepository } from './infrastructure/postgres/prisma-user-credential-repository.js';
 import { BeginOidcSignIn } from './use-cases/begin-oidc-sign-in.js';
 import { CompleteFirstAdministratorSetup } from './use-cases/complete-first-administrator-setup.js';
+import { CompleteOidcCallback } from './use-cases/complete-oidc-callback.js';
 import { SignInWithPassword } from './use-cases/sign-in-with-password.js';
 import { SetupTokenService } from './use-cases/setup-token-service.js';
 
@@ -104,8 +118,21 @@ import { SetupTokenService } from './use-cases/setup-token-service.js';
 
 /** DI tokens. Symbols rather than classes, because the ports are interfaces. */
 export const IOIDC_PROVIDER = Symbol('IOIDC_PROVIDER');
-export const IOIDC_STATE_STORE = Symbol('IOIDC_STATE_STORE');
 export const AUTHORIZATION_ORIGIN = Symbol('AUTHORIZATION_ORIGIN');
+
+/**
+ * `IOIDC_STATE_STORE` now lives in its port file, alongside `CLOCK` and
+ * `I_SESSION_REPOSITORY`.
+ *
+ * The reason is an import cycle, and it is recorded here because the alternative
+ * looks harmless: `OidcCallbackController` needs this token, this module imports that
+ * controller, and a controller importing a token back out of this module evaluates its
+ * own body while the symbol is still uninitialised — so `@Inject(undefined)` is emitted
+ * and Nest falls back to reflected metadata and cannot resolve the dependency.
+ *
+ * Re-exported here because it was declared here until that happened.
+ */
+export { IOIDC_STATE_STORE } from './domain/ports/oidc-state-store.js';
 
 /**
  * DI tokens for the ports.
@@ -121,7 +148,16 @@ export const I_PASSWORD_HASH_PARAMETER_STORE = Symbol('IPasswordHashParameterSto
 export const I_SETUP_TOKEN_REPOSITORY = Symbol('ISetupTokenRepository');
 export const I_BOOTSTRAP_CLAIM_REPOSITORY = Symbol('IBootstrapClaimRepository');
 export const I_USER_CREDENTIAL_REPOSITORY = Symbol('IUserCredentialRepository');
-export const I_SESSION_REPOSITORY = Symbol('ISessionRepository');
+
+/**
+ * `I_SESSION_REPOSITORY` now lives in its port file, alongside `CLOCK`.
+ *
+ * Re-exported here because it was declared here until `SessionGuard` needed it from
+ * `common/guards/`, and a guard that guards every route cannot import the auth module
+ * to read one symbol without dragging `@prisma/client` and every controller with it.
+ * The re-export keeps every existing import site working.
+ */
+export { I_SESSION_REPOSITORY } from './domain/ports/session-repository.js';
 
 /** This school's resolved argon2id cost parameters. */
 export const PASSWORD_HASH_PARAMETERS = Symbol('PASSWORD_HASH_PARAMETERS');
@@ -322,6 +358,12 @@ export class AuthModule {
         },
       );
       controllers.push(OidcSignInController);
+      // The LINK route needs no database to *begin* a flow — it seals a state cookie and
+      // redirects — so it is registered with Google alone, exactly like the redirect.
+      // It still cannot do anything useful without a session, and `SessionGuard` refuses
+      // every request when no session repository is wired, so an unregistered-in-practice
+      // route is unreachable rather than half-working.
+      controllers.push(OidcLinkController);
     }
 
     if (persistence === null) {
@@ -336,13 +378,101 @@ export class AuthModule {
       controllers.push(SetupCompletionController, PasswordSignInController);
     }
 
+    // The callback needs BOTH halves: a provider to verify the assertion with, and a
+    // database to resolve the identity and issue a session against. Registered only
+    // when both are present, so a Google-only deployment answers 404 rather than 401 —
+    // "this deployment has no Google sign-in" instead of a refusal that reads like a bug.
+    if (google !== null && persistence !== null) {
+      providers.push(...oidcCallbackProviders(config));
+      controllers.push(OidcCallbackController);
+    }
+
     return {
       module: AuthModule,
       controllers,
       providers,
-      exports: google === null ? [] : [BeginOidcSignIn],
+      // `I_SESSION_REPOSITORY` is exported so the globally-registered `SessionGuard`
+      // — which lives in `common/` and cannot import this module — can inject it. It is
+      // exported ONLY when persistence exists, and `SessionGuard`'s `@Optional()` turns
+      // its absence into "refuse every authenticated route" rather than a boot failure.
+      exports: [
+        ...(google === null ? [] : [BeginOidcSignIn]),
+        ...(persistence === null
+          ? []
+          : [I_SESSION_REPOSITORY, I_EXTERNAL_IDENTITY_REPOSITORY, I_ALLOWED_EMAIL_DOMAIN_STORE]),
+      ],
     };
   }
+}
+
+/**
+ * Everything `GET /auth/oidc/callback` needs.
+ *
+ * Separate from `credentialProviders` because the two lists are governed by different
+ * questions: that one is "what does a database alone enable", this one is "what does a
+ * database enable *given a provider*". A callback with no provider has nothing to
+ * verify and a provider with no database has nowhere to resolve an identity, and
+ * neither combination is a working route.
+ */
+function oidcCallbackProviders(config: AppConfig): Provider[] {
+  return [
+    {
+      provide: I_EXTERNAL_IDENTITY_REPOSITORY,
+      useFactory: (client: PrismaClient): IExternalIdentityRepository =>
+        new PrismaExternalIdentityRepository(client, schoolIdOf(config)),
+      inject: [PrismaClient],
+    },
+    {
+      provide: I_ALLOWED_EMAIL_DOMAIN_STORE,
+      useFactory: (client: PrismaClient): IAllowedEmailDomainStore =>
+        new PrismaAllowedEmailDomainStore(client, schoolIdOf(config)),
+      inject: [PrismaClient],
+    },
+    {
+      provide: CompleteOidcCallback,
+      useFactory: (
+        provider: GoogleOidcProvider,
+        stateStore: HmacOidcStateStore,
+        domains: IAllowedEmailDomainStore,
+        identities: IExternalIdentityRepository,
+        sessions: ISessionRepository,
+      ): CompleteOidcCallback =>
+        new CompleteOidcCallback({
+          provider,
+          stateStore,
+          domains,
+          identities,
+          sessions,
+          sessionTtlMs: config.SESSION_TTL_MS,
+          refreshTtlMs: config.REFRESH_TOKEN_TTL_MS,
+        }),
+      inject: [
+        IOIDC_PROVIDER,
+        IOIDC_STATE_STORE,
+        I_ALLOWED_EMAIL_DOMAIN_STORE,
+        I_EXTERNAL_IDENTITY_REPOSITORY,
+        I_SESSION_REPOSITORY,
+      ],
+    },
+    {
+      provide: OIDC_CALLBACK_THROTTLE_POLICY,
+      useValue: Object.freeze({
+        limit: config.OIDC_CALLBACK_MAX_ATTEMPTS,
+        windowMs: config.OIDC_CALLBACK_WINDOW_MS,
+      }) satisfies ThrottlePolicy,
+    },
+  ];
+}
+
+/**
+ * The school id, named rather than passed twice.
+ *
+ * `readPersistenceConfig` already proved it exists and refused the inverse
+ * configuration at boot, so re-reading it here cannot fail — and it makes the two
+ * factories below visibly scoped to the SAME school as the credential repositories.
+ */
+function schoolIdOf(config: AppConfig): string {
+  return requireString(config.SCHOOL_ID, 'SCHOOL_ID');
 }
 
 /**

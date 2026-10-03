@@ -55,27 +55,22 @@ export interface CreateAppOptions {
 }
 
 /**
- * Build the Nest application. Does not listen.
+ * The configuration every built application receives, in one function.
+ *
+ * Extracted so a test that builds the application a *different way* — see
+ * `testing/http-harness.ts`, which may substitute one vendor port through
+ * `@nestjs/testing`'s `overrideProvider` — applies the SAME settings rather than
+ * re-deriving them. Two functions configuring the same application would be two
+ * places for CORS to drift, and a test proving a behaviour against different CORS
+ * than production runs is not evidence about production.
  *
  * `bufferLogs` is carried over from `main.ts` unchanged: without it, a module's
  * constructor logs are emitted before Nest's logger exists, which produces the
- * interleaved half-initialised banner `bufferLogs` exists to prevent. It is not
- * a test-only setting.
- *
- * ## There is deliberately no seam for substituting the module graph
- *
- * An earlier version of this file took an optional `appModule`, on the theory
- * that a graph which cannot be constructed could not be tested. Nothing uses it:
- * the problem turned out to be *metadata*, not wiring, and the honest fix was to
- * supply the decorator metadata the compiler failed to emit
- * (`testing/oidc-controller-di-repair.ts`) rather than to hand `createApp` a
- * different module. A test-only parameter in the production bootstrap is a
- * permanent invitation to test something other than the product, and the
- * measurement that retired it is recorded in that fixture's file comment.
+ * interleaved half-initialised banner `bufferLogs` exists to prevent. It is not a
+ * test-only setting, and it belongs to the *builder* rather than to this function
+ * because it is an argument to `NestFactory.create`, not something applied after.
  */
-export async function createApp(options: CreateAppOptions): Promise<INestApplication> {
-  const app = await NestFactory.create(AppModule.forRoot(options.config), { bufferLogs: true });
-
+export function configureApp(app: INestApplication, options: CreateAppOptions): INestApplication {
   // The API is a separate service. It serves JSON only; the web app is UI
   // (AGENTS.md 3.1). One origin, never a list — a wildcard here would undo the
   // CSRF guard's assumption that only one origin can make a credentialed request.
@@ -84,4 +79,31 @@ export async function createApp(options: CreateAppOptions): Promise<INestApplica
   app.enableShutdownHooks();
 
   return app;
+}
+
+/**
+ * Build the Nest application. Does not listen.
+ *
+ * ## There is deliberately no seam for substituting the module graph
+ *
+ * An earlier version of this file took an optional `appModule`, on the theory that
+ * a graph which cannot be constructed could not be tested. Nothing uses it: the
+ * problem turned out to be *metadata*, not wiring, and the honest fix was to supply
+ * the decorator metadata the compiler failed to emit
+ * (`testing/oidc-controller-di-repair.ts`) rather than to hand `createApp` a
+ * different module. A test-only parameter in the production bootstrap is a
+ * permanent invitation to test something other than the product, and the
+ * measurement that retired it is recorded in that fixture's file comment.
+ *
+ * **A test that needs a different implementation behind a port does not come here.**
+ * `startHttpHarness` takes an `overrides` list and applies it through
+ * `@nestjs/testing`, then calls `configureApp` from this file — so the module graph is
+ * still `AppModule.forRoot`'s, the application is still a real Nest application on a
+ * real socket, and the only difference is which implementation sits behind one port.
+ * That is precisely what a port is for.
+ */
+export async function createApp(options: CreateAppOptions): Promise<INestApplication> {
+  const app = await NestFactory.create(AppModule.forRoot(options.config), { bufferLogs: true });
+
+  return configureApp(app, options);
 }

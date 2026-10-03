@@ -315,6 +315,40 @@ const schema = z
       .int('SETUP_ATTEMPT_WINDOW_MS must be a whole number of milliseconds')
       .positive('SETUP_ATTEMPT_WINDOW_MS must be greater than zero')
       .default(900_000),
+
+    /**
+     * The throttle on `GET /auth/oidc/callback`.
+     *
+     * Twenty callbacks per source per ten minutes, and there is no corpus source for
+     * either number. Recorded as a GAP alongside the setup throttle rather than
+     * presented as chosen — `AGENTS.md` 6 requires a missing requirement to be
+     * visible rather than filled with a number that looks decided.
+     *
+     * **Why the callback needs one at all.** It is unauthenticated by necessity (it
+     * is where a session is obtained) and it is the only route that performs a token
+     * exchange. An attacker who can make this deployment talk to Google's token
+     * endpoint at will is spending someone else's quota and holding open a window in
+     * which a forged `state` is worth attempting.
+     *
+     * **Why it covers BOTH flows.** The link flow completes at this same route, so
+     * one throttle bounds both. A second throttle on `GET /auth/oidc/link` would be
+     * measuring the same requests twice and could only be tuned inconsistently.
+     *
+     * Twenty rather than five: a legitimate user completing a sign-in with a
+     * password manager, a second factor and a slow connection may legitimately take
+     * several round trips, and this route has no in-product recovery path.
+     */
+    OIDC_CALLBACK_MAX_ATTEMPTS: z.coerce
+      .number()
+      .int('OIDC_CALLBACK_MAX_ATTEMPTS must be a whole number of attempts')
+      .positive('OIDC_CALLBACK_MAX_ATTEMPTS must be greater than zero')
+      .default(20),
+
+    OIDC_CALLBACK_WINDOW_MS: z.coerce
+      .number()
+      .int('OIDC_CALLBACK_WINDOW_MS must be a whole number of milliseconds')
+      .positive('OIDC_CALLBACK_WINDOW_MS must be greater than zero')
+      .default(600_000),
   })
   /**
    * Cross-field check, applied only when at least one provider variable is

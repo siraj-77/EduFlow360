@@ -16,6 +16,11 @@ import {
 import type { ZodError } from 'zod';
 import { Public } from '../../../common/guards/public.decorator.js';
 import { Audited } from '../../../common/guards/route-guards.decorator.js';
+import {
+  sourceAddressOf,
+  toDeviceContext,
+  type RequestWithAddress,
+} from '../../../common/http/request-context.js';
 import { FixedWindowThrottle } from '../../../common/throttle/fixed-window-throttle.js';
 import type { ThrottlePolicy } from '../../../common/throttle/fixed-window-throttle.js';
 import { PasswordSignInBody } from '../dto/password-sign-in.dto.js';
@@ -70,14 +75,6 @@ const REFUSED_BODY = Object.freeze({
 
 /** The keys this schema knows about, used to bound what a validation failure may report. */
 const KNOWN_BODY_KEYS: ReadonlySet<string> = new Set(['identifier', 'password']);
-
-/** The slice of an incoming request this route reads. Declared, not imported. */
-interface RequestWithAddress {
-  /** See `setup-completion.controller.ts`: `trust proxy` is deliberately off. */
-  readonly ip?: string | undefined;
-  readonly socket?: { readonly remoteAddress?: string | undefined } | undefined;
-  readonly headers?: Record<string, string | string[] | undefined> | undefined;
-}
 
 /**
  * The slice of a response this route needs.
@@ -166,10 +163,7 @@ export class PasswordSignInController {
     // would let an attacker lock a colleague's account by failing five times as them.
     // Locking an account is a real control and it belongs to the use-case, where it
     // is durable, keyed on the account, and survives a restart.
-    const decision = this.throttle.check(
-      request.ip ?? request.socket?.remoteAddress ?? 'unknown-source',
-      this.throttlePolicy,
-    );
+    const decision = this.throttle.check(sourceAddressOf(request), this.throttlePolicy);
     if (!decision.allowed) {
       refuseAsThrottled(response, decision.retryAfterMs);
     }
@@ -245,33 +239,6 @@ function refuseAsThrottled(
     { statusCode: HttpStatus.TOO_MANY_REQUESTS, error: 'Too Many Requests', message },
     HttpStatus.TOO_MANY_REQUESTS,
   );
-}
-
-/**
- * What to persist about this browser, assembled conditionally.
- *
- * An absent header stays absent rather than becoming `undefined`, because
- * `exactOptionalPropertyTypes` is on and `PrismaSessionRepository` would reject the
- * latter. Returns `{}` when there is nothing to record, which is also what makes the
- * spread at the call site correct.
- */
-function toDeviceContext(request: RequestWithAddress): {
-  readonly device?: { readonly ipAddress?: string; readonly userAgent?: string };
-} {
-  const ipAddress = request.ip ?? request.socket?.remoteAddress;
-  // An array means the header appeared more than once, which no browser does. Rather
-  // than pick one, record none: a wrong user-agent on a session record is worse than
-  // none, and this value is for a human reading a device list.
-  const header = request.headers?.['user-agent'];
-  const userAgent = typeof header === 'string' ? header : undefined;
-
-  if (ipAddress === undefined && userAgent === undefined) return {};
-  return {
-    device: {
-      ...(ipAddress !== undefined ? { ipAddress } : {}),
-      ...(userAgent !== undefined ? { userAgent } : {}),
-    },
-  };
 }
 
 /**

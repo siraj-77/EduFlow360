@@ -6,6 +6,100 @@
 
 ---
 
+## 2026-10-03 — `SessionGuard`, `IExternalIdentityRepository`, and the last auth route
+
+| Field      | Entry                                                                                                                                                       |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**   | 2026-10-03                                                                                                                                                  |
+| **Phase**  | `PLT-101` tranche 2 — the OIDC flow. Closes `D57`'s must-link chain.                                                                                        |
+| **Task**   | Build `GET /auth/oidc/link` (authenticated, link-only) and `GET /auth/oidc/callback` (`@Public`, **sign-in only**), plus the two prerequisites they needed. |
+| **Agent**  | `opencode` / space-bunny-free, using `test-driven-development`                                                                                              |
+| **Status** | ✅ All ten gates run; nine green, `test:coverage` 1 on one pre-existing documented reason (§ Quality).                                                      |
+
+### The two prerequisites that did not exist
+
+1. **`SessionGuard`.** `ISessionRepository.findByToken` existed and **nothing called it**;
+   `CsrfGuard` was the only `CanActivate`, so "an authenticated route" had no mechanism. Now
+   registered globally via `APP_GUARD` with `@Optional()` on the repository token, so a
+   Google-only deployment still boots and the guard **refuses every authenticated route**
+   rather than treating the caller as anonymous. `@Public` is the exemption marker, so there is
+   one convention rather than two.
+2. **`IExternalIdentityRepository`.** The `ExternalIdentity` model existed with no port, no
+   implementation and no file. Added, plus `PrismaExternalIdentityRepository` and **11
+   integration tests** against real PostgreSQL.
+
+### Why two routes and not one
+
+The naive design — "session cookie present, therefore link" — is account takeover: a victim is
+signed in, an attacker completes their own Google sign-in in the victim's browser, and the
+callback binds the **attacker's** identity to the **victim's** account.
+
+So the flow mode is sealed **inside the MAC** (`OidcStatePayload` became a discriminated union:
+`'sign-in'` carries no account at all, `'link'` carries a `userId`), and **the link target is
+sealed too** — `GET /auth/oidc/link` names the account `SessionGuard` proved, so the public
+callback never has to read a session to decide what to link. `Payload` version bumped 1 → 2, so
+bundles from the previous build fail closed; the cost is a failed (never an accepted) sign-in
+across a deploy.
+
+### Decisions made, with rationale
+
+- **`link` against an existing `(provider, subject)` REFUSES** (`already-linked-elsewhere`) and
+  never re-points. Re-pointing is credential reassignment, and nothing in this system has the
+  authority to perform one. Same `userId` reports `already-linked` and changes nothing — including
+  the stored `providerEmail` snapshot, which is a record of what the provider said **at link time**.
+- **`I_SESSION_REPOSITORY` and `IOIDC_STATE_STORE` moved into their port files**; `auth.module.ts`
+  re-exports both. Reason measured, not assumed: `IOIDC_STATE_STORE` in the module made
+  `OidcCallbackController` import the module that imports it, the symbol was uninitialised when the
+  controller's body evaluated, `@Inject(undefined)` was emitted, and **the container refused to
+  boot** — caught only by the HTTP suite.
+- **The domain allowlist and `emailVerified` apply on the LINK path too.** The stricter of two
+  options; applies `D49` as written and invents no threshold; costs nothing because
+  `POST /auth/login` still works for anyone whose Google address falls outside the list.
+- **Every refusal answers 401 with one byte-identical body** (nine causes). The typed reason is
+  kept for the log and the audit record; the wire answer is deliberately uninformative.
+- **Two new env vars** for the callback throttle (`OIDC_CALLBACK_MAX_ATTEMPTS`,
+  `OIDC_CALLBACK_WINDOW_MS`), marked as gaps with no corpus source, per `AGENTS.md` §6.
+- **`common/http/request-context.ts`** now owns `RequestWithAddress` and `toDeviceContext`, which
+  were duplicated in the login and setup controllers. Writing its spec **found a bug in my own new
+  code**: `request.ip ?? …` does not catch `''`, so a blank peer address became its own throttle
+  bucket. Fixed with a non-blank check.
+
+### Quality
+
+- `lint` **0** · `typecheck` **0** · `test` **0** (983, from 844) · `test:integration` **0** (176,
+  from 165) · `docs:verify` **0** · `check:route-guards` **0** · `format:check` **0** ·
+  `build` **0** · `test:e2e` **0** (37) · `test:coverage` **1**
+- **`test:coverage` improved from two red reasons to one.** The `apps/api` `domain` tier was red
+  at 89.08% before this work and is now green. The remaining red is the pre-existing
+  `apps/web` hooks tiers matching zero source files (story `F-1`). **No tier was deleted and no
+  threshold was lowered.** `src/**/*.controller.ts` initially went red at 68.71% when the two new
+  controllers appeared with no unit spec; fixed by writing them, not by moving the number.
+- **Every control was proved able to fail.** Eight mutations applied, run and reverted, with the
+  failure counts recorded in the task report: `@Public` ignored (16 integration + 22 unit red),
+  fail-closed removed (4 + 15), auto-provisioning instead of refusing (3 + 3, including both
+  takeover tests), identity re-pointing allowed (4), `state` checked after the token exchange (2
+  unit + 1 integration), `emailVerified: null` accepted (1 unit — and **0 integration**, which was a
+  real gap in my own suite: the HTTP case now covers `null` as well as `false` and was re-proved
+  red), allowlist fail-open (2 integration + 12 unit), throttle removed (1).
+- **Two unreachable branches reported rather than tested**: `HmacOidcStateStore.decode`'s
+  mode/account pairing checks need a **valid** signature to reach, so testing them would mean
+  re-implementing the store's MAC — the "second MAC to get wrong" the design exists to avoid. They
+  fail closed and are unverified by test.
+
+### Gaps this leaves open
+
+- **Unlink.** A user who links the wrong Google account cannot undo it. Not implemented, and the
+  port says so where a contributor will read it.
+- **`Session` has no `provider`/`providerSubject`.** Out of scope by instruction;
+  `ExternalIdentity` already holds that, and changing `Session` is a migration for a requirement
+  nobody has stated.
+- **No post-callback redirect target.** The callback answers JSON. Inventing a web-app URL would be
+  inventing a requirement (`AGENTS.md` §6).
+- **`@RequirePermission('AUTH_LINK_EXTERNAL_IDENTITY')` enforces nothing.** No guard reads it yet —
+  `PLT-2xx`. `check-route-guards` proves the key is present and nothing more.
+
+---
+
 ---
 
 ## 2026-09-30 — a real database, and the first defect only a database could find
@@ -3556,3 +3650,38 @@ double rather than against the real adapter. Faithful fix requires re-baselining
 separate defect from this flake and an owner decision. Also unfixed and unrelated:
 `pnpm test:coverage` fails on a clean tree in BOTH `apps/web` (2 zero-file tiers) and `apps/api`
 (domain tier 89.08% vs 90%) — verified pre-existing by stashing this change.
+
+## 2026-10-03 — `SessionGuard`, `IExternalIdentityRepository`, and the OIDC callback
+
+| Field                          | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase                          | `PLT-101` — the last auth route, closing the must-link chain                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Status                         | ✔ **The authentication vertical slice is complete.**                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Activity                       | `SessionGuard` (the first guard to resolve a cookie into a principal), `IExternalIdentityRepository` + Prisma implementation, and two routes: `GET /auth/oidc/link` (authenticated, may only link) and `GET /auth/oidc/callback` (`@Public`, **sign-in only**).                                                                                                                                                                                                                                            |
+| The core                       | **The mode is sealed inside the signed state**, not carried in a query parameter, so a caller cannot flip sign-in into link. Verified by mutation: forcing the mode check open fails **4** tests.                                                                                                                                                                                                                                                                                                          |
+| Takeover defence               | The naive design — "a session cookie is present, therefore link" — is account takeover: a logged-in victim completes an attacker's Google sign-in, after which the attacker owns the victim's account. Refused structurally by two separate routes, and tested three ways over a real socket: the attacker's identity is not linked to the victim's account; the mode cannot be flipped by a query parameter; and the account is taken **from the sealed bundle**, never from a value passed alongside it. |
+| `link` on an existing identity | Refuses with `already-linked-elsewhere` and **never re-points**. An upsert there is silent account takeover. Same `userId` returns `already-linked` and writes nothing at all — it does not even refresh the `providerEmail` snapshot. The schema's `@@unique` settles a race (`P2002`), caught by code rather than by class identity.                                                                                                                                                                     |
+| `@Public` exemption            | `SessionGuard` reads the **same** `PUBLIC_ROUTE_KEY` that `@Public` writes, so one marker exempts a route from both `SessionGuard` and `@RequirePermission`, reconciled by one checked-in allowlist. `@Optional()` on the repository keeps a Google-only deployment booting, and its answer when absent is to **refuse** every authenticated route.                                                                                                                                                        |
+| Test evidence                  | Unit 844 — **983**. Integration 165 — **176**. `*.controller.ts` coverage tier went **68.71% — 97.82%** by writing 36 unit tests, not by moving a number.                                                                                                                                                                                                                                                                                                                                                  |
+| Quality                        | Nine gates green. `apps/api` domain coverage tier went **red — GREEN** because there is more tested code, not because a threshold moved. No tier deleted, none lowered.                                                                                                                                                                                                                                                                                                                                    |
+
+### Two findings worth naming
+
+1. **A hole in the agent's OWN suite, found by its own mutation pass.** The HTTP spec covered
+   `emailVerified: false` but not `null`, so an implementation that accepted `null`
+   passed the integration gate. Now covered, and re-proved red.
+2. **The HTTP harness caught a non-boot that `tsc`, lint and build all missed.** Injecting
+   `IOIDC_STATE_STORE` from `auth.module.js` closed an import cycle. Every static gate was
+   green and only a real request found it. That is the third time the harness has paid for
+   itself, and the strongest argument yet for keeping it.
+
+### Known gaps this leaves, recorded not hidden
+
+- **Unlink does not exist.** A user who links the wrong Google account cannot undo it.
+- **`HmacOidcStateStore.decode`'s two mode/account branches are untested** — reaching them
+  needs a valid signature, and producing one means re-implementing the store's MAC.
+  They fail closed and are reported rather than tested.
+- **`Session` still carries no `provider`/`providerSubject`.** Not needed today — `ExternalIdentity`
+  holds it — but "which identity is attached to this session" is now unanswerable, and
+  answering it later is a migration.
+- `@RequirePermission` and `@Audited` still enforce and write nothing (`PLT-2xx`, `PLT-402`).

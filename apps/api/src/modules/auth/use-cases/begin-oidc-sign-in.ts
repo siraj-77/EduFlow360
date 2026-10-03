@@ -58,6 +58,32 @@ export class UntrustedAuthorizationUrlError extends Error {
   }
 }
 
+/**
+ * A link flow was asked for without naming the account it may attach to.
+ *
+ * Its own class rather than reusing `UntrustedAuthorizationUrlError`, because the two
+ * failures have nothing in common operationally: one means "check the provider
+ * configuration", this one means "check the controller that called `beginLink`".
+ * Collapsing them would leave an operator debugging the wrong file.
+ */
+export class UnlinkableAccountError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnlinkableAccountError';
+  }
+}
+
+/**
+ * The half of a payload this server decides; the provider supplies the other half.
+ *
+ * Declared as its own union rather than `Pick<OidcStatePayload, …>` because `Pick`
+ * over a union does not distribute the way this needs: it collapses to the keys
+ * common to both arms and silently drops `userId`, which is exactly the field this
+ * type exists to keep.
+ */
+export type OidcFlowIntent =
+  { readonly mode: 'sign-in' } | { readonly mode: 'link'; readonly userId: string };
+
 export interface BeginOidcSignInResult {
   /** Where to send the browser. Already checked against the allowed origin. */
   readonly redirectTo: string;
@@ -81,7 +107,67 @@ export class BeginOidcSignIn {
     private readonly allowedAuthorizationOrigin: string,
   ) {}
 
+  /**
+   * Start a SIGN-IN flow.
+   *
+   * Takes no arguments, and that is deliberate — see the header. The sealed bundle
+   * carries `mode: 'sign-in'` and therefore **no account at all**, which is what
+   * makes the callback unable to link on this path even if a session cookie is
+   * sitting in the browser.
+   */
   async begin(): Promise<BeginOidcSignInResult> {
+    return this.beginFlow({ mode: 'sign-in' });
+  }
+
+  /**
+   * Start a LINK flow, bound to one already-authenticated account.
+   *
+   * ## Why this is a second named method and not a parameter on `begin()`
+   *
+   * A `begin(mode, userId)` signature is the obvious refactor and it is worse in
+   * three ways that each cost something real:
+   *
+   * 1. `begin()` has a test asserting it takes **zero** parameters
+   *    (`begin-oidc-sign-in.spec.ts`). That arity is not cosmetic: it is what makes
+   *    it a compile error to add `?state=` or `?mode=` handling here. Widening it
+   *    to take a mode undoes a control that already exists and is already tested.
+   * 2. Two names cannot be confused at a call site. `begin()` and `beginLink(userId)`
+   *    read differently at a glance; `begin(true)` does not, and a route reaching
+   *    for the wrong one is a link-CSRF.
+   * 3. Only `beginLink` takes an account, so "sign-in mode carries an account" is
+   *    not merely discouraged — it is unrepresentable.
+   *
+   * ## Why the account is an argument rather than read from the session
+   *
+   * The caller is `GET /auth/oidc/link`, which `SessionGuard` has already
+   * authenticated. It passes the principal it read. The use-case does not receive a
+   * request, cannot read a cookie, and has no other source for a user id — so the
+   * account cannot come from anywhere except the authenticated route. That is the
+   * whole of the defence against "session cookie present, therefore link".
+   */
+  async beginLink(userId: string): Promise<BeginOidcSignInResult> {
+    if (typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new UnlinkableAccountError(
+        'Refusing to begin a link flow with no account. A link bundle names the account it may ' +
+          'attach an identity to; one without an account is the shape a forged bundle takes to ' +
+          'make the callback fall back to whoever is signed in, so this is refused here rather ' +
+          'than sealed and refused later. Only GET /auth/oidc/link, behind SessionGuard, may ' +
+          'begin a link.',
+      );
+    }
+
+    return this.beginFlow({ mode: 'link', userId });
+  }
+
+  /**
+   * The one body both flows share: ask the provider, refuse an untrusted
+   * destination, then seal the bundle it produced.
+   *
+   * The provider's four values are spread LAST, so a field can only ever be
+   * overwritten by the provider and never by `intent` — and `intent` carries only
+   * `mode` and, for a link, `userId`.
+   */
+  private async beginFlow(intent: OidcFlowIntent): Promise<BeginOidcSignInResult> {
     const authorization = await this.provider.beginAuthorization();
 
     /**
@@ -104,6 +190,7 @@ export class BeginOidcSignIn {
     return {
       redirectTo: authorization.authorizationUrl,
       stateCookie: this.stateStore.seal({
+        ...intent,
         state: authorization.state,
         nonce: authorization.nonce,
         codeVerifier: authorization.codeVerifier,

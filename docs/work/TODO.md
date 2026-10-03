@@ -518,7 +518,31 @@ Blocking the items marked ⚑.
 - The corrected test is **stronger**, not looser: no loser ever receives a `userId` or
   `reject-invalid`. Deliberate break confirmed — reinstating read-then-write fails it.
 
-### ⚠ Two decisions that need an owner, not a fixer
+### ✅ Done 2026-10-03 — the OIDC callback. `PLT-101` vertical slice complete
+
+- `SessionGuard` (first guard to resolve a cookie into a principal), `IExternalIdentityRepository`,
+  and `GET /auth/oidc/link` (authenticated, link-only) + `GET /auth/oidc/callback`
+  (`@Public`, **sign-in only**). The mode is **sealed inside the signed state**, so it cannot be
+  flipped by a query parameter — verified by mutation, 4 tests fail if the check is forced open.
+- **`test:coverage` now has ONE failure, not two.** The `apps/api` domain tier went 89.08% →
+  **green** because there is more tested code, not because a threshold moved; no tier was deleted.
+  What stays red is two `apps/web` hooks tiers matching zero files — **correctly red**: the fix
+  is to write the hooks.
+
+### ⚠️ Gaps left by the callback
+
+- **Unlink does not exist.** A user who links the wrong Google account cannot undo it.
+- **`Session` carries no `provider`/`providerSubject`.** Not needed today — `ExternalIdentity`
+  holds it — but "which identity is attached to this session" is now unanswerable, and
+  answering it later is a migration.
+- **Two `HmacOidcStateStore` branches are untested.** Reaching them needs a valid signature,
+  and producing one means re-implementing the store's MAC. They fail closed and are reported
+  rather than tested.
+- **The password policy is still provisional** — length bounds only, marked `provisional: true`,
+  `SSOT.md` D62. Needs owner sign-off.
+- **Five environment variables have no corpus source** (`env.ts` says so on each).
+
+### ⚠️ Two decisions that need an owner, not a fixer
 
 1. **`SetupTokenService.consume` may be dead code.** It is wired in `auth.module.ts` but the
    production use-case does `tokens.verify` (a read) and then `claim` (atomic). Deleting it

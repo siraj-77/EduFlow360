@@ -68,11 +68,27 @@ import type { CookieAttributes } from './session-cookie.js';
  *
  * Only its signature. Every field here arrives from the provider on the way out,
  * and the callback compares the `state` it receives in the query against the
- * `state` inside this bundle — a comparison, not an assignment. Nothing in the
- * cookie is ever used as "the user", "the role" or "the account"; those do not
- * exist yet. The cookie says *this callback corresponds to a sign-in this server
- * started, and here are the values that sign-in was started with*, and nothing
- * more.
+ * `state` inside this bundle — a comparison, not an assignment. The cookie says
+ * *this callback corresponds to a flow this server started, and here are the values
+ * that flow was started with*, and nothing more.
+ *
+ * **The role and the licence are still not in here, and never will be.** A bundle
+ * is minted before an account has been named, let alone a role consulted.
+ *
+ * ## What is different now that a bundle can also carry an account
+ *
+ * `link`-mode bundles carry a `userId`. That is a real departure from "nothing in
+ * the cookie is the user", so it is stated rather than left to be discovered:
+ *
+ * - **It is not the caller's session.** It is the account that
+ *   `GET /auth/oidc/link` authenticated, minutes earlier, in this same browser.
+ *   The callback does not read the session cookie to decide what to link, which is
+ *   the whole difference between the safe design and the takeover.
+ * - **It only exists inside the MAC**, so it cannot be pointed at another account
+ *   by editing the cookie. `oidc-state-store.spec.ts` asserts that edit failing.
+ * - **It authorises nothing on its own.** `link` still re-reads the identity's
+ *   verified `sub` and still refuses a `(provider, subject)` already bound to a
+ *   *different* account, so a stolen bundle cannot re-point an identity.
  */
 
 /**
@@ -103,14 +119,60 @@ export const OIDC_STATE_COOKIE_NAME = 'eduflow_oidc_state' as const;
 export const OIDC_STATE_COOKIE_PATH = '/auth/oidc' as const;
 
 /**
- * What the provider produced for one authorization request.
+ * DI token for this port.
  *
- * Structurally identical to the `expected` argument of
- * `IOidcProvider.verifyCallback`, which is deliberate: the callback hands these
- * four values straight back to the provider, so there is exactly one shape and
- * no translation step where a field could be dropped.
+ * Declared HERE, in the port file, rather than in `auth.module.ts`. That is not a
+ * style preference and it was learned the hard way: `OidcCallbackController` needs
+ * this token, `auth.module.ts` imports that controller, and a controller importing a
+ * token back out of the module **closes an import cycle**. The controller's body then
+ * evaluates while the symbol is still uninitialised, `@Inject(undefined)` is emitted,
+ * Nest falls back to reflected metadata, and the container refuses to boot with:
+ *
+ *     Nest can't resolve dependencies of the OidcCallbackController
+ *     (CompleteOidcCallback, ?, SessionCookieAdapter, ...)
+ *     Please make sure that the argument Function at index [1] is available
+ *
+ * A token has to be importable by the thing that consumes it. `CLOCK` set the
+ * precedent; `I_SESSION_REPOSITORY` and `I_EXTERNAL_IDENTITY_REPOSITORY` follow it.
+ * `auth.module.ts` re-exports this symbol, so every existing import site still works.
  */
-export interface OidcStatePayload {
+export const IOIDC_STATE_STORE = Symbol('IOidcStateStore');
+
+/**
+ * Which flow a callback belongs to.
+ *
+ * ## Why this is the security core of the whole callback, and not a parameter
+ *
+ * Two routes can produce a bundle that arrives at `GET /auth/oidc/callback`:
+ *
+ * | route                  | guard         | what it may do            |
+ * |------------------------|---------------|---------------------------|
+ * | `GET /auth/oidc/redirect` | `@Public`  | sign in only              |
+ * | `GET /auth/oidc/link`     | authenticated | link only               |
+ *
+ * The naive design is "if a session cookie is present, link; otherwise sign in".
+ * **That is account takeover.** A victim is signed in; an attacker starts a Google
+ * sign-in in the victim's browser and completes it with the *attacker's* Google
+ * account; the callback sees the victim's session cookie and binds the attacker's
+ * identity to the victim's account. The attacker then signs in as the victim, and
+ * the victim's children are now visible to them.
+ *
+ * So the mode cannot be derived at the callback. It has to be **sealed**, decided
+ * by the route that started the flow, and carried inside the MAC — which is why it
+ * is a field on this payload rather than a query parameter, a second cookie, or a
+ * server-side lookup. A second store would be a second MAC to get wrong; a query
+ * parameter is a flag the caller owns.
+ */
+export type OidcFlowMode = 'sign-in' | 'link';
+
+/**
+ * The four values the PROVIDER produced.
+ *
+ * Split from the payload so the thing that is ours — the mode — is visibly not
+ * the thing that came from Google. `IOidcProvider.verifyCallback` takes these four
+ * as its `expected` argument, and it takes them from here unchanged.
+ */
+export interface OidcFlowValues {
   /** Correlates the callback and rejects a forged one. */
   readonly state: string;
   /** Bound into the ID token to bind it to this request. */
@@ -121,8 +183,27 @@ export interface OidcStatePayload {
   readonly redirectUri: string;
 }
 
+/**
+ * What a route asks to have sealed.
+ *
+ * ## Why this is a discriminated union and not one interface with an optional
+ *
+ * Because the dangerous mistake this file exists to prevent is reading
+ * `payload.userId` on a sign-in flow. With an optional field that compiles, and
+ * `undefined` is exactly the value that would make a use-case fall back to "the
+ * account on the session cookie" — the takeover.
+ *
+ * As a union, `sealed.userId` **does not typecheck at all** unless the mode has
+ * already been narrowed to `'link'`. The mistake is a compile error rather than a
+ * review item, which is the only durable place this class of bug can be caught.
+ */
+export type OidcStatePayload =
+  | ({ readonly mode: 'sign-in' } & OidcFlowValues)
+  /** `userId` is the account `GET /auth/oidc/link` authenticated — never the caller's cookie. */
+  | ({ readonly mode: 'link'; readonly userId: string } & OidcFlowValues);
+
 /** A payload plus when the server issued it, which is what makes it expirable. */
-export interface SealedOidcState extends OidcStatePayload {
+interface SealedOidcStateValues extends OidcFlowValues {
   /**
    * Milliseconds since the epoch, from the injected `IClock`.
    *
@@ -133,6 +214,11 @@ export interface SealedOidcState extends OidcStatePayload {
    */
   readonly issuedAtMs: number;
 }
+
+/** The same union, recovered. `issuedAtMs` does not discriminate, so it is shared. */
+export type SealedOidcState =
+  | ({ readonly mode: 'sign-in' } & SealedOidcStateValues)
+  | ({ readonly mode: 'link'; readonly userId: string } & SealedOidcStateValues);
 
 /**
  * The cookie carrying a sealed bundle. As data, like `SessionCookie`.

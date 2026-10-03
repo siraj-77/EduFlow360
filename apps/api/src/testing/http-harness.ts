@@ -1,5 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
-import { createApp } from '../create-app.js';
+import { Test } from '@nestjs/testing';
+import { AppModule } from '../app.module.js';
+import { configureApp, createApp, type CreateAppOptions } from '../create-app.js';
 import { loadConfig } from '../config/env.js';
 import { TEST_ENVIRONMENT, TEST_WEB_ORIGIN, testConfig } from './test-environment.js';
 
@@ -122,6 +124,45 @@ export interface StartHttpHarnessOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** The single allowed browser origin. Defaults to the synthetic one. */
   readonly webOrigin?: string;
+  /**
+   * Replace the implementation behind ONE port, for the life of this harness.
+   *
+   * ## Why this exists, and why it is narrow
+   *
+   * `createApp` has deliberately no seam for substituting a module graph — see its own
+   * header. This is not that. The module graph is still `AppModule.forRoot`'s, the
+   * application is still a real Nest application built by the real `AppModule`, on a
+   * real socket, with the real `CsrfGuard`, the real `SessionGuard`, the real
+   * controllers, the real use-cases and the real Prisma repositories. **Only one vendor
+   * boundary is replaced**, which is exactly what a port exists for: `AGENTS.md` 2.2
+   * requires vendor and hardware integrations to sit behind interfaces, and a
+   * requirement that cannot be exercised without a network is not a requirement.
+   *
+   * `IOIDC_PROVIDER` is the case that needs it. `GoogleOidcProvider` reaches Google's
+   * token endpoint and JWKS over the network, and no Google credentials exist in this
+   * repository (see `docs/work/TODO.md`), so a callback route could otherwise not be
+   * driven over a socket at all — and the callback is the route where a stranger's
+   * assertion becomes a local account.
+   *
+   * ## What it deliberately is NOT
+   *
+   * It is not a way to swap a repository for a fake. That would defeat the point of
+   * these suites: the `ExternalIdentity` and `Session` claims below are about what the
+   * SCHEMA will allow, and a fake database proves nothing about a schema. Use a real
+   * PostgreSQL for those, as `login-over-http.integration.spec.ts` does.
+   */
+  readonly overrides?: readonly ProviderOverride[];
+}
+
+/**
+ * One port's implementation, replaced.
+ *
+ * `token` is the DI symbol — the same one the production module registered — so a typo
+ * is a resolution failure at boot rather than a silently-unused override.
+ */
+export interface ProviderOverride {
+  readonly token: symbol;
+  readonly useValue: unknown;
 }
 
 /**
@@ -178,8 +219,24 @@ export async function startHttpHarness(
 ): Promise<HttpHarness> {
   const config = loadConfig(options.env ?? TEST_ENVIRONMENT).config;
   const webOrigin = options.webOrigin ?? TEST_WEB_ORIGIN;
+  const createOptions: CreateAppOptions = { config, webOrigin };
 
-  const app = await createApp({ config, webOrigin });
+  const overrides = options.overrides ?? [];
+
+  /**
+   * Two builders, one graph, one configuration step.
+   *
+   * With no overrides the harness calls `createApp` — the same function `main.ts`
+   * calls — so the default path has no test-only code in it at all. With overrides it
+   * builds the SAME `AppModule.forRoot` graph through `@nestjs/testing`, which is the
+   * only supported way to replace a provider Nest has already registered, and then
+   * applies `configureApp` so CORS and shutdown hooks are the product's.
+   */
+  const app =
+    overrides.length === 0
+      ? await createApp(createOptions)
+      : await buildWithOverrides(createOptions, overrides);
+
   await app.listen(0, '127.0.0.1');
 
   // `getUrl()` reflects the address actually bound, which is the only correct
@@ -240,6 +297,35 @@ export async function startHttpHarness(
   };
 
   return harness;
+}
+
+/**
+ * Build the same graph with one or more providers replaced.
+ *
+ * `@nestjs/testing` is a devDependency and is used ONLY here. `overrideProvider`
+ * replaces a provider **wherever it is registered in the graph**, so a token provided
+ * by the dynamically-built `AuthModule` is replaced without this file describing that
+ * module — which is the whole point: a test that re-declared the providers would be a
+ * second description of the application, and every route test would then be evidence
+ * about a graph the product does not use.
+ */
+async function buildWithOverrides(
+  options: CreateAppOptions,
+  overrides: readonly ProviderOverride[],
+): Promise<INestApplication> {
+  const builder = Test.createTestingModule({ imports: [AppModule.forRoot(options.config)] });
+
+  for (const override of overrides) {
+    builder.overrideProvider(override.token).useValue(override.useValue);
+  }
+
+  const moduleRef = await builder.compile();
+  const app = moduleRef.createNestApplication();
+
+  // The product's own post-construction configuration — see `configureApp`.
+  configureApp(app, options);
+
+  return app;
 }
 
 /** Re-exported so a spec can boot the same configuration without a second path. */

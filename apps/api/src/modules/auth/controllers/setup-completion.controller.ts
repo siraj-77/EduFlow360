@@ -16,6 +16,7 @@ import {
 import type { ZodError } from 'zod';
 import { Public } from '../../../common/guards/public.decorator.js';
 import { Audited } from '../../../common/guards/route-guards.decorator.js';
+import { sourceAddressOf, type RequestWithAddress } from '../../../common/http/request-context.js';
 // A VALUE import for `FixedWindowThrottle`, because `@Inject(FixedWindowThrottle)`
 // below needs a runtime token. A VALUE import for nothing in this file would be a
 // lint error; an `import type` would typecheck perfectly, pass `tsc`, pass lint, and
@@ -72,21 +73,6 @@ const SETUP_COMPLETE_PUBLIC_REASON =
  * response can only ever name a field this route actually has.
  */
 const KNOWN_BODY_KEYS: ReadonlySet<string> = new Set(['token', 'password', 'email', 'username']);
-
-/** The slice of an incoming request this route reads. Declared, not imported. */
-interface RequestWithAddress {
-  /**
-   * Express's resolved client address.
-   *
-   * `app.set('trust proxy', …)` is NOT configured, so this is the socket peer — which
-   * is correct for `AGENTS.md` 2.1's one-deployment-per-school topology, where the
-   * API is not behind a shared load balancer. Behind a proxy this would need
-   * configuring, and configuring it wrongly is how a throttle becomes trivially
-   * bypassable by a forged `X-Forwarded-For`, so it is left off deliberately.
-   */
-  readonly ip?: string | undefined;
-  readonly socket?: { readonly remoteAddress?: string | undefined } | undefined;
-}
 
 /**
  * `POST /auth/setup/complete` — claim a fresh deployment.
@@ -166,10 +152,7 @@ export class SetupCompletionController {
     // argon2 by sending bodies it was always going to have refused.
     //
     // Keyed on the source address because an attacker holds no token to key on.
-    const decision = this.throttle.check(
-      request.ip ?? request.socket?.remoteAddress ?? 'unknown-source',
-      this.throttlePolicy,
-    );
+    const decision = this.throttle.check(sourceAddressOf(request), this.throttlePolicy);
     if (!decision.allowed) {
       throw new HttpException(
         {

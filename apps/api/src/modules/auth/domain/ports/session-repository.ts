@@ -2,11 +2,23 @@ import { type IClock } from './clock.js';
 import type { FoundTokenState } from '../services/refresh-token-rotation.js';
 
 /**
- * Sessions and refresh tokens, as the application layer sees them.
+ * DI token for this port.
  *
- * `AGENTS.md` 2.2: a repository is a port, and the Prisma implementation of it
- * lives in `infrastructure/postgres/`. Nothing above this line knows a database
- * exists.
+ * Declared here rather than in `auth.module.ts` for a structural reason:
+ * `SessionGuard` — which lives in `common/guards/`, because it guards every route in
+ * the application rather than one module — needs to inject this port. If the token
+ * were declared in `auth.module.ts`, that guard would have to import the whole module
+ * graph, which reaches `@prisma/client` and every controller, to read one symbol.
+ * Declared here, `common/` depends on a port and nothing else.
+ *
+ * `CLOCK` already established the pattern; this is the same decision applied to a
+ * port a cross-cutting control needs. `auth.module.ts` re-exports it, so existing
+ * import sites are unaffected.
+ */
+export const I_SESSION_REPOSITORY = Symbol('ISessionRepository');
+
+/**
+ * The tokens and records `issue` and its neighbours return.
  *
  * ## Why the interface is shaped around rotation
  *

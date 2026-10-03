@@ -1,8 +1,10 @@
 import { Module, type DynamicModule } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, Reflector } from '@nestjs/core';
 import { CsrfGuard } from './common/guards/csrf.guard.js';
+import { SessionGuard } from './common/guards/session.guard.js';
 import type { AppConfig } from './config/env.js';
-import { AuthModule } from './modules/auth/auth.module.js';
+import { AuthModule, I_SESSION_REPOSITORY } from './modules/auth/auth.module.js';
+import type { ISessionRepository } from './modules/auth/domain/ports/session-repository.js';
 
 /**
  * Application root module.
@@ -30,6 +32,23 @@ import { AuthModule } from './modules/auth/auth.module.js';
  * the request could have been made by a browser the user did not intend to
  * make it. It enforces none of the other three.
  *
+ * ## `SessionGuard` is ALSO global, and it is the fifth
+ *
+ * Before it existed, `ISessionRepository.findByToken` had no caller and
+ * "an authenticated route" had no mechanism behind the phrase. Now every
+ * route without a `@Public` marker must present a live session, and
+ * `@Public` is the single exemption marker for BOTH `@RequirePermission`
+ * and authentication — one convention, one allowlist, reconciled in both
+ * directions by `check-route-guards`.
+ *
+ * It is registered with a factory rather than `useClass` so its
+ * `@Optional()` `I_SESSION_REPOSITORY` can actually resolve to `undefined`
+ * in a Google-only deployment: `AuthModule` registers no repository without
+ * `DATABASE_URL`, and requiring the token would stop the application
+ * booting for routes it does not even register. With the token absent the
+ * guard **refuses every authenticated route** rather than treating the
+ * caller as anonymous.
+ *
  * ## Why `forRoot`, and why it takes the configuration
  *
  * Because `AuthModule` needs validated configuration, and because the
@@ -45,7 +64,26 @@ export class AppModule {
     return {
       module: AppModule,
       imports: [AuthModule.forRoot(config)],
-      providers: [{ provide: APP_GUARD, useClass: CsrfGuard }],
+      providers: [
+        { provide: APP_GUARD, useClass: CsrfGuard },
+        // `APP_GUARD` with an explicit factory rather than `useClass`, because
+        // `SessionGuard` takes an OPTIONAL dependency (`@Optional()`
+        // `I_SESSION_REPOSITORY`) and a factory is the shape that can resolve one
+        // without the container failing to boot when the token is absent. Both guards
+        // run on every route, in this order: the CSRF question is answerable from the
+        // request alone, so it is asked first and cheaper.
+        //
+        // The ORDER is not arbitrary and not tested by accident: `CsrfGuard` was already
+        // here, and a second global guard that did not honour `@Public` would make
+        // `GET /auth/oidc/redirect` — the only route a browser can reach before a
+        // session exists — answer 401 and sign-in would be impossible.
+        {
+          provide: APP_GUARD,
+          useFactory: (sessions?: ISessionRepository) =>
+            new SessionGuard(new Reflector(), sessions),
+          inject: [{ token: I_SESSION_REPOSITORY, optional: true }],
+        },
+      ],
     };
   }
 }

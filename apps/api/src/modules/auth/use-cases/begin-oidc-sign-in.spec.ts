@@ -31,12 +31,24 @@ const NOW = '2026-10-02T09:00:00.000Z';
 const TTL = 600_000;
 const SECRET = 'a-test-signing-key-of-adequate-length-0123456789';
 
-const PAYLOAD: OidcStatePayload = {
+/**
+ * The four values the provider produced.
+ *
+ * Kept apart from the payload so it is visible which half of it came from Google
+ * and which half this server added.
+ */
+const FLOW = {
   state: 'state-fixed',
   nonce: 'nonce-fixed',
   codeVerifier: 'verifier-fixed',
   redirectUri: 'https://api.school.test/auth/oidc/callback',
-};
+} as const;
+
+/** What `begin()` seals: sign-in, bound to no account. */
+const PAYLOAD: OidcStatePayload = { mode: 'sign-in', ...FLOW };
+
+/** The account `GET /auth/oidc/link` authenticated before it began a link flow. */
+const LINKED_USER_ID = '6f1b0c1a-2f3b-4c5d-8e9f-0a1b2c3d4e5f';
 
 const realStore = (): HmacOidcStateStore =>
   new HmacOidcStateStore({ clock: new FakeClock(NOW), secret: SECRET, ttlMs: TTL });
@@ -45,7 +57,7 @@ const fakeProvider = (
   authorizationUrl = `${ORIGIN}/o/oauth2/v2/auth?client_id=x`,
 ): FakeOidcProvider => {
   const provider = new FakeOidcProvider();
-  provider.authorization = { ...PAYLOAD, authorizationUrl };
+  provider.authorization = { ...FLOW, authorizationUrl };
   return provider;
 };
 
@@ -213,3 +225,83 @@ class RecordingStateStore implements IOidcStateStore {
     throw new Error('not reached');
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// The LINK flow. `GET /auth/oidc/redirect` above seals `mode: 'sign-in'`; this
+// seals `mode: 'link'` and names the account it is bound to.
+//
+// These are the tests that hold the seam shut. If `begin()` sealed link mode, or
+// if the link account were read from anything but the call site, the callback
+// would have no way to tell the two flows apart and would fall back to "whoever is
+// signed in" — account takeover.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('BeginOidcSignIn.beginLink — the link flow', () => {
+  it('seals LINK mode, so the callback knows a link is in progress', async () => {
+    const store = realStore();
+
+    const result = await new BeginOidcSignIn(fakeProvider(), store, ORIGIN).beginLink(
+      LINKED_USER_ID,
+    );
+
+    expect(store.open(result.stateCookie.value)?.mode).toBe('link');
+  });
+
+  it('seals the account the authenticated route proved, inside the signature', async () => {
+    // The account is NOT the session cookie's user and it is NOT a query
+    // parameter. It is an argument the *authenticated* controller supplies, and it
+    // travels inside the MAC from here to the callback.
+    const store = realStore();
+
+    const result = await new BeginOidcSignIn(fakeProvider(), store, ORIGIN).beginLink(
+      LINKED_USER_ID,
+    );
+
+    expect(store.open(result.stateCookie.value)?.userId).toBe(LINKED_USER_ID);
+  });
+
+  it('gives the link flow a fresh state, nonce and verifier of its own', async () => {
+    const useCase = new BeginOidcSignIn(realGoogle(), realStore(), ORIGIN);
+    const store = realStore();
+
+    const signIn = store.open((await useCase.begin()).stateCookie.value);
+    const link = store.open((await useCase.beginLink(LINKED_USER_ID)).stateCookie.value);
+
+    expect(signIn?.state).not.toBe(link?.state);
+    expect(signIn?.nonce).not.toBe(link?.nonce);
+    expect(signIn?.codeVerifier).not.toBe(link?.codeVerifier);
+  });
+
+  it('still refuses an untrusted authorization URL, exactly as begin() does', async () => {
+    // The link flow is a *second* path through the redirect machinery, and the
+    // trusted-origin check is the one control standing between a caller and an open
+    // redirect. A new method that skipped it would be a new hole.
+    const useCase = new BeginOidcSignIn(
+      fakeProvider('https://evil.test/steal'),
+      realStore(),
+      ORIGIN,
+    );
+
+    await expect(useCase.beginLink(LINKED_USER_ID)).rejects.toThrow(UntrustedAuthorizationUrlError);
+  });
+
+  it('refuses to begin a link with no account, rather than sealing a link with none', async () => {
+    // A link bundle with no account is the shape the callback must refuse, and the
+    // cheapest way never to produce one is to refuse here.
+    const useCase = new BeginOidcSignIn(fakeProvider(), realStore(), ORIGIN);
+
+    await expect(useCase.beginLink('')).rejects.toThrow(/account/i);
+    await expect(useCase.beginLink('   ')).rejects.toThrow(/account/i);
+  });
+
+  it('binds the link to exactly one account argument, never a list', async () => {
+    // Structural, for the same reason `begin()` has zero parameters. A second
+    // account argument would be the beginning of "link these identities".
+    expect(BeginOidcSignIn.prototype.beginLink.length).toBe(1);
+  });
+
+  it('does not let begin() name an account, so sign-in mode cannot be given one', async () => {
+    // The asymmetry is the control: `begin()` takes nothing at all, so there is no
+    // argument a future change could widen into a user id.
+    expect(BeginOidcSignIn.prototype.begin.length).toBe(0);
+  });
+});

@@ -153,6 +153,10 @@ describe('AuthModule.forRoot — the factories, invoked directly', () => {
     expect(
       store
         .seal({
+          // `GET /auth/oidc/redirect` seals sign-in mode. The fixture carries it
+          // because the payload is a discriminated union and sign-in is the arm
+          // with no account — see `oidc-state-store.ts`.
+          mode: 'sign-in',
           state: 's',
           nonce: 'n',
           codeVerifier: 'c',
@@ -160,6 +164,19 @@ describe('AuthModule.forRoot — the factories, invoked directly', () => {
         })
         .attributes.expiresAt.getTime(),
     ).toBeGreaterThan(0);
+    // And it round-trips, so the sealed value is one this deployment can open —
+    // which is the precondition the callback route depends on.
+    expect(
+      store.open(
+        store.seal({
+          mode: 'sign-in',
+          state: 's',
+          nonce: 'n',
+          codeVerifier: 'c',
+          redirectUri: 'https://api.school.test/auth/oidc/callback',
+        }).value,
+      )?.mode,
+    ).toBe('sign-in');
   });
 
   it('wires the three ports into a use-case that actually begins a flow', () => {

@@ -20,12 +20,27 @@ import { HmacOidcStateStore, InvalidOidcStateStoreError } from './oidc-state-sto
 
 /** 43 base64url characters, which is what a real S256 PKCE verifier looks like. */
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
-const PAYLOAD = {
+
+/**
+ * The four values the PROVIDER produced, and nothing of ours.
+ *
+ * Split out from the payload because the payload now carries something of ours —
+ * the flow mode — and mixing the two in one fixture makes it impossible to see
+ * which half a change touched.
+ */
+const FLOW = {
   state: 'hT4pQ0nQx1sR2vJ8wZ6yB3',
   nonce: 'K9mL2pQ7xR4tV6nJ0wZ8yB3',
   codeVerifier: VERIFIER,
   redirectUri: 'https://api.school.test/auth/oidc/callback',
 } as const;
+
+/** What `GET /auth/oidc/redirect` seals: sign-in, and no account. */
+const PAYLOAD = { mode: 'sign-in', ...FLOW } as const;
+
+/** What `GET /auth/oidc/link` seals: link mode, bound to ONE account. */
+const LINK_USER_ID = '6f1b0c1a-2f3b-4c5d-8e9f-0a1b2c3d4e5f';
+const LINK_PAYLOAD = { mode: 'link', userId: LINK_USER_ID, ...FLOW } as const;
 
 const TTL = 600_000;
 const NOW = '2026-10-02T09:00:00.000Z';
@@ -52,6 +67,38 @@ const tamper = (segment: string, at = 0): string =>
 const segments = (value: string): [string, string] => {
   const [payload, signature] = value.split('.');
   return [payload, signature];
+};
+
+/**
+ * Rewrite the `"m"` field of a sealed payload segment, keeping the signature.
+ *
+ * This is the forgery, expressed as a helper: it edits the bytes an attacker can
+ * edit and leaves the MAC alone. It knows nothing about the store's key or its
+ * MAC construction — only that the mode is stored as a JSON field, which it reads
+ * back out of the value the store itself produced.
+ */
+const retag = (payloadSegment: string, modeFragment: string): string => {
+  const wire = JSON.parse(Buffer.from(payloadSegment, 'base64url').toString('utf8')) as {
+    m: string;
+  };
+
+  return Buffer.from(JSON.stringify({ ...wire, m: modeFragment }), 'utf8').toString('base64url');
+};
+
+/**
+ * Point a link bundle at a different account, keeping the signature.
+ *
+ * The payload segment is base64url, so the uuid is not findable in it by a string
+ * replacement — the JSON has to be decoded, edited and re-encoded. That is exactly
+ * what an attacker with a JSON-aware tool would do, and it is why this forgery is
+ * a *semantic* one rather than the byte-flip the generic tamper case already covers.
+ */
+const rewriteAccount = (payloadSegment: string, userId: string): string => {
+  const wire = JSON.parse(Buffer.from(payloadSegment, 'base64url').toString('utf8')) as {
+    u: string;
+  };
+
+  return Buffer.from(JSON.stringify({ ...wire, u: userId }), 'utf8').toString('base64url');
 };
 
 describe('HmacOidcStateStore — sealing', () => {
@@ -122,6 +169,59 @@ describe('HmacOidcStateStore — opening', () => {
       ...PAYLOAD,
       issuedAtMs: Date.parse(NOW),
     });
+  });
+
+  it('carries the flow mode, so the callback cannot be told which flow it is completing', () => {
+    // THE control. `mode` is inside the MAC, so it cannot arrive on the query
+    // string: a caller who appends `?mode=link` to the callback changes nothing,
+    // because the mode the callback reads is the one this server sealed.
+    const store = makeStore();
+
+    expect(store.open(store.seal(PAYLOAD).value)?.mode).toBe('sign-in');
+    expect(store.open(store.seal(LINK_PAYLOAD).value)?.mode).toBe('link');
+  });
+
+  it('carries the account a link flow is bound to, so the callback need not trust the session', () => {
+    // Without this the callback would have exactly one candidate account to link
+    // to — whoever is signed in when it runs — which is the account-takeover
+    // shape. The account is proved by `GET /auth/oidc/link` and travels inside
+    // the MAC from there.
+    const store = makeStore();
+
+    expect(store.open(store.seal(LINK_PAYLOAD).value)?.userId).toBe(LINK_USER_ID);
+  });
+
+  it('gives a sign-in flow no account at all, so there is nothing for it to link', () => {
+    const opened = makeStore().open(makeStore().seal(PAYLOAD).value);
+
+    // The property is structural and it is asserted as absence: `userId` is not
+    // merely `undefined`, it is not a member of the sign-in arm of the union.
+    expect(opened).not.toBeNull();
+    expect(opened?.mode === 'link').toBe(false);
+    expect('userId' in (opened ?? {})).toBe(false);
+  });
+
+  it('refuses a bundle whose bytes were edited to turn sign-in into link', () => {
+    // The forgery an attacker can actually perform: no key, so edit the payload
+    // segment and keep the old signature. If the mode lived outside the MAC — in a
+    // second cookie, or read off the query string — this edit would succeed.
+    const store = makeStore();
+    const [payload, signature] = segments(store.seal(PAYLOAD).value);
+
+    expect(store.open(`${retag(payload, '"link"')}.${signature}`)).toBeNull();
+    expect(store.open(`${retag(payload, '"link","u":"anyone"')}.${signature}`)).toBeNull();
+  });
+
+  it('refuses a link bundle whose account was pointed at somebody else', () => {
+    // The other direction of the same forgery: keep `mode: "link"` and change the
+    // uuid. This is the exact edit that turns "link to my account" into "link to
+    // the victim's account", so it is asserted on its own rather than relying on
+    // the generic tamper case above.
+    const store = makeStore();
+    const [payload, signature] = segments(store.seal(LINK_PAYLOAD).value);
+    const attacker = '00000000-0000-4000-8000-000000000001';
+
+    expect(store.open(`${rewriteAccount(payload, attacker)}.${signature}`)).toBeNull();
   });
 
   it('stamps the issue time from the injected clock rather than ambient time', () => {
