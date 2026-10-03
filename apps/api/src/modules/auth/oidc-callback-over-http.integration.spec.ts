@@ -59,6 +59,16 @@ const OTHER_SUBJECT = 'google-subject-0000000002';
 const PRINCIPAL_EMAIL = 'principal@school.test';
 const PASSWORD = 'a-sufficiently-long-password';
 
+/**
+ * The `MODULE_ACTION` key `GET /auth/oidc/link` declares.
+ *
+ * Stated here rather than imported from the controller, because a matrix row and a
+ * decorator are two descriptions of one thing and importing one from the other would
+ * make a typo in the key invisible to this suite. `route-permissions.json` reconciles
+ * the two against the source tree; this constant is what the fixture grants.
+ */
+const LINK_PERMISSION = 'AUTH_LINK_EXTERNAL_IDENTITY';
+
 let prisma: PrismaClient;
 let schoolId: string;
 let provider: FakeOidcProvider;
@@ -155,9 +165,59 @@ async function boot(): Promise<HttpHarness> {
   });
 }
 
+/**
+ * Give `userId` the `MODULE_ACTION` key `GET /auth/oidc/link` is gated on, by writing
+ * the four rows the schema models a grant with.
+ *
+ * ## Why this exists, and why it makes the suite STRONGER rather than weaker
+ *
+ * That route carries `@RequirePermission('AUTH_LINK_EXTERNAL_IDENTITY')`. Until
+ * `PermissionGuard` existed (PLT-201) that decorator was unread metadata, so a user
+ * holding **no role at all** could begin a link flow, and this file's assertion of a
+ * 302 was in truth an assertion that authentication alone was enough.
+ *
+ * Being authenticated is not sufficient, and never was the intent: the route binds a
+ * Google identity to the caller's OWN account, which is why it is the one route in the
+ * tree with a permission on it. So the fixture now stages a user who **holds** the
+ * permission.
+ *
+ * The four rows are written rather than the reader stubbed. A stub would leave the
+ * schema untested, and this suite talks to a real PostgreSQL precisely so that claims
+ * about what the schema allows are claims about the schema.
+ *
+ * `upsert` on the permission because `Permission` is unique on `(school_id, key)` and
+ * several tests in this file create a session for the same school; the role is unique by
+ * name, so it carries the uuid instead.
+ */
+async function grantLinkPermission(userId: string): Promise<void> {
+  const permission = await prisma.permission.upsert({
+    where: { schoolId_key: { schoolId, key: LINK_PERMISSION } },
+    update: {},
+    create: {
+      schoolId,
+      key: LINK_PERMISSION,
+      module: 'AUTH',
+      action: 'LINK_EXTERNAL_IDENTITY',
+    },
+    select: { id: true },
+  });
+
+  const role = await prisma.role.create({
+    data: { schoolId, name: `link-holder-${randomUUID()}`, isSystemRole: false },
+    select: { id: true },
+  });
+
+  await prisma.rolePermission.create({
+    data: { schoolId, roleId: role.id, permissionId: permission.id },
+  });
+
+  await prisma.userRole.create({ data: { schoolId, userId, roleId: role.id } });
+}
+
 /** A live session cookie for `userId`, obtained by really signing in. */
 async function aSessionCookie(harness: HttpHarness): Promise<{ cookie: string; userId: string }> {
   const userId = await aUser();
+  await grantLinkPermission(userId);
   const { Argon2PasswordHasher } =
     await import('./infrastructure/adapters/argon2-password-hasher.js');
   const { DEFAULT_PASSWORD_HASH_PARAMETERS } =

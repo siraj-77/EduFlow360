@@ -1,0 +1,54 @@
+{
+  "$comment": "AGENTS.md 9: 'Every new sensitive route adds a row to the RBAC permission-matrix fixture. Do not merge a route without updating it.' This is that fixture. It is the per-route answer to three questions the decorators pose: which permission gates the route, what is audited on it, and which licence feature it needs. permission-matrix.spec.ts reconciles this file against the source tree in BOTH directions, so a route added without a row fails the gate and a row left behind by a deleted route fails it too. The route is keyed on METHOD plus path rather than a file and line, because that is the only identifier of a route that survives a refactor.",
+  "$schema_note": "Enforced by apps/api/src/modules/rbac/permission-matrix.spec.ts, which reads the real source tree through scripts/check-route-guards.mjs. Nothing else validates this file.",
+  "permission_enforced_by": "PermissionGuard (PLT-201). Registered globally in app.module.ts; honours @Public.",
+  "entitlement_enforced_by": "NOTHING. @RequireEntitlement is read by no guard in this repository. Epic 03 is the story that will enforce it, so `entitlement` below is a RECORD of intent, not a control.",
+  "audit_enforced_by": "NOTHING. @Audited writes no row. PLT-402 is the story that will write audit_records. The `audited` column records the key the decorator carries and no more.",
+  "routes": [
+    {
+      "file": "src/modules/auth/controllers/oidc-link.controller.ts",
+      "route": "GET /auth/oidc/link",
+      "permission": "AUTH_LINK_EXTERNAL_IDENTITY",
+      "entitlement": null,
+      "audited": "OIDC_LINK",
+      "owner": "auth",
+      "notes": "The ONLY route in the tree that is permission-gated today, and therefore the only route whose behaviour changes when a role is not granted this key: the caller is refused 403 even with a perfectly valid session. Authentication is separate and still applies — a caller with no session is refused 401 before permissions are consulted, which is the ordering app.module.ts relies on. This route binds a Google identity to the caller's OWN account, which is why it needs a permission and not merely a session."
+    },
+    {
+      "file": "src/modules/auth/controllers/oidc-sign-in.controller.ts",
+      "route": "GET /auth/oidc/redirect",
+      "permission": null,
+      "entitlement": null,
+      "audited": null,
+      "owner": "auth",
+      "notes": "@Public. A permission check here would require the permission the route exists to obtain. Grants nothing, reads no row, consults no role. Justified in route-guards.allowlist.json."
+    },
+    {
+      "file": "src/modules/auth/controllers/oidc-callback.controller.ts",
+      "route": "GET /auth/oidc/callback",
+      "permission": null,
+      "entitlement": null,
+      "audited": "OIDC_CALLBACK",
+      "owner": "auth",
+      "notes": "@Public, and @Audited writes nothing yet. The authorisation on this route is the HMAC-signed state bundle plus the ExternalIdentity lookup, not a role — no account, session or role exists before a verified identity is resolved. Justified in route-guards.allowlist.json."
+    },
+    {
+      "file": "src/modules/auth/controllers/password-sign-in.controller.ts",
+      "route": "POST /auth/login",
+      "permission": null,
+      "entitlement": null,
+      "audited": "LOGIN",
+      "owner": "auth",
+      "notes": "@Public, and @Audited writes nothing yet. Sign-in is how a session is obtained, so a permission check would require the permission the route exists to grant. Deliberately NO entitlement: a Basic-edition school must still be able to sign in or it cannot use the product at all. Justified in route-guards.allowlist.json."
+    },
+    {
+      "file": "src/modules/auth/controllers/setup-completion.controller.ts",
+      "route": "POST /auth/setup/complete",
+      "permission": null,
+      "entitlement": null,
+      "audited": "SETUP_COMPLETE",
+      "owner": "auth",
+      "notes": "@Public, and @Audited writes nothing yet. The one-time setup token IS the credential on this route. It is the only unauthenticated WRITE in the system, bounded by the token itself, argon2id and a per-source throttle — all independent of RBAC. Justified in route-guards.allowlist.json."
+    }
+  ]
+}

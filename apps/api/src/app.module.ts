@@ -2,9 +2,13 @@ import { Module, type DynamicModule } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { CsrfGuard } from './common/guards/csrf.guard.js';
 import { SessionGuard } from './common/guards/session.guard.js';
+import { PermissionGuard } from './common/guards/permission.guard.js';
 import type { AppConfig } from './config/env.js';
 import { AuthModule, I_SESSION_REPOSITORY } from './modules/auth/auth.module.js';
 import type { ISessionRepository } from './modules/auth/domain/ports/session-repository.js';
+import { IPERMISSION_GRANT_READER } from './modules/rbac/domain/ports/permission-grant-reader.js';
+import type { IPermissionGrantReader } from './modules/rbac/domain/ports/permission-grant-reader.js';
+import { RbacModule } from './modules/rbac/rbac.module.js';
 
 /**
  * Application root module.
@@ -63,7 +67,7 @@ export class AppModule {
   static forRoot(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [AuthModule.forRoot(config)],
+      imports: [AuthModule.forRoot(config), RbacModule.forRoot(config)],
       providers: [
         { provide: APP_GUARD, useClass: CsrfGuard },
         // `APP_GUARD` with an explicit factory rather than `useClass`, because
@@ -82,6 +86,30 @@ export class AppModule {
           useFactory: (sessions?: ISessionRepository) =>
             new SessionGuard(new Reflector(), sessions),
           inject: [{ token: I_SESSION_REPOSITORY, optional: true }],
+        },
+        // `PermissionGuard` is THIRD, and that position is the whole composition.
+        //
+        // It does not read the cookie. It reads the principal `SessionGuard` attached to
+        // the request, so it must run after it — Nest executes `APP_GUARD` providers in
+        // registration order. Reusing the principal rather than re-deriving it avoids a
+        // second database round trip per request and, more importantly, avoids two
+        // places that independently decide who the caller is: those eventually disagree,
+        // and the disagreement is an authentication bypass rather than an outage.
+        //
+        // Registered the other way round it would STILL refuse, which is the trap worth
+        // naming: with this guard first, every unauthenticated request would be refused
+        // here as `NO_PRINCIPAL` — a wiring fault logged on every 401 in the system,
+        // indistinguishable from policy. The order is asserted over a real socket in
+        // `permission-guards-over-http.spec.ts`, not by reading this comment.
+        //
+        // A factory for the same reason as `SessionGuard`: `@Optional()`
+        // `IPERMISSION_GRANT_READER` must be able to resolve to `undefined` in a
+        // Google-only deployment without the container failing to boot.
+        {
+          provide: APP_GUARD,
+          useFactory: (grants?: IPermissionGrantReader) =>
+            new PermissionGuard(new Reflector(), grants),
+          inject: [{ token: IPERMISSION_GRANT_READER, optional: true }],
         },
       ],
     };

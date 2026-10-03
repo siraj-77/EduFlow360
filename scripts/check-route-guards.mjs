@@ -35,6 +35,8 @@ import { API_ROOT, REPO_ROOT } from './paths.mjs';
  * JSDoc types:
  * @typedef {{ file: string, line: number, message: string }} Finding
  * @typedef {{ file: string, reason?: string }} AllowlistEntry
+ * @typedef {{ file: string, line: number, method: string, path: string, route: string,
+ *             permission: string | null, publicRoute: boolean, window: string }} CollectedRoute
  */
 
 /** @type {string[]} */
@@ -165,6 +167,153 @@ export function decoratorContext(lines, i) {
   }
 
   return [...above, lines[i] ?? '', ...below].join('\n');
+}
+
+/**
+ * The route inventory: every declared route, with the path a browser would call.
+ *
+ * ## Why this exists separately from `auditRoutes`
+ *
+ * `auditRoutes` answers "is this route guarded?". The permission matrix needs a
+ * different question — "what routes exist?" — and a guard check cannot answer it,
+ * because a guarded route and an unguarded one are equally present in the tree.
+ *
+ * So this composes the two primitives that already exist rather than adding a third
+ * way of finding a route: `decoratorContext` for "which decorators belong to this
+ * route", and the same comment-line exclusion `auditRoutes` applies, so a route
+ * mentioned in a doc comment is not a route.
+ *
+ * ## The path is composed from the CONTROLLER prefix and the METHOD argument
+ *
+ * `@Controller('auth')` + `@Get('oidc/link')` is `GET /auth/oidc/link`. That is the
+ * string a matrix row is keyed on, because it is the only identifier of a route that
+ * survives a refactor of the file it lives in — a line number does not, and a method
+ * name alone collides across controllers.
+ *
+ * ## It FAILS CLOSED on a route it cannot parse
+ *
+ * A decorator written in a shape this parser does not recognise is still a route, and
+ * a matrix keyed on parseable routes alone would quietly omit it — which is the exact
+ * "a check that silently matches nothing" failure `route-guards.spec.ts` exists to
+ * rule out. So an unparseable route decorator yields `path: null`, and the matrix test
+ * refuses to pass while any route is unparsed. A parser that cannot read the tree is a
+ * gate that has stopped gating.
+ *
+ * @param {string[]} files
+ * @returns {CollectedRoute[]}
+ */
+export function collectRoutes(files) {
+  /** @type {CollectedRoute[]} */
+  const collected = [];
+
+  for (const file of files) {
+    const rel = relative(API_ROOT, file).replace(/\\/g, '/');
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/);
+
+    const controllerPrefix = readControllerPrefix(lines);
+    const methodPattern = /@(Get|Post|Put|Patch|Delete|All)\b/;
+
+    for (const [i, line] of lines.entries()) {
+      if (line.trimStart().startsWith('*') || line.trimStart().startsWith('//')) continue;
+
+      const match = methodPattern.exec(line);
+      if (!match) continue;
+
+      const method = match[1].toUpperCase();
+      const argument = readStringArgument(line);
+      const window = decoratorContext(lines, i);
+
+      collected.push({
+        file: rel,
+        line: i + 1,
+        method,
+        // `null` rather than a guess when the argument cannot be read.
+        path: argument === null ? null : composePath(controllerPrefix, argument),
+        route:
+          argument === null
+            ? `${method} <unparsed>`
+            : `${method} ${composePath(controllerPrefix, argument)}`,
+        permission: readPermissionKey(window),
+        publicRoute: window.includes(PUBLIC),
+        window,
+      });
+    }
+  }
+
+  return collected;
+}
+
+/**
+ * The `@Controller('prefix')` path in a file, or `''` for `@Controller()`.
+ *
+ * The FIRST controller in the file is used. A file with two controller classes is not
+ * a shape this repository uses — one class per file, `AGENTS.md` 3 — so the second
+ * would be a parser limitation rather than a route this misses silently: it is the
+ * same string for every route in the file, and the matrix test still requires a row
+ * per route, which is the property that matters.
+ *
+ * @param {string[]} lines
+ * @returns {string}
+ */
+function readControllerPrefix(lines) {
+  for (const line of lines) {
+    if (line.trimStart().startsWith('*') || line.trimStart().startsWith('//')) continue;
+    if (!line.includes('@Controller')) continue;
+
+    const argument = readStringArgument(line);
+    return argument ?? '';
+  }
+  return '';
+}
+
+/**
+ * The first single- or double-quoted string in a decorator line, or `null`.
+ *
+ * `null` means "could not read it", which the caller turns into an unparsed route
+ * rather than an empty path — an empty path would look like a valid root route and
+ * would quietly reconcile against a matrix row.
+ *
+ * @param {string} line
+ * @returns {string | null}
+ */
+function readStringArgument(line) {
+  const match = /(['"])((?:[^'"\\]|\\.)*)\1/.exec(line);
+  return match ? match[2] : null;
+}
+
+/**
+ * Join a controller prefix and a method path into one leading-slash path.
+ *
+ * Empty segments are dropped rather than producing `//`, which is what a bare
+ * `@Get()` or a bare `@Controller()` produces.
+ *
+ * @param {string} prefix
+ * @param {string} path
+ * @returns {string}
+ */
+export function composePath(prefix, path) {
+  const segments = [prefix, path]
+    .flatMap((part) => part.split('/'))
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+
+  return `/${segments.join('/')}`;
+}
+
+/**
+ * The `@RequirePermission('<KEY>')` key in a decorator window, or `null`.
+ *
+ * Read from the WINDOW rather than the file, so a key belonging to one route is never
+ * attributed to another. That is the property `decoratorContext`'s own header is about,
+ * and it is the difference between a matrix that reconciles and one that agrees with
+ * itself by accident.
+ *
+ * @param {string} window
+ * @returns {string | null}
+ */
+export function readPermissionKey(window) {
+  const match = /@RequirePermission\(\s*(['"])((?:[^'"\\]|\\.)*)\1\s*\)/.exec(window);
+  return match ? match[2] : null;
 }
 
 export function auditRoutes(files) {

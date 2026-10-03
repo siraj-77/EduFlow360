@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { Module, type DynamicModule, type OnModuleDestroy, type Provider } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import type { AppConfig } from '../../config/env.js';
+import { readPersistenceConfig } from '../../config/persistence.js';
 import { FixedWindowThrottle } from '../../common/throttle/fixed-window-throttle.js';
 import type { ThrottlePolicy } from '../../common/throttle/fixed-window-throttle.js';
 import type { IPasswordHashParameterStore } from '../settings/domain/ports/password-hash-parameter-store.js';
@@ -227,44 +228,10 @@ const readGoogleSignInConfig = (config: AppConfig): GoogleSignInConfig | null =>
 };
 
 /**
- * Whether the credential routes can be constructed at all.
- *
- * `DATABASE_URL` alone is not enough. `AGENTS.md` 2.1 requires a `schoolId` on every
- * school-scoped row, and every repository here filters by it — so without one, a
- * login would match no account and the installation would be silently unusable.
- * Failing at boot with a named variable is the alternative that gets noticed.
+ * `readPersistenceConfig` is imported from `config/persistence.ts` rather than defined
+ * here, because `RbacModule` needs the identical answer down to the refusal on the
+ * half-configured case. That file explains why it is not an export from this module.
  */
-const readPersistenceConfig = (
-  config: AppConfig,
-): { readonly databaseUrl: string; readonly schoolId: string } | null => {
-  const databaseUrl = presentValue(config.DATABASE_URL);
-  const schoolId = presentValue(config.SCHOOL_ID);
-
-  if (databaseUrl === null) {
-    if (schoolId !== null) {
-      // The inverse configuration. Refused rather than ignored: a deployment that set
-      // SCHOOL_ID and not DATABASE_URL has a half-finished install, and the symptom
-      // without this check is a login form that always fails.
-      throw new Error(
-        'SCHOOL_ID is set but DATABASE_URL is not. Every repository scopes its reads and writes ' +
-          'by schoolId, so a school id with no database identifies nothing. Set DATABASE_URL, or ' +
-          'unset SCHOOL_ID. (AGENTS.md 11: fail fast, name the variable.)',
-      );
-    }
-    return null;
-  }
-
-  if (schoolId === null) {
-    throw new Error(
-      'DATABASE_URL is set but SCHOOL_ID is not. Every credential repository filters by ' +
-        'schoolId (AGENTS.md 2.1), so without it a login would match no account and the ' +
-        'installation would be silently unusable. Set SCHOOL_ID to the uuid the rows were ' +
-        'written with — seed.mjs documents its own default for local use.',
-    );
-  }
-
-  return { databaseUrl, schoolId };
-};
 
 /**
  * Closes the pool when the module goes away.

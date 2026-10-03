@@ -542,17 +542,38 @@ Blocking the items marked ⚑.
   `SSOT.md` D62. Needs owner sign-off.
 - **Five environment variables have no corpus source** (`env.ts` says so on each).
 
-### ⚠️ Two decisions that need an owner, not a fixer
+### ✔ Done 2026-10-03 — the permission engine. `@RequirePermission` enforces
 
-1. **`SetupTokenService.consume` may be dead code.** It is wired in `auth.module.ts` but the
-   production use-case does `tokens.verify` (a read) and then `claim` (atomic). Deleting it
-   removes the ambiguity permanently — and deletes tests, which is the move to be careful
-   about. **Leave it or delete it?**
-2. **`FakeSetupTokenRepository.consume` invents a state the real adapter cannot produce.** It
-   sets `deployment = bootstrap-claimed` after a spend; the real adapter nulls only the token
-   columns and would report `no-token-issued`. One assertion in `setup-token-service.spec.ts`
-   passes against the double rather than the adapter, which `AGENTS.md` §4.1 forbids. Fixing it
-   means re-baselining that assertion, so it is a decision rather than a cleanup.
+- `PermissionGuard` resolves permissions from the schema's own relation
+  `User — UserRole — Role — RolePermission — Permission`, union across roles with no primary-role
+  flag. **No permission model was invented**, which is the part that mattered.
+- **Fails closed**: no principal, no role, or an unknown permission key all refuse.
+- `@Public` exempts it via the **same** `PUBLIC_ROUTE_KEY` `CsrfGuard` and `SessionGuard` use.
+  Three global guards, one marker.
+- **Order is `CsrfGuard` — `SessionGuard` — `PermissionGuard`.** `PermissionGuard` never re-reads the cookie. The
+  wrong order still refuses, which is the trap: it would report every 401 as `NO_PRINCIPAL`,
+  a wiring fault logged as policy. Asserted over a socket — unauthenticated
+  `/auth/oidc/link` answers **401, not 403**.
+- `route-permissions.json` + `permission-matrix.spec.ts` reconcile **all 5 routes in both
+  directions**, with three separate columns for permission / entitlement / audit so the
+  matrix cannot imply enforcement that does not exist.
+- **Ownership policies were NOT built** — the `User` model's own schema comment says the
+  relationships do not exist yet and names `PLT-203`. Not stubbed: a method returning `true`
+  is worse than an absent one.
+- Break-and-restore x3. The instructive one: unwiring the guard left **every permitted case
+  passing** and failed 6 behavioural + 4 structural tests — only the denial tests noticed.
+
+### ⚠ Needs an owner decision
+
+- **`GET /auth/oidc/link` now 403s for everyone on a freshly seeded database.** `seed.mjs`
+  grants `SCHOOL_ADMIN` eight keys and `AUTH_LINK_EXTERNAL_IDENTITY` is not one of them.
+  Correct fail-closed behaviour, but **user-visible**, and widening the bootstrap admin's
+  grants is not a call this session should make silently.
+- **`PLT-205`'s Role ' Module ' Action matrix is not built.** The route-keyed half is; the catalogue is a
+  separate piece of work.
+- Two `RbacModule` connection pools exist (its own, plus auth's). Chosen over
+  refactoring tested auth wiring; worth revisiting.
+- A reader failure surfaces as **500, not 403**, by design. Flagged in case that is wrong.
 
 ## Do Not
 
