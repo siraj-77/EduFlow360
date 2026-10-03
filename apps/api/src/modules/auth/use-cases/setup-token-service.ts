@@ -76,9 +76,34 @@ export class SetupTokenService {
   /**
    * Claim the token.
    *
-   * Exactly one concurrent caller receives `accept`; every other caller receives
-   * `reject-consumed`, whether it lost the race or presented a token that died
-   * between its inspection and its update.
+   * Exactly one concurrent caller receives `accept`, and that much is guaranteed
+   * by the conditional UPDATE inside `PrismaSetupTokenRepository.consume`. It is
+   * the whole security claim, and it holds.
+   *
+   * WHICH refusal the losers get is a weaker promise than it looks, and the
+   * weaker version is the true one:
+   *
+   *   - a caller that inspected while the token was live reaches the guard, and
+   *     is told `reject-consumed`;
+   *   - a caller whose inspection lands after the winner's UPDATE has committed
+   *     is told `reject-unclaimed`, because `consume` spends the token by NULLING
+   *     the two token columns and this class deliberately writes nothing to the
+   *     account (see its own header). The row it now reads is therefore
+   *     byte-identical to a deployment that was never enrolled, and
+   *     `deploymentState()` cannot tell the two apart from the token columns.
+   *
+   * That is option (b)'s recorded limitation, not a defect in the guard. It is
+   * not hypothetical either: measured against real PostgreSQL, it is
+   * DETERMINISTIC for a sequential second claim — `consume` the token, then call
+   * this method again with no credential written, and the second call is
+   * `reject-unclaimed` every time.
+   *
+   * No production route calls this method. `CompleteFirstAdministratorSetup`
+   * calls `verify` (a read) and then hands the claim to `IBootstrapClaimRepository`,
+   * which spends the token and writes the credential in ONE transaction — so a
+   * post-claim reader always sees `bootstrap-claimed` and every loser there is
+   * told `reject-consumed`. Read `prisma-bootstrap-claim-repository.ts` before
+   * treating this method as the claim path.
    */
   async consume(setupTokenPlaintext: string): Promise<SetupTokenVerdict> {
     const now = this.clock.now();

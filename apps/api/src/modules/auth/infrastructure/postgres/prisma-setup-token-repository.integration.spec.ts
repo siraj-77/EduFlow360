@@ -39,6 +39,17 @@ import { PrismaSetupTokenRepository } from './prisma-setup-token-repository.js';
 const ONE_HOUR_MS = 3_600_000;
 const AT = instant('2026-10-02T09:00:00.000Z');
 
+/**
+ * The only two answers a caller that did NOT win the token may receive here.
+ *
+ * Deliberately a set rather than one verdict. `reject-unclaimed` and
+ * `reject-consumed` are both refusals; which one a given concurrent caller gets
+ * depends on whether its inspection landed before or after the winner's UPDATE
+ * committed, and the row cannot distinguish those two moments. See the
+ * concurrent-claim test below and `SetupTokenService.consume`.
+ */
+const REFUSALS_A_LOSER_MAY_RECEIVE: readonly string[] = ['reject-consumed', 'reject-unclaimed'];
+
 let prisma: PrismaClient;
 
 /** A fresh deployment: one school, one `INVITED` user with no credential. */
@@ -200,6 +211,39 @@ describe('inspecting a setup token', () => {
     expect(decideSetupToken(presented, AT).action).toBe('reject-consumed');
   });
 
+  it('reports the bootstrap as UNCLAIMED after consumption alone, until the account carries a credential', async () => {
+    // The other half of the test above, and the reason that one needs
+    // `markBootstrapClaimed` at all.
+    //
+    // Option (b) spends the token by NULLING the two token columns. So after
+    // `consume` and before the completion use-case's transaction commits, this row
+    // is BYTE-IDENTICAL to a deployment that was never enrolled: `setupTokenHash`
+    // null, `status` INVITED, `passwordHash` null. Nothing in the database tells
+    // them apart, so `deploymentState` reports `no-token-issued` and
+    // `decideSetupToken` answers `reject-unclaimed`.
+    //
+    // This is executable rather than commentary on purpose: it is the reason the
+    // concurrent-claim test below cannot assert `reject-consumed` for every loser.
+    // A loser whose inspection lands after the winner's UPDATE commits is in
+    // exactly the state asserted here. No concurrency is needed to reach it — a
+    // plain second `consume` call reproduces it every time.
+    //
+    // The production route is unaffected. `PrismaBootstrapClaimRepository.claim`
+    // spends the token and writes the credential in ONE transaction, so a real
+    // post-claim reader sees `bootstrap-claimed` and every loser gets 409 — proved
+    // over a real socket in `setup-complete-over-http.integration.spec.ts`,
+    // "refuses every loser with 409, never with 400 or 404".
+    const { userId, repo } = await aFreshDeployment();
+    const issued = await repo.issue({ userId, ttlMs: ONE_HOUR_MS, now: AT });
+    await repo.consume({ setupTokenPlaintext: issued.setupTokenPlaintext, now: AT });
+
+    const presented = await repo.inspect(issued.setupTokenPlaintext);
+
+    expect(presented.match).toBeNull();
+    expect(presented.deployment).toBe('no-token-issued');
+    expect(decideSetupToken(presented, AT).action).toBe('reject-unclaimed');
+  });
+
   it('still matches an EXPIRED token, because expiry is decided by the rule and not by the query', async () => {
     // If `inspect` filtered on the expiry, an expired token would be
     // indistinguishable from a forgery — which is fine for the verdict but not
@@ -351,10 +395,31 @@ describe('two concurrent claims for the same token', () => {
     expect(accepted, 'the story allows exactly one administrator to be created').toHaveLength(1);
     expect(accepted[0]).toEqual({ action: 'accept', userId });
     expect(refused).toHaveLength(CONTENDERS - 1);
-    // The losers are told "too late", never "here is who you are" and never
-    // "that token was never valid" — the second would confirm the token existed.
+
+    // What holds in EVERY interleaving, and is the security content: a loser is
+    // never handed an identity, and is never told the token was forged.
+    // `reject-invalid` is the verdict meaning "expired, or never recognised while
+    // one is issued" — the one answer forbidden here, because it would confirm to
+    // a caller that a setup token existed on this deployment.
+    //
+    // WHICH of the two remaining refusals a given loser gets is NOT decided here,
+    // because it cannot be. `SetupTokenService.consume` writes nothing to the
+    // account, so a loser that inspects AFTER the winner's UPDATE has committed
+    // finds the row indistinguishable from an unenrolled deployment and is told
+    // `reject-unclaimed`; one that inspected before it is told `reject-consumed`.
+    // Both are refusals, neither admits anybody, and the earlier version of this
+    // assertion — `reject-consumed` for all seven — was asserting something the
+    // decided data model cannot deliver. It failed roughly 1 run in 16 under full
+    // suite load and never failed in isolation, which is the signature of a
+    // timing-dependent half-truth rather than of a broken guard.
+    //
+    // The `accept` count above is the invariant that matters and it is exact. The
+    // mechanism behind the two refusals is asserted deterministically, with no
+    // concurrency at all, in "reports the bootstrap as UNCLAIMED after consumption
+    // alone, until the account carries a credential".
     for (const loser of refused) {
-      expect(loser).toEqual({ action: 'reject-consumed' });
+      expect(Object.keys(loser), 'a loser is never handed a user id').toEqual(['action']);
+      expect(REFUSALS_A_LOSER_MAY_RECEIVE).toContain(loser.action);
     }
   });
 

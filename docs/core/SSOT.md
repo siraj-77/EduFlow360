@@ -372,6 +372,29 @@ tooling overruled me, which is the tooling working.
 is the common case, not the exception, and the return-style version of it compiles, passes review, and
 produces an install that can never be claimed.
 
+### Closed 2026-10-03 — D63: "consumed" is not recoverable from the database
+
+**A correction first.** `decideSetupToken` maps `bootstrap-claimed` → `reject-consumed` and
+`no-token-issued` → `reject-unclaimed`. The earlier `WORKLOG.md` entry recorded the **inverse**,
+and an agent given that as its premise would have fixed the wrong branch. Verified directly in
+`setup-token.ts`; the entry has been corrected in place rather than deleted, because a
+documented wrong inference is worth keeping precisely so nobody re-derives it.
+
+| ID      | Decision                                                                                                                    | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D63** | **A post-consumption loser may be told `reject-unclaimed`. It is a known limitation of option (b), not a bug in the rule.** | `consume` records the spend **only** by NULLing the two token columns and writes nothing to the account, while `deploymentState()` infers "claimed" from the **account**. After the winner commits, the row is byte-identical to a never-enrolled deployment, and the conditional guard matches zero rows for **both** a spent token and a forgery. The distinction is therefore not in the database, so no change inside `inspect`, `deploymentState` or `decideSetupToken` can recover it. |
+
+**This is not silent.** Two consequences, stated rather than smoothed:
+
+1. **It does not affect production.** `SetupTokenService.consume` has no production caller. The
+   setup route uses `PrismaBootstrapClaimRepository.claim`, which spends the token and writes
+   the credential in **one transaction**, so its losers are always `409`. Verified: exactly one
+   `accept` in 1400/1400 bursts.
+2. **Recovering the distinction requires a schema change** — a `setup_token_consumed_at` column — to
+   owner-approved `PLT-107` option (b). `PLT-104` supersedes that shape with a real
+   `SetupToken` table anyway, so the honest fix is to let `PLT-104` do it rather than migrate
+   to a shape already scheduled for replacement.
+
 ### Planning-horizon precedence (resolves Contradiction C-07)
 
 | Question                                       | Authoritative source                                                                                           |

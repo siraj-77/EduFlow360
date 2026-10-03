@@ -3509,3 +3509,50 @@ under parallel file execution.
 **Left open deliberately.** A flaky security test is worse than a red gate: a red gate stops
 work, a flaky one teaches re-running. It is recorded rather than papered over, and it should
 be root-caused before the setup path is trusted in production.
+
+### ✅ Root-caused: the flaky `test:integration` setup-token gate (2026-10-03)
+
+**Cause.** `PrismaSetupTokenRepository.consume` records consumption ONLY by NULLing
+`setup_token_hash`/`setup_token_expires_at`, and `deploymentState()` infers "the claim is made"
+from the ACCOUNT (`status`/`passwordHash`) instead. `SetupTokenService.consume` never writes the
+account — its own header says so — so between the winner's UPDATE committing and the completion
+use-case's transaction committing, the row is byte-identical to a never-enrolled deployment:
+token columns NULL, `status` INVITED, `passwordHash` NULL. A loser whose `inspect` executes after
+that commit is therefore told `reject-unclaimed`. Nothing in the database can distinguish the two
+states; the information is not there to be read.
+
+**Correction to the previous entry and to the handover brief.** Both said `reject-unclaimed` means
+`deploymentState()` returned `bootstrap-claimed`. That is inverted. In `decideSetupToken`,
+`bootstrap-claimed` maps to `reject-consumed` and `no-token-issued` maps to `reject-unclaimed`.
+Instrumented runs recorded the loser's actual input: `deployment: "no-token-issued"`, never
+`bootstrap-claimed`. The preceding inference in the earlier entry was wrong, and following it would
+have pointed the fix at the wrong branch.
+
+**Measured, not assumed.** 1 failure in 16 full `pnpm test:integration` runs pre-fix; 0 in 30 runs
+of that file alone. 1400 instrumented 8-way bursts: `accepted` was exactly 1 in every single one, and
+the misclassification appeared in ~1 round in 200 with the account untouched and 0 in 200 with the
+account claimed first. A sequential second claim reproduces it 100% of the time with NO concurrency
+at all. So the atomicity guard was never broken, and parallel file execution is not the cause — load
+only changes whether the losers' `inspect` lands before or after the winner's UPDATE commits.
+
+**No production exposure.** No production caller invokes `SetupTokenService.consume`;
+`POST /auth/setup/complete` goes through `PrismaBootstrapClaimRepository.claim`, which spends the
+token and writes the credential in ONE transaction, so its losers are always `bootstrap-claimed` and
+always get 409 — asserted over a real socket in `setup-complete-over-http.integration.spec.ts`.
+
+**Changed.** The false contract was corrected at source in `SetupTokenService.consume`'s docstring,
+the unachievable assertion in the integration spec was replaced with the invariant that holds in
+every interleaving (exactly one `accept`; no loser is handed a `userId`; no loser is told
+`reject-invalid`), and a new deterministic test pins the mechanism with no concurrency at all.
+Proven by deliberate break: reverting `consume` to a `findFirst`-then-`update` makes the corrected
+test fail loudly with "expected [...] to have a length of 1 but got 8" — the exact double-claim the
+story forbids — so the assertion still catches the real defect rather than being loosened away.
+24 consecutive full-suite runs green after the change, against 1 failure in 16 before.
+
+**Open, deliberately not actioned.** `FakeSetupTokenRepository.consume` sets
+`deployment = 'bootstrap-claimed'`, which models `claim` rather than `consume` and is why
+`setup-token-service.spec.ts`'s "second sequential claim is `reject-consumed`" passes against a
+double rather than against the real adapter. Faithful fix requires re-baselining that test; it is a
+separate defect from this flake and an owner decision. Also unfixed and unrelated:
+`pnpm test:coverage` fails on a clean tree in BOTH `apps/web` (2 zero-file tiers) and `apps/api`
+(domain tier 89.08% vs 90%) — verified pre-existing by stashing this change.
