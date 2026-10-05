@@ -3,11 +3,63 @@
 **Format:** [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · **Versioning:** [Semantic Versioning](https://semver.org/)
 **Scope:** User-visible change to the _product_. Documentation-only changes that do not alter a documented contract are recorded in `WORKLOG.md`, not here.
 
-> **No released version exists.** The repository is scaffolded (`SSOT.md` §1) **and application code is merged** — `PLT-101` (5 routes) and `PLT-107` shipped 2026-10-02/03, `PLT-EPIC-02` is ~75% built, and 1,401 unit + 235 integration + 37 e2e tests pass. The `[0.1.0-scaffold]` entry below marks the scaffold commit, not a product release.
+> **No released version exists.** The repository is scaffolded (`SSOT.md` §1) **and application code is merged** — `PLT-101` (5 routes) and `PLT-107` shipped 2026-10-02/03, `PLT-EPIC-02` is ~75% built, and **all ten quality gates are green** as of 2026-10-05 — 1,431 unit + 235 integration + 37 e2e tests. The `[0.1.0-scaffold]` entry below marks the scaffold commit, not a product release.
 
 ---
 
 ## [Unreleased]
+
+### Fixed - 2026-10-05 - the theme toggle, and a guard that was not fully wired
+
+#### `WEB-05` - the one-click theme toggle (`AGENTS.md` 3.2.5)
+
+`AGENTS.md` 3.2.5 has required a one-click theme toggle since the contract was written, and it
+did not exist: `grep eduflow-theme` across `apps/web` returned one hit, the `getItem` in
+`theme-script.tsx`. A visitor's stored choice could be read but never written, and the landing
+page said so itself - *"the theme toggle is OMITTED... inventing one is `FIX-10`, which lands
+with shadcn."* `FIX-10`'s blocker was gone: `Button` had shipped.
+
+- **Dark and light are now both reachable without devtools.** The control is a ui-kit `Button`,
+  so `AGENTS.md` 3.2.1's raw-`<button>` ban is satisfied rather than worked around.
+- **`pnpm test:coverage` is green for the first time in the repository's history.** It had been
+  red because `apps/web`'s hooks coverage tier matched **zero** source files - a tier that
+  matches nothing enforces nothing. `OPS-102`, closed.
+- The label names the theme it will switch **to**, not the one that is active, so the accessible
+  name stays true across a toggle.
+- It is inert until mounted: the server cannot know the theme, and guessing would both flicker
+  and cause React to discard the server HTML.
+
+#### `SEC-110` - the shipped `PermissionGuard` was wired to one of four tokens
+
+`app.module.ts` constructed the guard with **two** of its four constructor arguments.
+`IPERMISSION_CACHE` and `IOWNERSHIP_POLICY_REGISTRY` were registered and exported by `RbacModule`
+and injected into nothing. Two user-visible consequences, neither of them a breach:
+
+- every permission check silently took the cache-bypass path, so the latency target was
+  unreachable however fast the cache was, and degraded-cache reporting could never fire;
+- a route declaring an entity-ownership requirement was refused with a **wiring** fault instead
+  of the **domain** fault that said the owning module had not shipped its rule.
+
+Both are refusals and both fail closed, which is exactly why nothing surfaced: the only symptom
+was being correctly cautious.
+
+> **The lesson, recorded because it generalises: two pre-existing tests encoded this defect as an
+> expectation.** One asserted the guard's injected tokens were exactly the single token the
+> factory asked for - and it passed, because the factory genuinely asked for only that.
+> **A test that pins what the code happens to do cannot catch the code being wrong.**
+
+#### `DOC-100` - the contract stops lying about its own state
+
+`AGENTS.md` read *"pre-scaffold. No application code exists yet."* It was false from 2026-09-29 and
+was the first line every session read, in the document that declares itself authoritative over
+everything else. Five documents carried the same claim. All corrected, with an amendment log
+naming each change and its authority.
+
+#### `ENV-101` - the workspace could not be installed
+
+Every dependency symlink still resolved to the project's pre-rename directory, so `pnpm install`
+failed and **no quality gate could be run at all**. Every measurement in this repository before
+2026-10-05 was therefore unverifiable.
 
 ### Added — the hollow-gate audit and the 2026-09-30 action plan
 

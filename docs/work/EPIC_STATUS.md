@@ -9,7 +9,7 @@
 | Epic          | Name                                | Pts | State       | Evidence                                                                                                        |
 | ------------- | ----------------------------------- | --- | ----------- | --------------------------------------------------------------------------------------------------------------- |
 | `PLT-EPIC-01` | Authentication & Session Management | 34  | 풦 **~90%** | 5 routes live and tested over a real socket; `PLT-105` not started; `PLT-104`/`PLT-106` are mobile, milestone 2 |
-| `PLT-EPIC-02` | Dynamic RBAC & Policy Engine        | 42  | ~75%      | Catalogue, 5 system roles and seed shipped; ownership engine and permission cache built but uncommitted. T3-T6 of `PLT-205` open. See `RESUME_2026-10-05.md` |
+| `PLT-EPIC-02` | Dynamic RBAC & Policy Engine        | 42  | ~75%      | Catalogue, 5 system roles and seed built; ownership engine and permission cache built. **`SEC-110` closed 2026-10-05** — the shipped `PermissionGuard` now receives all four of its tokens, so `PLT-203` AC-2 holds in practice. T3-T6 of `PLT-205` open. Still uncommitted. |
 | `PLT-EPIC-03` | Licensing & Entitlement Enforcement | 29  | ❌ 0%       | no entitlement code; `ARC-10` capability keys outstanding                                                       |
 | `PLT-EPIC-04` | Immutable Audit Logging             | 21  | ❌ 0%       | `@Audited` writes **nothing**; `audit-immutability.sql` unwired                                                 |
 | `PLT-EPIC-05` | Error & Diagnostic Logging Engine   | 18  | ❌ 0%       | no DB error log; file logging not implemented                                                                   |
@@ -18,7 +18,7 @@
 | `PLT-EPIC-08` | Storage & File Manager              | 13  | ❌ 0%       | no `IStorageAdapter`                                                                                            |
 | `PLT-EPIC-09` | System Health & Monitoring          | 13  | ❌ 0%       | no probes beyond a boot banner                                                                                  |
 
-**Total: ~100 of 199 points. Epic 02 is now partly built and still the largest block.**
+**Total: ~100 of 199 points. Epic 02 is partly built and still the largest block.** Re-measured 2026-10-05: **2 of 34 stories complete** (`PLT-107` adds 5 pts), ~35 of 206 points. All ten `AGENTS.md` §4 gates are green.
 
 ---
 

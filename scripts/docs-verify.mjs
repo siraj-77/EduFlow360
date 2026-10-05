@@ -45,11 +45,15 @@ const ALLOWED_MISSING = new Map([
   ['infra/ci', 'P3 — CI pipeline definitions'],
   ['infra/terraform', 'AGENTS.md 3.1 marks this optional; OPS-06 provisions first'],
   ['keys', 'licence public key directory; created by OPS-06 provisioning'],
-  [
-    'apps/api/src/modules/auth/domain/ports/clock.ts',
-    'PLT-101 tranche 2, step 1 — IClock port. The path is fixed already: lint-rules.spec.ts asserts it as the example',
-  ],
-]);
+[
+      'apps/api/src/modules/auth/domain/ports/clock.ts',
+      'PLT-101 tranche 2, step 1 - IClock port. The path is fixed already: lint-rules.spec.ts asserts it as the example',
+    ],
+    [
+      'apps/api/prisma/migrations',
+      'SEC-101 - ZERO migrations exist; everything is `db push`. Tracked as the largest remaining infrastructure gap, because a product whose isolation story is one database per school has no reproducible provisioning path without it. Referenced by SSOT.md and TODO.md as a documented gap, which is what this list is for.',
+    ],
+  ]);
 
 /**
  * Every backticked span, captured whole.

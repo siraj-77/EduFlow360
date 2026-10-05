@@ -91,7 +91,9 @@ The original Jira document's "~4 sprints" estimate **assumed a working repositor
 **Longest pole:** the **ERD** — documentation-only, zero code dependencies, start day one in parallel.
 **Highest-leverage parallel:** the **idea-bank extraction** — doc-only, unblocks every later domain, and `PLT-205`'s matrix cannot be written without it.
 
-**TDD status:** all three prerequisites are met (git exists; a working tree exists; the test runner exists). **The test runner is Vitest** (`ADR-020`), installed and green — 1,401 unit + 235 integration + 37 e2e tests measured 2026-10-05. `test-driven-development` and `tdd-workflow` both require a working `<test>` command, a coverage command, and git for RED/GREEN checkpoints; all three are present. **The one remaining gap is that `pnpm test:coverage` is red** — `apps/web`'s `src/**/hooks/**/*.tsx` tier matches zero source files. That is `DSN-05` / `OPS-102`: ship the theme toggle. Do **not** weaken the tier to make it green.
+**TDD status:** all three prerequisites are met (git exists; a working tree exists; the test runner exists). **The test runner is Vitest** (`ADR-020`), installed and green - **1,431 unit** + 235 integration + 37 e2e tests measured 2026-10-05. `test-driven-development` and `tdd-workflow` both require a working `<test>` command, a coverage command, and git for RED/GREEN checkpoints; all three are present.
+
+**`pnpm test:coverage` was the last red gate and is now GREEN - 8/8, exit 0.** It was red because the `apps/web` hooks coverage tier matched **zero** source files, and a tier matching nothing enforces nothing. `WEB-05` shipped the theme toggle, which put a real file under that glob. The method is the part worth keeping: the gate was closed **by writing the code, never by weakening the tier**, which is what `check-coverage-tiers.mjs:53-55` requires. **All ten `AGENTS.md` section 4 gates are green as of 2026-10-05.**
 
 ### 3.2 The prompt sequence — P0 … P14
 
