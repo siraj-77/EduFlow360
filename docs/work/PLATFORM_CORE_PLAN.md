@@ -50,7 +50,7 @@ In the Prompt Pack §7 story table the column `M1`/`M2` means **milestone**, so 
 | 2 | Git repository initialised; `.gitignore` hardened; clean first commit | `REPO-02` | TDD checkpoint commits, worklog discipline, conventional commits |
 | 3 | Monorepo scaffold — `package.json`, `pnpm-workspace.yaml`, `turbo.json` | `REPO-03` | No workspace, no packages, no cross-package types |
 | 4 | Shared config — TypeScript strict, ESLint, Prettier, **missing-guard static check** | `REPO-04` | The fail-closed guarantee is a lint rule, not a habit |
-| 5 | **Test harness green on an empty tree** — Jest, RTL, MSW, Playwright, coverage gates | `REPO-05` | **No test runner ⇒ no TDD.** Hardest blocker in the plan |
+| 5 | **Test harness green on an empty tree** — Vitest, RTL, Playwright, coverage gates | `REPO-05` | **Done.** 1,401 unit + 235 integration + 37 e2e green 2026-10-05. MSW is not used and is not required by any current test |
 | 6 | `apps/api` NestJS skeleton with per-domain Clean Architecture folders; Prisma migrating | `REPO-06` | `SRS` §17 requires the boundary from day one |
 | 7 | `apps/web` Next.js skeleton, Tailwind + shadcn, 4 locales, themes | `REPO-07` | Every UI story depends on it |
 | 8 | `.env.example` + fail-fast config validation | `REPO-08` | `AGENTS.md` §11: fail fast naming the missing variable |
@@ -78,7 +78,7 @@ The original Jira document's "~4 sprints" estimate **assumed a working repositor
 | Track | Work | State |
 |---|---|---|
 | Security / VCS | Rotate token (accepted risk, D24) · `git init` + hardened `.gitignore` | ✅ Done 2026-09-28 |
-| Toolchain | Workspace · shared config · **test harness** · `.env.example` | ❌ **P2/P3 — the blocking work** |
+| Toolchain | Workspace → shared config → **test harness** → `.env.example` | **Done** — measured 2026-10-05: 8/8 typecheck, 8/8 lint, 5/5 build |
 | Skeletons | `apps/api` · `apps/web` | ❌ P2 |
 | Contracts | ERD · `ARCHITECTURE.md` · `IClock` · guard shapes · matrix fixture · `Money` · **ADRs** | 🟡 `ARCHITECTURE.md` ✅, ADRs 🟡 drafted, **ERD ❌ longest pole** |
 | Environment | compose (Postgres, Redis, MinIO, Mailpit) · CI | ❌ P2/P3 |
@@ -91,7 +91,7 @@ The original Jira document's "~4 sprints" estimate **assumed a working repositor
 **Longest pole:** the **ERD** — documentation-only, zero code dependencies, start day one in parallel.
 **Highest-leverage parallel:** the **idea-bank extraction** — doc-only, unblocks every later domain, and `PLT-205`'s matrix cannot be written without it.
 
-**TDD status:** two of the three prerequisites are now met (git exists; a working tree exists). **The test runner is missing**, so no production code can be written. `test-driven-development` and `tdd-workflow` both require a working `<test>` command, a coverage command, and git for RED/GREEN checkpoints.
+**TDD status:** all three prerequisites are met (git exists; a working tree exists; the test runner exists). **The test runner is Vitest** (`ADR-020`), installed and green — 1,401 unit + 235 integration + 37 e2e tests measured 2026-10-05. `test-driven-development` and `tdd-workflow` both require a working `<test>` command, a coverage command, and git for RED/GREEN checkpoints; all three are present. **The one remaining gap is that `pnpm test:coverage` is red** — `apps/web`'s `src/**/hooks/**/*.tsx` tier matches zero source files. That is `DSN-05` / `OPS-102`: ship the theme toggle. Do **not** weaken the tier to make it green.
 
 ### 3.2 The prompt sequence — P0 … P14
 
@@ -130,13 +130,13 @@ The Jira document's sprint order cannot satisfy four of its own stories' accepta
 
 ### Local environment — all four services
 
-`OPS-01` compose file must include **PostgreSQL, Redis, MinIO and a local mail catcher (Mailpit)**, per Prompt Pack §1.1. MinIO is not optional: it means development and CI exercise the real S3 API rather than a mock that behaves nothing like it. Mailpit is what makes `PLT-105`'s reset mail testable without a network.
+`OPS-01` compose file must include **PostgreSQL, Redis, MinIO and a local mail catcher (Mailpit)**, per Prompt Pack §1.1. *(Corrected 2026-10-05: an earlier version of this line said "MinIO is not optional". `TODO.md` G2-4 flags that as overreach — `ADR-019` made Docker **optional** via the `persistence: 'disabled'` boot state, and nothing requires MinIO to boot. Keep MinIO in the compose file for local development; do not treat it as a gate.)* Mailpit is what makes `PLT-105`'s reset mail testable without a network.
 
 ### Sprint 0 → P0–P2 mapping
 
 The pre-Prompt-Pack sprint map is superseded. For reference, the old grouping maps as: **Sprint 0** ≈ P0–P4 · **Sprint 1** ≈ P4W–P5 · **Sprint 2** ≈ P6 · **Sprint 3** ≈ P7–P8 · **Sprint 4** ≈ P9–P14.
 
-**Milestone gate naming:** the P14 human gate is **Gate M2 "Foundation Complete"** (`SRS` §24). Note the open inconsistency recorded in `ADR-006`: `SRS` §24 defines Gate M2 as *"license enforcement demonstrably working"*, but licensing lands at **P8**, after the gate the old sprint map placed at the end of Sprint 2. Under the P0–P14 sequence this resolves cleanly — **P14 sits after P8**, so the gate is satisfied when it is checked. `ADR-006` records the options; with the Prompt Pack ordering, option A is effectively in force.
+**Milestone gate naming:** the P14 human gate is **Gate M2 "Foundation Complete"** (`SRS` §24). The inconsistency recorded in `ADR-006` (licensing is in scope while `SRS` §24 still reads the narrow way) is unresolved and is ⚑7. *(Correction 2026-10-05: an earlier version of this line asserted "P14 sits after P8", which resolved the tension in favour of option A. `TODO.md` G2-4 retracted that claim and ordered it deleted. It is removed rather than restated, because the licence-entitlement model it depended on is still open as ⚑D-c.)*
 
 ---
 
@@ -244,15 +244,20 @@ Applies to every `PLT-*` story. Derived from `AGENTS.md` §4.3.
 
 ## 8. Pointing Corrections
 
-Three figures in `AGENTS.md` were re-measured on 2026-09-28 and are **inaccurate**. They need the owner's decision to correct.
+**Status: resolved 2026-10-05.** All four figures below were measured and **already applied** to `AGENTS.md`
+(`SSOT.md` D8/D9/D10, commit `8105a27`). They are retained as a record of the correction, not as an open action list.
 
-| `AGENTS.md` claim | Measured | Where |
+| `AGENTS.md` claim | Measured | Applied |
 |---|---|---|
-| §5.2: "9 unfiltered `$queryRaw`/`$executeRaw` sites" | **149** call sites | `docs/analysis/LEGACY_REUSE_INVENTORY.md` |
-| §5.2: "35-model scoping" | 59 models total; 35 may be the scoped subset | same |
-| §1: legacy at `EduFlowV3\` | actual app at `EduFlowV3\EduFlowV3\eduflow\` | `SSOT.md` D8 |
+| §5.2: "9 unfiltered `$queryRaw`/`$executeRaw` sites" | **149** call sites, none ported | yes |
+| §5.2: "35-model scoping" | 59 models total; 35 is the scoped subset | yes |
+| §1: legacy at `EduFlowV3\` | actual app at `EduFlowV3\EduFlowV3\eduflow\` | yes |
+| §2.8: the template has a "complete en/ta/si/ar dictionary" | **23 marketing keys, zero application keys** | yes |
 
-A fourth, in §2.8 — the frontend template has a "complete en/ta/si/ar dictionary" — is **21 marketing keys and zero application keys**: `docs/design/FRONTEND_TEMPLATE.md`.
+**This file was itself corrected on 2026-10-05** (`TODO.md` G2-4, "the doc most likely to mislead the next
+session"). `:53` names Vitest rather than Jest and marks `REPO-05` done; `:81` marks the toolchain done;
+`:94` no longer says a missing test runner blocks production code; `:133` no longer claims MinIO is
+mandatory; `:139`'s retracted "P14 sits after P8" claim is removed rather than restated.
 
 ---
 

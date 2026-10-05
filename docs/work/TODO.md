@@ -559,18 +559,40 @@ Blocking the items marked ⚑.
   matrix cannot imply enforcement that does not exist.
 - **Ownership policies were NOT built** — the `User` model's own schema comment says the
   relationships do not exist yet and names `PLT-203`. Not stubbed: a method returning `true`
-  is worse than an absent one.
+  is worse than an absent one. ✅ **Superseded 2026-10-04: the `PLT-203` ENGINE now exists**
+  (port, fail-closed rule, `@OwnsResource`, `PermissionGuard` pipeline, 3 negative security
+  tests). What is still unbuilt is the three concrete *policies* — teacher→class,
+  parent→child, vendor→outlet — because no class table, guardian link or outlet table exists.
+  `ownershipPoliciesFor()` returns `[]` and the boot warning says so in full. An empty
+  registry **refuses** any `@OwnsResource` route (`NO_POLICY_FOR_ENTITY`, a wiring fault),
+  which is the intended fail-closed direction. See WORKLOG 2026-10-04.
 - Break-and-restore x3. The instructive one: unwiring the guard left **every permitted case
   passing** and failed 6 behavioural + 4 structural tests — only the denial tests noticed.
 
 ### ⚠ Needs an owner decision
 
-- **`GET /auth/oidc/link` now 403s for everyone on a freshly seeded database.** `seed.mjs`
-  grants `SCHOOL_ADMIN` eight keys and `AUTH_LINK_EXTERNAL_IDENTITY` is not one of them.
-  Correct fail-closed behaviour, but **user-visible**, and widening the bootstrap admin's
-  grants is not a call this session should make silently.
-- **`PLT-205`'s Role ' Module ' Action matrix is not built.** The route-keyed half is; the catalogue is a
-  separate piece of work.
+- ~~**`GET /auth/oidc/link` now 403s for everyone on a freshly seeded database.**~~ ✅
+  **Fixed 2026-10-04 by `PLT-205` T1.** `AUTH_LINK_EXTERNAL_IDENTITY` is now in
+  `PERMISSION_CATALOGUE` (`src/modules/rbac/domain/permission-catalogue.ts`), and `seed.mjs`
+  reads that catalogue rather than carrying its own array — so it **cannot drift again**.
+  `PermissionKey` is now a union, so the same omission as a *typo* is a compile error, and
+  `permission-catalogue.spec.ts` reconciles routes → catalogue → usage in both directions.
+  Verified against the live database: the route's key is granted and the seed is idempotent.
+- **`PLT-205`'s Role × Module × Action matrix is not built.** T1 and T2 are done — the
+  catalogue and the **five** system roles (`SCHOOL_ADMIN`, `TEACHER`, `STUDENT`, `PARENT`,
+  `STAFF`, per the corpus §DoR, `SUPER_ADMIN` absent and asserted) with **Option A** grants.
+  **T3–T6 remain:** the matrix fixture, the parametrised integration suite, the maintenance
+  gate, and the owner row-by-row review that is `P6`'s actual exit gate.
+- **`PERMISSION_ASSIGN` is deliberately granted to nobody.** Option A's no-self-escalation
+  principle: a role that can grant itself that key makes the permission system advisory. It
+  is named in `UNASSIGNED_PERMISSION_KEYS` so `PLT-201` Task 5 can report it rather than
+  someone re-deriving the reasoning. **Consequence: until a role can be granted at runtime,
+  nobody can hold it** — an operator edits `SCHOOL_ADMIN`'s grants, a one-line git-visible
+  change. Recorded here so it is not discovered as a missing feature.
+- **`TEACHER` / `STUDENT` / `PARENT` / `STAFF` hold no permissions.** Not an oversight: no
+  attendance, finance, grading or workforce module exists to grant anything on, and
+  `AGENTS.md` §6 forbids inventing one. The empty sets are also the matrix's first real
+  denials. Each role's grants arrive with its module.
 - Two `RbacModule` connection pools exist (its own, plus auth's). Chosen over
   refactoring tested auth wiring; worth revisiting.
 - A reader failure surfaces as **500, not 403**, by design. Flagged in case that is wrong.

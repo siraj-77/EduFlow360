@@ -3,7 +3,7 @@
 **Format:** [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · **Versioning:** [Semantic Versioning](https://semver.org/)
 **Scope:** User-visible change to the _product_. Documentation-only changes that do not alter a documented contract are recorded in `WORKLOG.md`, not here.
 
-> **No released version exists.** The repository is scaffolded (`SSOT.md` §1); no feature code has been written. The `[0.1.0-scaffold]` entry below marks the scaffold commit, not a product release.
+> **No released version exists.** The repository is scaffolded (`SSOT.md` §1) **and application code is merged** — `PLT-101` (5 routes) and `PLT-107` shipped 2026-10-02/03, `PLT-EPIC-02` is ~75% built, and 1,401 unit + 235 integration + 37 e2e tests pass. The `[0.1.0-scaffold]` entry below marks the scaffold commit, not a product release.
 
 ---
 

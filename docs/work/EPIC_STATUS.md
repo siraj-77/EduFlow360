@@ -9,7 +9,7 @@
 | Epic          | Name                                | Pts | State       | Evidence                                                                                                        |
 | ------------- | ----------------------------------- | --- | ----------- | --------------------------------------------------------------------------------------------------------------- |
 | `PLT-EPIC-01` | Authentication & Session Management | 34  | 풦 **~90%** | 5 routes live and tested over a real socket; `PLT-105` not started; `PLT-104`/`PLT-106` are mobile, milestone 2 |
-| `PLT-EPIC-02` | Dynamic RBAC & Policy Engine        | 42  | ❌ **0%**   | **The decorators exist and nothing enforces them.** See the gap below                                           |
+| `PLT-EPIC-02` | Dynamic RBAC & Policy Engine        | 42  | ~75%      | Catalogue, 5 system roles and seed shipped; ownership engine and permission cache built but uncommitted. T3-T6 of `PLT-205` open. See `RESUME_2026-10-05.md` |
 | `PLT-EPIC-03` | Licensing & Entitlement Enforcement | 29  | ❌ 0%       | no entitlement code; `ARC-10` capability keys outstanding                                                       |
 | `PLT-EPIC-04` | Immutable Audit Logging             | 21  | ❌ 0%       | `@Audited` writes **nothing**; `audit-immutability.sql` unwired                                                 |
 | `PLT-EPIC-05` | Error & Diagnostic Logging Engine   | 18  | ❌ 0%       | no DB error log; file logging not implemented                                                                   |
@@ -36,7 +36,7 @@ gates, no enforcement. `AGENTS.md` §4 asks whether a gate is _sound_, not wheth
 
 ## Frontend: pages that exist, and pages that do not
 
-`apps/web` holds **23 source files** and **no `features/auth/` directory at all**.
+`apps/web` holds **35 source files**. `features/auth/` exists and is wired to `POST /auth/login`.
 
 | Page            | State             | Evidence                                                                             |
 | --------------- | ----------------- | ------------------------------------------------------------------------------------ |
@@ -44,8 +44,8 @@ gates, no enforcement. `AGENTS.md` §4 asks whether a gate is _sound_, not wheth
 | Forgot password | ❌ does not exist | no route, no page                                                                    |
 | Reset password  | ❌ does not exist | no route, no page                                                                    |
 | Landing + shell | ✔ real            | `features/landing/`, layout, middleware, i18n routing                                |
-
 The **backend** for sign-in exists and is tested: `POST /auth/login` verifies, issues a
+session and sets a real cookie, exercised over a socket. So the login page is the one
 session and sets a real cookie, exercised over a socket. So the login page is the one
 auth page that is buildable today.
 

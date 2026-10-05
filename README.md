@@ -4,7 +4,7 @@
 
 > **Before you write any code, read [`AGENTS.md`](AGENTS.md).** It is the operating contract and it overrides every other document in this repository. Current state: [`docs/core/SSOT.md`](docs/core/SSOT.md). Execution order: `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5.
 
-**Status: pre-scaffold.** The monorepo, toolchain and CI scaffolding exist. There is no business logic yet, and the ERD is deferred.
+**Status: milestone 1 (Platform Core & RBAC) in progress.** `PLT-101` (5 routes) and `PLT-107` shipped; `PLT-EPIC-02` is ~75% built. 1,401 unit + 235 integration + 37 e2e tests pass (measured 2026-10-05). The ERD is written and generated from one source, so it cannot drift from the Prisma schema.
 
 ---
 

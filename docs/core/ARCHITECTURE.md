@@ -1,9 +1,11 @@
 # ARCHITECTURE — EduFlow
 
 **Status:** Contract. Normative.
-**Last updated:** 2026-09-28
+**Last updated:** 2026-10-05
 **Precedence:** `AGENTS.md` and `docs/adr/ADR-003-*` > this document > all other architecture prose.
-**Implementation state:** Nothing built yet. This document specifies what the code **must** satisfy so the first module does not set a precedent that later modules inherit.
+**Implementation state:** milestone 1 in progress — `PLT-101` and `PLT-107` are shipped (5 routes, 16 Prisma models, 3 enforcing guards), `PLT-EPIC-02` is ~75% built, and 9 of the 12 API module directories are still empty scaffolds. This document specifies what the code **must** satisfy so the first module does not set a precedent that later modules inherit.
+
+> ⚠️ **§17 is not yet fully true of itself.** Nine of the twenty-five rows in *Where Each Rule Is Enforced* name scripts, hooks or CI that **do not exist**, and two describe checks `scripts/check-route-guards.mjs` demonstrably does not implement. By this document's own standard at the close of §17 — *"A rule that is not mechanically enforced is a suggestion"* — those rows are suggestions presented as enforced. Each is being closed under `OPS-08` / `SEC-11x` in `docs/work/TODO.md`. **Read §17 as intent, not as current state.**
 
 ---
 
@@ -348,7 +350,7 @@ A rule that is not mechanically enforced is a suggestion. Every rule above has a
 | All four locale files have identical key sets | `scripts/check-i18n` | `DSN-02` |
 | A PR changing source must change `WORKLOG.md` | `scripts/check-worklog` | `AGENTS.md` §9 |
 | Commit message follows Conventional Commits | commit-msg hook | `AGENTS.md` §9 |
-| Coverage thresholds | Jest `coverageThreshold` per path glob | `OPS-03` |
+| Coverage thresholds | Vitest `coverage.thresholds` per path glob | `OPS-03` |
 | No secrets tracked | gitleaks in CI | `OPS-04` |
 | Audit table immutable | Postgres `REVOKE UPDATE, DELETE` | `PLT-401` |
 | No raw SQL mutating `audit_records` | ESLint restricted pattern | `PLT-401` |

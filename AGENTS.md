@@ -3,9 +3,20 @@
 > **Read this before writing any code.** It is the operating contract for this repository.
 > **Decided:** September 27, 2026 · **Governing ADR:** `docs/adr/ADR-003-new-app-single-tenant-selective-reuse.md`
 > **Revised:** September 28, 2026 — merged with the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.2.
-> **Status:** pre-scaffold. No application code exists yet.
+> **Revised:** October 5, 2026 — status corrected after a full-tree audit. See the amendment log below.
+> **Status:** milestone 1 (Platform Core & RBAC) in progress. Application code exists: 16 Prisma models, 5 controllers, 3 enforcing guards, 1,401 unit + 235 integration + 37 e2e tests. **9 of the 12 API module directories are still empty scaffolds.**
 
 **Precedence:** this file and ADR-003 win over every other planning document. Where the Master Plan, SRS or idea-bank disagree with them (for example on tenancy), follow this file and flag the discrepancy.
+
+### Amendment log
+
+| Date | Change | Authority |
+|---|---|---|
+| 2026-09-28 | Initial contract. Merged the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.2. | Master Plan v5.2 |
+| 2026-10-05 | **Status block corrected.** It read *"pre-scaffold. No application code exists yet."* That was false from 2026-09-29 onward, and it was the first thing every session read. | Owner approval of ⚑'B, 2026-10-05 |
+| 2026-10-05 | **§3.1 and §4 testing row: Jest → Vitest.** `docs/adr/ADR-020-test-runner-is-vitest.md` was Accepted 2026-09-30; only this amendment was outstanding. | Owner approval of ⚑'A, 2026-10-05 |
+| 2026-10-05 | **§7: `PLT-101`'s Definition of Done amended** — mobile parity is milestone 2 per `ADR-005`, so it is no longer part of the web/API DoD. | Owner approval of ⚑N4, 2026-10-05 |
+| 2026-10-05 | **§6, §12 and §13 corpus pointer corrected.** All three named `docs/archive/corpus/`, which does not exist. §6 already named `docs/core/` as the source; the other two contradicted it. | Owner decision on ⚑2, 2026-10-05 |
 
 ---
 
@@ -13,7 +24,7 @@
 
 EduFlow is a **school management system / school ERP** being built as a **new application**: web (Next.js), API (NestJS), mobile (Expo, milestone 2). Features are gated by a **digitally signed licence** (Basic / Standard / Deluxe / Enterprise). Languages: **English (default), Tamil, Sinhala, Arabic (RTL)**.
 
-This repository contains the requirements, architecture and delivery plan. The codebase is not yet scaffolded.
+This repository holds the requirements, the architecture and the delivery plan **and the application code built from them.** The codebase is scaffolded and the first vertical slice of milestone 1 is shipped.
 
 **A separate legacy implementation exists at `H:\AI-Dev\MyProjects\EduFlowV3\EduFlowV3\eduflow\`.** It is a Next.js 16 monolith with a multi-tenant SaaS data model. It is **read-only reference material**. You are not extending it, not deploying it, and not porting it wholesale. See §5 for exactly what may be reused.
 
@@ -213,7 +224,7 @@ One folder per feature/module holds its components, hooks, services and tests. R
 | Mobile | React Native + Expo (milestone 2) |
 | i18n | per Master Plan §2.1 (`next-intl`/`react-i18next` web, `i18next` mobile) — confirm before adding |
 | Documents | headless Chromium or PDFKit/Handlebars, locale-aware font embedding |
-| Testing | Jest, React Testing Library, Playwright (web), Detox (mobile) |
+| Testing | **Vitest** (`ADR-020`), React Testing Library, Playwright (web). Detox deferred with mobile to milestone 2 (`ADR-005`) |
 
 ### 3.2 UI rules (mandatory)
 
@@ -246,7 +257,7 @@ No production code is merged without all of these green.
 | Coverage | `pnpm test:coverage` | Thresholds enforced (see below) |
 | Build | `pnpm build` | Green |
 | Integration | `pnpm test:integration` | Containerized real-Postgres, isolated schema |
-| E2E | `pnpm test:e2e` | Playwright (web) / Detox (mobile) |
+| E2E | `pnpm test:e2e` | Playwright (web). Detox arrives with mobile, milestone 2 |
 
 **Coverage thresholds** — tiered, from the corpus SRS §12:
 
@@ -342,7 +353,7 @@ Inventory and per-file judgements: `docs/analysis/LEGACY_REUSE_INVENTORY.md`.
 | `edge-cases-and-risks.md` | 🔴 **Empty stub.** Will carry risks, boundary tests, failure modes and test standards |
 | `fr-index.md` | 🔴 **Empty stub.** Will carry FR/NMR traceability from `SRS` to epic → story → test |
 
-**Where the requirements actually are today:** the archived corpus in `docs/core/` — `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (the FR and NFR source of record, **87 FRs + 9 NFRs**), `EduFlow_Project_Master_Plan_v5.2.md` (the module tree, §5) and `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (9 epics · 33 stories · 199 points). The `docs/archive/corpus/` path named in §12 **does not exist** — see `SSOT.md` §7 ⚑2.
+**Where the requirements actually are today:** the archived corpus in `docs/core/` — `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (the FR and NFR source of record, **87 FRs + 9 NFRs**), `EduFlow_Project_Master_Plan_v5.2.md` (the module tree, §5) and `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (9 epics · 33 stories · 199 points). There is no `docs/archive/corpus/`; ⚑2 is answered — **`docs/core/` is the corpus.**
 
 **Read the relevant `docs/core/` section before implementing any module.** **Before creating any entity, enum, interface or engine, check `docs/core/SSOT.md`, `docs/core/ARCHITECTURE.md` and §2.9 for an existing equivalent** — creating a parallel concept under a new name is the most common way this codebase drifts.
 
@@ -383,6 +394,8 @@ Epic and story IDs are taken unchanged from the corpus and are the traceability 
 | `PLT-EPIC-09` | System Health & Monitoring | 13 |
 
 **Critical path:** `PLT-EPIC-01` → `PLT-EPIC-02` → `PLT-EPIC-03` → `PLT-EPIC-04`. Every later module assumes these decorators exist and work.
+
+> **`PLT-101`'s Definition of Done is amended (⚑N4, owner-approved 2026-10-05).** The Jira DoD required mobile parity, while `D5` / `ADR-005` place `apps/mobile` in milestone 2 — so the DoD was unsatisfiable and `PLT-101` could not be formally signed off. Mobile parity is **removed** from the web/API Definition of Done. The story is complete on web/API scope; `PLT-104`, `PLT-106` and the push half of `PLT-702` carry the mobile work into milestone 2.
 
 **Decided scope (September 27, 2026):** licensing ships in this milestone (D4). **`apps/mobile` is milestone 2** (D5) — `PLT-104`, `PLT-106` and the push half of `PLT-702` move with it. The milestone-2 MVP is a **reduced vertical slice**: enrolment → class assignment → attendance → fee invoice → GL posting → receipt.
 
@@ -497,7 +510,7 @@ STORAGE_ENDPOINT="<s3-compatible endpoint>"
 | What was decided and why? | `docs/adr/` |
 | What can I reuse from the legacy app? | `docs/analysis/LEGACY_REUSE_INVENTORY.md` |
 | What is the UI direction? | `docs/design/FRONTEND_TEMPLATE.md` |
-| What is the original corpus? | `docs/archive/corpus/` (historical) |
+| What is the original corpus? | `docs/core/` — the SRS, Master Plan, Jira epics, setup workflow and agentic prompt pack. **There is no `docs/archive/corpus/`; it was never created.** |
 
 ---
 
@@ -515,7 +528,7 @@ STORAGE_ENDPOINT="<s3-compatible endpoint>"
 - **Do not auto-submit purchase orders, publish AI output, or let the chatbot write without human approval.**
 - **Do not ship a screen that works only in one theme, one language, or left-to-right only.**
 - **Do not renumber `PLT-*` IDs.**
-- **Do not treat `docs/archive/corpus/` as a build order.** It is a historical reference. The working requirements are in `docs/idea-bank/`.
+- **Do not treat the corpus figures as a build order without running the extraction first.** `AGENTS.md` §6 is the requirements baseline; the working extraction target is `docs/idea-bank/`.
 - **Do not implement real Google/Microsoft/Apple/Facebook OAuth** without confirming which client credentials and redirect URIs are configured for the current environment — these differ between local, staging and production.
 - **Do not add a new top-level module** without checking `docs/idea-bank/module-inventory.md` and Master Plan §5 — it may already be scoped.
 
