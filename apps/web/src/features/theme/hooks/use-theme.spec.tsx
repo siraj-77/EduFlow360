@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { messages } from '@eduflow/i18n-resources';
 import type { SupportedLocale } from '@eduflow/shared-types';
@@ -68,28 +69,31 @@ function preferDarkScheme(prefersDark: boolean) {
   });
 }
 
-/** Storage that can be told to fail, the way a private-mode browser does. */
+/**
+ * Storage that can be told to fail, the way a private-mode browser does.
+ *
+ * `throws` makes `getItem`/`setItem` throw rather than making the `localStorage`
+ * property itself throw. That distinction is the realistic one: in a browser the
+ * property read succeeds and the call fails, so a test that threw on property
+ * access would be testing a failure mode that does not exist — and would fail for
+ * a reason the implementation cannot defend against.
+ */
 function useStorage(initial: Record<string, string> = {}, options: { throws?: boolean } = {}) {
-  if (options.throws) {
-    Object.defineProperty(window, 'localStorage', {
-      configurable: true,
-      get() {
-        throw new Error('SecurityError: storage is disabled');
-      },
-    });
-    return;
-  }
-
   const store = new Map(Object.entries(initial));
+  const explode = (): never => {
+    throw new Error('SecurityError: storage is disabled');
+  };
+
   const stub: Storage = {
     get length() {
       return store.size;
     },
     clear: () => store.clear(),
-    getItem: (key: string) => store.get(key) ?? null,
+    getItem: (key: string) => (options.throws ? explode() : (store.get(key) ?? null)),
     key: (index: number) => [...store.keys()][index] ?? null,
     removeItem: (key: string) => void store.delete(key),
-    setItem: (key: string, value: string) => void store.set(key, value),
+    setItem: (key: string, value: string) =>
+      options.throws ? explode() : void store.set(key, value),
   };
 
   Object.defineProperty(window, 'localStorage', { configurable: true, value: stub });
@@ -254,10 +258,22 @@ function ThemeToggleHarness() {
 
 describe('the theme control as a person drives it', () => {
   it('cannot be clicked into a wrong state before it knows the theme', () => {
-    renderToggle();
-    // `disabled` until mounted: the server rendered no theme, so any label or
-    // target chosen here would be a guess.
-    expect(screen.getByTestId('harness')).toBeDisabled();
+    // Asserted against SERVER output, not a client render. `render` flushes
+    // effects inside `act`, so by the time any assertion runs the component has
+    // already mounted and `disabled` is false — a client-render test here would
+    // pass no matter what the server emitted. `renderToString` is the only way
+    // to see the state that actually reaches a visitor's first paint.
+    const html = renderToString(
+      <ThemeProvider>
+        <ThemeToggleHarness />
+      </ThemeProvider>,
+    );
+
+    expect(html).toContain('disabled');
+    // And it must not have guessed a theme on the way out.
+    expect(html).toContain('unknown');
+    expect(html).not.toContain('light');
+    expect(html).not.toContain('dark');
   });
 
   it('flips the theme when clicked, and says which theme is now active', () => {

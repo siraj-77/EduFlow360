@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { SUPPORTED_LOCALES, directionFor, type SupportedLocale } from '@eduflow/shared-types';
 import { routing } from '@/i18n/routing';
 import { ThemeScript } from '@/components/theme-script';
+import { ThemeProvider } from '@/features/theme/hooks/use-theme';
 import '../globals.css';
 
 /**
@@ -48,7 +49,14 @@ export default async function LocaleLayout({
         <ThemeScript />
       </head>
       <body>
-        <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        {/* ThemeProvider is a client component wrapping server-rendered children,
+            which is allowed and is the only shape that works: the toggle is a
+            client component, and it has to reach a provider that lives above
+            every route rather than being re-declared per screen. It reads the
+            theme ThemeScript already applied, so it never re-decides it. */}
+        <ThemeProvider>
+          <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

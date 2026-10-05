@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { LOCALE_DISPLAY_ORDER, type SupportedLocale } from '@eduflow/shared-types';
+import { ThemeToggle } from '@/features/theme/components/theme-toggle';
 
 /**
  * The hero.
@@ -76,16 +77,19 @@ export async function Hero() {
  *
  * The template's version carries a language dropdown built from four
  * `<button>`s and a theme toggle that is also a `<button>`. `AGENTS.md` 3.2.1
- * bans raw `<button>`, and the shadcn primitives that would replace one do not
- * exist yet (`FIX-11`) — so:
+ * bans raw `<button>`, and at the time this was written the shadcn primitives
+ * that would replace one did not exist yet (`FIX-11`), so:
  *
  *   - the language switcher is rebuilt as LINKS, which is what it is: a set of
  *     navigations. That satisfies 3.2.1 rather than circumventing it, and it is
  *     the reason this screen was buildable before the design system landed.
- *   - the theme toggle is OMITTED. A toggle has to be a button, and inventing
- *     one is `FIX-10`, which lands with shadcn. `ThemeScript` still honours
- *     `prefers-color-scheme` and a stored choice, so a dark-mode visitor is
- *     served correctly; they simply cannot flip it from this page yet.
+ *   - the theme toggle was OMITTED, on the reasoning that "a toggle has to be a
+ *     button, and inventing one is `FIX-10`, which lands with shadcn". **`FIX-10`
+ *     has now landed**: `Button` exists, and the toggle is
+ *     `features/theme/components/theme-toggle.tsx` — a ui-kit `Button`, so 3.2.1
+ *     is satisfied rather than worked around. `ThemeScript` already honoured
+ *     `prefers-color-scheme` and a stored choice; the visitor can now also change
+ *     it from this page, which is what 3.2.5 asks for.
  */
 export async function TopNav({ locale }: { locale: string }) {
   // `getTranslations('auth')` returns a translator FUNCTION, not the messages
@@ -95,14 +99,21 @@ export async function TopNav({ locale }: { locale: string }) {
   const authT = await getTranslations('auth');
   const signInLabel = authT('signIn');
 
+  // The brand word goes through i18n even though a proper noun is the same in
+  // every language. `app.name` exists in all four dictionaries and is what
+  // `sign-in-masthead.tsx` already uses for this identical string, so a literal
+  // here would have been the one place AGENTS.md 2.8 is broken.
+  const appT = await getTranslations('app');
+
   return (
     <nav className="landing-topnav">
       <span className="landing-brand">
         <span className="dot" aria-hidden="true" />
-        EduFlow
+        {appT('name')}
       </span>
 
       <div className="landing-nav-right">
+        <ThemeToggle />
         <a href={`/${locale}/sign-in`} className="landing-btn landing-btn-ghost">
           {signInLabel}
         </a>

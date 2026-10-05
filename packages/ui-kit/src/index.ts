@@ -36,7 +36,31 @@ export { Input } from './components/ui/input';
 export { Label } from './components/ui/label';
 export { Badge, badgeVariants, type BadgeProps } from './components/ui/badge';
 export { Skeleton } from './components/ui/skeleton';
-export { CheckIcon, ChevronIcon, ChevronUpIcon } from './components/ui/icons';
+export { Spinner } from './components/ui/spinner';
+export {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+  type FieldProps,
+} from './components/ui/field';
+export {
+  AlertIcon,
+  ArrowBackIcon,
+  ArrowIcon,
+  CheckIcon,
+  ChevronIcon,
+  ChevronUpIcon,
+  EyeIcon,
+  EyeOffIcon,
+  MoonIcon,
+  SunIcon,
+} from './components/ui/icons';
 export {
   Select,
   SelectContent,
