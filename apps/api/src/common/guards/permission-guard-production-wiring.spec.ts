@@ -1,11 +1,10 @@
 import 'reflect-metadata';
 import { APP_GUARD, Reflector } from '@nestjs/core';
-import { Controller, Get, Module, type DynamicModule, type Provider } from '@nestjs/common';
+import { Controller, Get, type DynamicModule, type Provider } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppModule } from '../../app.module.js';
-import { PermissionGuard } from './permission.guard.js';
 import { OwnsResource } from './owns-resource.decorator.js';
 import { RequirePermission } from './route-guards.decorator.js';
 import { loadConfig, type AppConfig } from '../../config/env.js';
@@ -38,7 +37,7 @@ import { ownershipPoliciesFor } from '../../modules/rbac/rbac.module.js';
  *     AC-2's sub-5ms target was unreachable however fast Redis was, and why
  *     `reportCacheOutcome` could never fire and `DEGRADED` was unreachable;
  *   - a route declaring `@OwnsResource('<type>')` was refused with
- *     `NO_POLICY_REGISTRY` — a WIRING fault — rather than `NO_POLICY_ENTITY`,
+ *     `NO_POLICY_REGISTRY` — a WIRING fault — rather than `NO_POLICY_FOR_ENTITY`,
  *     which is the fault that means "this domain has not shipped its policy yet".
  *
  * Both are refusals and both fail closed, so nothing leaked. That is exactly why
@@ -186,9 +185,6 @@ describe('SEC-110 — the shipped factory, given the tokens RbacModule registere
 
   let warn: ReturnType<typeof vi.spyOn>;
 
-  @Module({})
-  class HarnessModule {}
-
   /** Boots `AppModule`'s own guard provider with fakes for the two repositories. */
   async function bootShippedGuard() {
     const moduleRef = await Test.createTestingModule({
@@ -244,11 +240,11 @@ describe('SEC-110 — the shipped factory, given the tokens RbacModule registere
     }
   });
 
-  it('answers NO_POLICY_ENTITY, so the registry REACHED the guard', async () => {
+  it('answers NO_POLICY_FOR_ENTITY, so the registry REACHED the guard', async () => {
     // The discriminating assertion.
     //
     //   NO_POLICY_REGISTRY -> the factory was not given the registry. The defect.
-    //   NO_POLICY_ENTITY   -> the factory had it, asked it, and the registry holds
+    //   NO_POLICY_FOR_ENTITY   -> the factory had it, asked it, and the registry holds
     //                         no policy for 'widget'. The fix.
     //
     // Both are 403 with one frozen body, because distinguishing reasons in the
@@ -260,7 +256,7 @@ describe('SEC-110 — the shipped factory, given the tokens RbacModule registere
 
       const logged = warn.mock.calls.map((call) => call.map(String).join(' ')).join('\n');
 
-      expect(logged).toContain('NO_POLICY_ENTITY');
+      expect(logged).toContain('NO_POLICY_FOR_ENTITY');
       expect(logged).not.toContain('NO_POLICY_REGISTRY');
     } finally {
       await harness.close();

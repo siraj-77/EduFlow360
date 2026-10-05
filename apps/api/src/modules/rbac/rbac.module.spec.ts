@@ -6,8 +6,11 @@ import { loadConfig, type AppConfig } from '../../config/env.js';
 import { PermissionGuard } from '../../common/guards/permission.guard.js';
 import { CsrfGuard } from '../../common/guards/csrf.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
+import { I_SESSION_REPOSITORY } from '../auth/auth.module.js';
 import { AppModule } from '../../app.module.js';
 import { IPERMISSION_GRANT_READER } from './domain/ports/permission-grant-reader.js';
+import { IPERMISSION_CACHE } from './domain/ports/permission-cache.js';
+import { IOWNERSHIP_POLICY_REGISTRY } from './domain/ports/ownership-policy.js';
 import { RbacModule } from './rbac.module.js';
 
 /**
@@ -69,30 +72,83 @@ describe('AppModule.forRoot — the global guards', () => {
     expect(permission.useFactory?.()).toBeInstanceOf(PermissionGuard);
   });
 
-  it('injects each guard-s dependency as OPTIONAL, so a bare deployment still boots', () => {
+  it('injects every guard dependency as OPTIONAL, so a bare deployment still boots', () => {
     // `@Optional()` plus a factory is the only shape that resolves an absent token to
-    // `undefined` instead of failing the container. Requiring either token would stop
+    // `undefined` instead of failing the container. Requiring any of them would stop
     // a Google-only deployment from starting for routes it does not register.
+    //
+    // This asserts the FLAG on every entry rather than the array length, which is the
+    // property that matters: an earlier version asserted
+    // `inject === [{ token: expect.any(Symbol), optional: true }]` on each guard, which
+    // passed while `PermissionGuard` was missing two of its four tokens outright. A
+    // length assertion written to match the current wiring would have been the same
+    // mistake wearing a different hat, so the count is stated and the flag is checked
+    // per entry instead.
     const providers = guardProviders();
 
-    for (const index of [1, 2]) {
-      const provider = providers[index] as { inject?: unknown };
-      expect(provider.inject).toEqual([{ token: expect.any(Symbol), optional: true }]);
+    for (const provider of providers) {
+      // `CsrfGuard` is registered with `useClass` and legitimately has no `inject`
+      // array at all - it takes no optional dependency. Only the factory-registered
+      // guards are in scope here.
+      const entries = (provider as { inject?: { token: symbol; optional?: boolean }[] }).inject;
+      if (entries === undefined) continue;
+
+      for (const entry of entries) {
+        expect(entry.optional, `${String(entry.token?.description)} optional`).toBe(true);
+      }
     }
+
+    // And the counts, because a guard silently losing a dependency is precisely the
+    // defect `SEC-110` records. `SessionGuard` takes one; `PermissionGuard` takes
+    // three - the grant reader, the cache, and the ownership registry.
+    expect((providers[1] as { inject?: unknown[] }).inject).toHaveLength(1);
+    expect((providers[2] as { inject?: unknown[] }).inject).toHaveLength(3);
   });
 
-  it('gives SessionGuard the SESSION repository token and PermissionGuard the GRANT one', () => {
+it('gives each guard ITS OWN ports, and PermissionGuard all three of its own', () => {
     // A copy-paste between the two factories would compile, satisfy every shape check
-    // above, and hand each guard the other's port — which is a runtime resolution
+    // above, and hand each guard the other's port - which is a runtime resolution
     // failure at boot, or worse, a working guard wired to the wrong data.
+    //
+    // SEC-110: this assertion previously named ONLY the grant reader for
+    // PermissionGuard, and it PASSED, because the factory genuinely asked for only
+    // the grant reader. The test recorded the defect as though it were the contract.
+    // A test that pins what the code happens to do cannot catch the code being wrong;
+    // this one states which ports the guards take, so a factory that drops one fails
+    // here.
     const providers = guardProviders();
 
     expect((providers[1] as { inject?: unknown }).inject).toEqual([
-      { token: expect.any(Symbol), optional: true },
+      { token: I_SESSION_REPOSITORY, optional: true },
     ]);
     expect((providers[2] as { inject?: unknown }).inject).toEqual([
       { token: IPERMISSION_GRANT_READER, optional: true },
+      { token: IPERMISSION_CACHE, optional: true },
+      { token: IOWNERSHIP_POLICY_REGISTRY, optional: true },
     ]);
+  });
+
+  it('injects every constructor dependency except the Reflector it builds itself', () => {
+    // The general form of the test above, and the one that would have caught SEC-110
+    // without anyone having to notice it by hand: require the factory to name a token
+    // for each of the guard's constructor parameters.
+    //
+    // Reflected metadata rather than source inspection, because vitest-swc-plugin.ts
+    // makes design:paramtypes real in this suite - nest-dependency-injection.spec.ts
+    // is the tripwire for that - so the count read here is the real one.
+    //
+    // Minus ONE, and the one is the Reflector: the factory constructs it rather than
+    // asking the container for it, because a Reflector holds no state worth sharing
+    // between guards and `new Reflector()` is what every other guard factory here
+    // does. So the invariant is "one injected token per constructor parameter that is
+    // not a Reflector", not "the counts are equal" - stating it as equality would
+    // have demanded a DI token that does not and should not exist.
+    const parameterCount =
+      Reflect.getMetadata?.('design:paramtypes', PermissionGuard)?.length ?? 0;
+    const injected = (guardProviders()[2] as { inject?: unknown[] }).inject?.length ?? 0;
+
+    expect(parameterCount).toBeGreaterThan(1);
+    expect(injected).toBe(parameterCount - 1);
   });
 
   it('imports the rbac module, or the grant reader is never provided', () => {
@@ -128,6 +184,74 @@ describe('RbacModule.forRoot — the two configurations', () => {
     // No connection is opened by building the module: `PrismaClient` connects lazily,
     // so this asserts the WIRING without needing a database.
     expect(RbacModule.forRoot(withDatabase()).exports).toContain(IPERMISSION_GRANT_READER);
+  });
+
+  it('registers the ownership registry when persistence is configured', () => {
+    expect(RbacModule.forRoot(withDatabase()).exports).toContain(IOWNERSHIP_POLICY_REGISTRY);
+  });
+
+  /**
+   * The invariant whose absence let a real boot failure ship.
+   *
+   * `PLT-203` added `IOWNERSHIP_POLICY_REGISTRY` to `exports` and, by editing accident, not
+   * to `providers`. Every test in this file still passed, because they all inspect the
+   * object `forRoot` RETURNS rather than the container Nest builds FROM it — and the
+   * mismatch only surfaces as `UnknownExportException` when the real module graph is
+   * instantiated. `test:integration` caught it, 44 tests down.
+   *
+   * That is the same shape as the defect `WORKLOG.md` records at `3f8fd23` — "the shipped
+   * application could not boot, and nine green gates never noticed" — so the check is
+   * asserted structurally here rather than left to a suite that needs a database.
+   */
+  describe('every exported symbol is also a registered provider', () => {
+    const tokensOf = (providers: readonly Provider[] | undefined): unknown[] =>
+      (providers ?? [])
+        .filter(
+          (provider): provider is Provider & { provide: unknown } =>
+            typeof provider === 'object' && provider !== null && 'provide' in provider,
+        )
+        .map((provider) => provider.provide);
+
+    it('holds when persistence IS configured', () => {
+      const moduleRef = RbacModule.forRoot(withDatabase());
+
+      for (const exported of moduleRef.exports ?? []) {
+        expect(tokensOf(moduleRef.providers)).toContain(exported);
+      }
+    });
+
+    it('holds when persistence is NOT configured — vacuously, and that is the point', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      try {
+        const moduleRef = RbacModule.forRoot(testConfig());
+
+        expect(moduleRef.exports ?? []).toEqual([]);
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it('BOOTS the real container in the persistence configuration', async () => {
+      // The assertion that would have caught it immediately. `PrismaClient` connects
+      // lazily, so this needs no database — it needs the container, which is where the
+      // failure actually lived.
+      const { NestFactory } = await import('@nestjs/core');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      try {
+        const app = await NestFactory.create(
+          { module: RbacModule, imports: [RbacModule.forRoot(withDatabase())] },
+          { abortOnError: false, logger: false },
+        );
+        await app.init();
+
+        expect(app.get(IOWNERSHIP_POLICY_REGISTRY, { strict: false })).toBeDefined();
+
+        await app.close();
+      } finally {
+        warn.mockRestore();
+      }
+    });
   });
 
   it('registers NOTHING when persistence is absent, and says so at boot', () => {

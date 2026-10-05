@@ -8,6 +8,12 @@ import { AuthModule, I_SESSION_REPOSITORY } from './modules/auth/auth.module.js'
 import type { ISessionRepository } from './modules/auth/domain/ports/session-repository.js';
 import { IPERMISSION_GRANT_READER } from './modules/rbac/domain/ports/permission-grant-reader.js';
 import type { IPermissionGrantReader } from './modules/rbac/domain/ports/permission-grant-reader.js';
+import { IPERMISSION_CACHE } from './modules/rbac/domain/ports/permission-cache.js';
+import type { IPermissionCache } from './modules/rbac/domain/ports/permission-cache.js';
+import {
+  IOWNERSHIP_POLICY_REGISTRY,
+  type IOwnershipPolicyRegistry,
+} from './modules/rbac/domain/ports/ownership-policy.js';
 import { RbacModule } from './modules/rbac/rbac.module.js';
 
 /**
@@ -102,14 +108,58 @@ export class AppModule {
         // indistinguishable from policy. The order is asserted over a real socket in
         // `permission-guards-over-http.spec.ts`, not by reading this comment.
         //
-        // A factory for the same reason as `SessionGuard`: `@Optional()`
-        // `IPERMISSION_GRANT_READER` must be able to resolve to `undefined` in a
-        // Google-only deployment without the container failing to boot.
+        // A factory for the same reason as `SessionGuard`: all THREE of
+        // `PermissionGuard`'s optional dependencies must be able to resolve to
+        // `undefined` in a deployment that has none of them, without the container
+        // failing to boot. `AuthModule` registers no repository without
+        // `DATABASE_URL`, and `RbacModule` registers no cache without a Redis
+        // client, so requiring any of these tokens would stop the application
+        // booting for routes it does not even serve. Each absent token leaves the
+        // guard refusing correctly, never allowing.
+        //
+        // `SEC-110`, and the reason this comment is longer than the code it
+        // describes. The factory used to build the guard with TWO of its four
+        // arguments:
+        //
+        //     new PermissionGuard(new Reflector(), grants)
+        //
+        // `IPERMISSION_CACHE` and `IOWNERSHIP_POLICY_REGISTRY` were registered and
+        // exported by `RbacModule` and injected into nothing. Both halves of that
+        // failed visibly-invisibly:
+        //
+        //   - every lookup took the `BYPASS` path, so `PLT-202` AC-2's sub-5ms
+        //     target was unreachable however fast Redis was, and `DEGRADED`
+        //     reporting could never fire;
+        //   - a route declaring `@OwnsResource('<type>')` was refused with
+        //     `NO_POLICY_REGISTRY` -- a WIRING fault -- instead of
+        //     `NO_POLICY_ENTITY`, which is the fault that means the domain has
+        //     not shipped its policy yet.
+        //
+        // Nothing leaked: both are refusals and both fail closed. The only symptom
+        // was being correctly cautious, which is why it survived every suite.
+        //
+        // Two existing specs could not have caught it.
+        // `permission-ownership-over-http.spec.ts` and `permission-cache-over-http.spec.ts`
+        // declare `{ provide: APP_GUARD, useClass: PermissionGuard }` in their OWN
+        // testing modules, so Nest resolves all four parameters itself and they
+        // exercise the guard as it is MEANT to be wired. `nest-dependency-injection.spec.ts`
+        // builds the real graph but with `DATABASE_URL` absent, and in that state
+        // `RbacModule.forRoot` returns `providers: []`. Every test using the real
+        // graph had persistence off; every test with persistence on used a graph it
+        // built itself. `permission-guard-production-wiring.spec.ts` holds both at
+        // once and asserts these tokens are named here.
         {
           provide: APP_GUARD,
-          useFactory: (grants?: IPermissionGrantReader) =>
-            new PermissionGuard(new Reflector(), grants),
-          inject: [{ token: IPERMISSION_GRANT_READER, optional: true }],
+          useFactory: (
+            grants?: IPermissionGrantReader,
+            cache?: IPermissionCache,
+            ownership?: IOwnershipPolicyRegistry,
+          ) => new PermissionGuard(new Reflector(), grants, cache, ownership),
+          inject: [
+            { token: IPERMISSION_GRANT_READER, optional: true },
+            { token: IPERMISSION_CACHE, optional: true },
+            { token: IOWNERSHIP_POLICY_REGISTRY, optional: true },
+          ],
         },
       ],
     };
