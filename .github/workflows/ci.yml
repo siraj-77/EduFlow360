@@ -136,6 +136,20 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # The integration suite talks to a real PostgreSQL, and the
+      # database must exist BEFORE it does. The first CI run failed
+      # with "The table public.school_settings does not exist" —
+      # locally the suite runs against a dev database built by
+      # `db push` over many sessions, so the missing migrations
+      # were invisible until a fresh database exposed them. This
+      # step is the acceptance criterion of SEC-101 running on
+      # every push: a fresh database plus the committed migrations
+      # is a working database.
+      - name: Apply migrations
+        run: pnpm --filter @eduflow/api migration:run
+        env:
+          DATABASE_URL: postgresql://eduflowdbuser:eduflow123@localhost:5432/eduflowdb_ci?schema=public
+
       - name: Integration tests
         run: pnpm test:integration
         env:
