@@ -7,16 +7,18 @@
 **Last updated:** 2026-10-08 (session close)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
-> ## ▶ START HERE TOMORROW — `docs/work/RESUME_2026-10-02.md`
+> ## ▶ START HERE TOMORROW — `docs/work/RESUME_2026-10-08.md`
 >
-> Written at the close of 2026-10-01. It carries the measured state, the two owner
-> decisions blocking `PLT-101`, the Google OAuth console steps, the build order for
-> tranche 2, and the PowerShell encoding trap that cost real time.
+> Written at the close of 2026-10-08 (EPIC-B session). It carries the
+> measured state, the EPIC-B remainder in order, the open owner
+> decisions, and the CI evidence (three runs: fail → green →
+> negative-tested).
 >
-> **The one-line version:** `main` is clean and in sync at `e4b8232`, 8 of 9 gates
-> green, and **the next task is blocked on you, not on engineering** — clear the
-> `PLT-101` sign-off gate, and approve `jose` (or an alternative) for ID-token
-> verification.
+> **The one-line version:** `main` is clean and in sync at `2712f74`,
+> 83 commits, **all ten gates green**, and CI runs all ten gates on
+> every push (`OPS-101`). **The next task is `OPS-103`** (build
+> depends on gates) — plus one owner decision: repo public or GitHub
+> Pro so `CI` can be an enforceable *required* check (`F-15`).
 
 > ## ✔ DONE 2026-09-30 — `D-4.1`, multi-role (`UserRole` join)
 >
@@ -215,13 +217,13 @@ bypassed; the numbers in `RESUME_2026-10-05.md` come from those runs.
 
 ### Open, raised 2026-10-05
 
-- [ ] **SEC-101** · P0 · **Baseline Prisma migration.** `apps/api/prisma/migrations/` does not exist — zero migrations, everything is `db push`, and `prisma/hardening/audit-immutability.sql` must be run by hand. For a product whose whole isolation story is *one database per school* there is no reproducible provisioning path. **This is the largest remaining infrastructure gap.**
-- [ ] **OPS-101** · P0 · **First CI workflow.** No `.github/`, no `infra/ci/`, no hooks. Every rule phrased as "CI must fail on X" runs only if a developer types it.
+- [x] **SEC-101** · P0 · **DONE 2026-10-08** (`9bb3e96`). Baseline migration `0000_baseline` (497 lines: 8 enums, 16 tables, 36 indexes, 13 FKs) + `deploy:db` + `verify:baseline` (shadow-DB diff empty) + DB-level `PLT-401` append-only proof (5 tests; integration 235→240). Caught the `CRRITICAL` enum typo no prior gate saw.
+- [x] **OPS-101** · P0 · **DONE 2026-10-08** (`f1511d5` + `f514cbe` F-14 fix + `fab6489` + `2712f74`). `.github/workflows/ci.yml` — all ten gates on every push to any branch. AC 1 proven (run `37830464218` green on main); AC 2 proven (broken branch commit failed run `37831524370`). **T3 blocked — `F-15`:** required status checks need GitHub Pro on a private repo (`gh api` → 403); owner decision pending.
 - [ ] **OPS-103** · P0 · **`build` depends on nothing.** Every turbo task is `dependsOn: ["^build"]`, so `pnpm build` succeeds on a tree with type errors, lint errors and failing tests. `AGENTS.md` §4 is operator discipline, not tool enforcement.
 - [ ] **OPS-112** · P1 · **CI reliability, three flakes.** All three will make a first CI run red for no real reason: (a) `permission-cache-over-http` and `permission-ownership-over-http` fail ~1 run in 5 on a **cold** cache and pass 4/4 warm; (b) `playwright.config.ts` runs `rmSync(' .next ')` and `npm run dev` as **one** `webServer` command, so a request mid-wipe can read a half-written manifest — seen once as `SyntaxError: Unexpected end of JSON input` on `/en/sign-in` while all 22 landing tests passed in the same run.
 - [ ] **SEC-112** · P1 · **`vitest.integration.config.ts` claims "an isolated schema" in its own doc comment and implements none** — no `fileParallelism`, no `connection_limit`, no schema isolation; 13 files each construct their own `PrismaClient` against one database. `AGENTS.md` §4's "Containerized real-Postgres, isolated schema" is unimplemented, and `ARCHITECTURE.md` §17 is not the only document asserting a control the code does not have.
 - [ ] **DOC-101** · P0 · **`scripts/report-status.mjs`.** Still the highest-leverage single item. **Eight documents already cite it as though it exists.** Today's session added a *fourth* wrong number to the record (`1,401` unit tests, when the measured figure is `1,431`) — which is the point: hand-maintained numbers decay faster than they can be corrected.
-- [ ] **RBAC-01** · P0 · **40 uncommitted paths.** `PLT-205` T1/T2 (permission catalogue, 5 system roles, seed), the `PLT-203` ownership engine, the `PLT-202` cache, and the whole web sign-in feature including **all four locale JSON files** — so a partial commit breaks all four locales at once. `SEC-110` is fixed and its tests pass against this code, so it is now safe to land.
+- [x] **RBAC-01** · P0 · **DONE 2026-10-08** — the 40-path WIP tree landed as three commits (`fdfcda2` `feat(rbac)` 27 files · `0b2021d` `feat(web)` 24 files · `6b6e5ad` `docs` 4 files); every gate verified green before committing.
 - [ ] **WEB-105** · P1 · **`tests/e2e/sign-in.spec.ts` does not exist**, though `sign-in-form.spec.tsx:23` names it as the place keyboard, focus-order and click-on-submit are asserted. Nothing exercises the sign-in form or the new theme toggle over HTTP.
 - [ ] **WEB-106** · P1 · **`data-table` archetype.** Every list screen in the ERP needs it; `AGENTS.md` §3.2.2 requires horizontal scroll or a card layout on mobile and the bare `Table` does neither.
 
