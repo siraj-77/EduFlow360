@@ -93,7 +93,7 @@ export const ENUMS = [
   {
     name: 'LogSeverity',
     comment: '`PLT-501` levels. ERROR and CRITICAL are also written to `error_logs`.',
-    values: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRRITICAL'],
+    values: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
   },
   {
     name: 'NotificationChannel',

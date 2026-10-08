@@ -98,7 +98,7 @@ enum LogSeverity {
   INFO
   WARNING
   ERROR
-  CRRITICAL
+  CRITICAL
 }
 
 /// `AGENTS.md` §2.2. EMAIL is the default the router falls back to.

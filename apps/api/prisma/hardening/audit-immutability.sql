@@ -18,7 +18,17 @@
 --
 -- HOW TO APPLY
 -- ------------
+--   pnpm --filter @eduflow/api deploy:db
+--
+-- `prisma/deploy.mjs` runs `prisma migrate deploy` and then this
+-- file, in that order, fail-fast, and creates the `eduflow_app`
+-- role first (see `hardening/ensure-app-role.sql`) — this file
+-- raises when the role does not exist. The file is plain SQL, so
+-- any runner that can connect works too:
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/prisma/hardening/audit-immutability.sql
+-- The script is the supported path because it sequences all three
+-- steps; `src/config/audit-immutability.integration.spec.ts`
+-- (PLT-401) proves the result at the connection level.
 --
 -- Run it AFTER `prisma migrate deploy` (the table must exist) and it is
 -- idempotent, so it is safe to re-run on every deployment.
