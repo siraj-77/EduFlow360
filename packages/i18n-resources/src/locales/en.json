@@ -50,8 +50,26 @@
   "signIn": {
     "title": "Sign in",
     "subtitle": "Access your school's dashboard.",
-    "notYet": "Sign-in is not available yet. It arrives with the first Platform Core release, and your school's deployment is configured at that point.",
-    "backToHome": "Back to home"
+    "backToHome": "Back to home",
+    "localeSwitcherLabel": "Change language",
+    "identifierLabel": "Email address or username",
+    "identifierHint": "Use whichever of the two your school issued you.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "signedIn": "Signed in. Taking you to your dashboard.",
+    "validation": {
+      "identifierRequired": "Enter your email address or username.",
+      "passwordRequired": "Enter your password.",
+      "rejected": "That email address and password were not accepted."
+    },
+    "refusals": {
+      "rejected": "This sign-in form was sent something it could not read. Reload the page and try again.",
+      "csrf": "This sign-in was refused because the request could not be verified. Reload the page and try again.",
+      "network": "EduFlow could not reach the server. Check your connection and try again.",
+      "throttled": "Too many sign-in attempts. {seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
+    }
   },
   "common": {
     "save": "Save",

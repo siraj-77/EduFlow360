@@ -339,9 +339,21 @@
     inset: 0;
     z-index: -2;
     background:
-      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand) 30%, transparent), transparent 55%),
-      radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 50%),
-      radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--brand-2) 22%, transparent), transparent 55%);
+      radial-gradient(
+        circle at 15% 20%,
+        color-mix(in srgb, var(--brand) 30%, transparent),
+        transparent 55%
+      ),
+      radial-gradient(
+        circle at 85% 15%,
+        color-mix(in srgb, var(--accent) 26%, transparent),
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 50% 100%,
+        color-mix(in srgb, var(--brand-2) 22%, transparent),
+        transparent 55%
+      );
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     animation: meshShift 14s ease-in-out infinite alternate;

@@ -1,37 +1,39 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import Link from 'next/link';
+import { setRequestLocale } from 'next-intl/server';
 import { SUPPORTED_LOCALES } from '@eduflow/shared-types';
 import { routing } from '@/i18n/routing';
-import './sign-in.css';
-
-export function generateStaticParams() {
-  return SUPPORTED_LOCALES.map((locale) => ({ locale }));
-}
+import { SignInScreen } from '@/features/auth/pages/sign-in-screen';
 
 /**
  * The sign-in route.
  *
- * WHY THIS PAGE EXISTS AND IS NOT A LOGIN FORM
- * --------------------------------------------
- * The landing page needs a way in — the template's topnav has a "Log in"
- * control, and a page with no route for a returning user is a dead end. But
- * **sign-in is `PLT-101`**, and nothing in this milestone authenticates anyone:
- * no session, no credential check, no API.
+ * ## What replaced what
  *
- * So this route exists and says so. The alternative was a link to nothing, which
- * is a 404 on a school's front door and a worse first impression than the
- * sentence below. This is a *destination*, not a stub pretending to be a
- * feature: it states what is not yet available, in the visitor's own language,
- * and offers a way back.
+ * Until `PLT-101` this file was a 61-line stub with no form controls, no API call
+ * and no session: it said so in the visitor's own language and offered a link
+ * back, because a link to a route that does not exist is a 404 on the school's
+ * front door. `POST /auth/login` exists now, so the stub's reason for existing is
+ * gone and the screen is the real one.
  *
- * When `PLT-101` lands this file is replaced by the real form. The i18n keys it
- * uses are the ones the real screen will need, so the copy is not written twice.
+ * It stays thin. `AGENTS.md` 3.2.3 forbids a monolithic page, so this route only
+ * resolves the locale and hands off; the screen composes the masthead, the form
+ * and the footer, and the form's own state lives in
+ * `features/auth/hooks/use-sign-in.ts`.
  *
- * It reuses `app/[locale]/layout.tsx`, which is a document shell and nothing
- * else — no product copy, no landing styles — so the centred card here does not
- * inherit the hero's mesh gradient. The visual system is this file's own
- * `sign-in.css`, ported from the template's `.auth-card`.
+ * The backend's contract is `apps/api/.../password-sign-in.controller.ts` and its
+ * `dto/password-sign-in.dto.ts`. Two things from it shape this route and are
+ * easy to get wrong:
+ *
+ *   - **`CsrfGuard` enforces globally.** A `POST` without `x-eduflow-csrf` is
+ *     refused in the guard pipeline, before the credential is even read. The
+ *     header is attached in `features/auth/csrf-header.ts`, which is the only
+ *     place it is built.
+ *   - **The body is `.strict()`.** Exactly `identifier` and `password`. A third
+ *     field is a 400.
  */
+export function generateStaticParams() {
+  return SUPPORTED_LOCALES.map((locale) => ({ locale }));
+}
+
 export default async function SignInPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!routing.locales.includes(locale as never)) {
@@ -39,22 +41,5 @@ export default async function SignInPage({ params }: { params: Promise<{ locale:
   }
   setRequestLocale(locale as never);
 
-  const t = await getTranslations('signIn');
-
-  return (
-    <main className="auth-wrap">
-      <div className="auth-card">
-        <h1 className="auth-title">{t('title')}</h1>
-        <p className="auth-sub">{t('subtitle')}</p>
-
-        <p className="auth-notice" role="status">
-          {t('notYet')}
-        </p>
-
-        <Link href={`/${locale}`} className="auth-action">
-          {t('backToHome')}
-        </Link>
-      </div>
-    </main>
-  );
+  return <SignInScreen locale={locale} />;
 }
