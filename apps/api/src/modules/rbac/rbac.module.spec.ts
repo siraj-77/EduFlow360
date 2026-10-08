@@ -105,7 +105,7 @@ describe('AppModule.forRoot — the global guards', () => {
     expect((providers[2] as { inject?: unknown[] }).inject).toHaveLength(3);
   });
 
-it('gives each guard ITS OWN ports, and PermissionGuard all three of its own', () => {
+  it('gives each guard ITS OWN ports, and PermissionGuard all three of its own', () => {
     // A copy-paste between the two factories would compile, satisfy every shape check
     // above, and hand each guard the other's port - which is a runtime resolution
     // failure at boot, or worse, a working guard wired to the wrong data.
@@ -143,8 +143,7 @@ it('gives each guard ITS OWN ports, and PermissionGuard all three of its own', (
     // does. So the invariant is "one injected token per constructor parameter that is
     // not a Reflector", not "the counts are equal" - stating it as equality would
     // have demanded a DI token that does not and should not exist.
-    const parameterCount =
-      Reflect.getMetadata?.('design:paramtypes', PermissionGuard)?.length ?? 0;
+    const parameterCount = Reflect.getMetadata?.('design:paramtypes', PermissionGuard)?.length ?? 0;
     const injected = (guardProviders()[2] as { inject?: unknown[] }).inject?.length ?? 0;
 
     expect(parameterCount).toBeGreaterThan(1);

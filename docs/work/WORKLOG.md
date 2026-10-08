@@ -5,6 +5,22 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 
 ---
+## 2026-10-08 — `OPS-113` — `format:check` green: the last red gate is closed
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-08 |
+| **Phase** | Platform Core · EPIC-A · A-2. Closes `OPS-113` and the last red gate. |
+| **Task** | Make `pnpm format:check` exit 0 |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. `format:check` exits 0 — "All matched files use Prettier code style!" |
+| **Activity** | `npx prettier --write` on the 8 red files (Prettier 3.4.2, `.prettierrc.json`: singleQuote, trailingComma `all`, printWidth 100, tabWidth 2, semi, arrowParens `always`, endOfLine `lf`). The write touched **7 files** with content changes (+16/−17, pure formatting); `packages/ui-kit/src/components/ui/icons.tsx` needed no content change — its offence was line endings, which Prettier normalized to LF on disk (git's normalization made it a no-op in the diff). Full gate sweep re-run on the formatted tree: typecheck ✅ 8/8 · lint ✅ 8/8 (1 pre-existing warning) · unit ✅ **1,432** (api 1,264 · web 123 · ui-kit 28 · i18n-resources 10 · shared-types 7) · coverage ✅ 8/8 (api 87.74% stmts / 93.45% branch) · build ✅ 5/5 · integration ✅ 235/235 · e2e ✅ 37/37 · docs-verify ✅ 238 refs (the reformatted `scripts/docs-verify.mjs` runs correctly) · route-guards ✅ 83 files · **format:check ✅ 0**. **All ten gates are now green.** One transient build failure occurred mid-sweep (turbo parallelism flake); the immediate clean re-run passed 5/5 with a full cache hit — recorded here so it is not mistaken for a regression. |
+| **Files Changed** | `apps/api/src/common/guards/permission-guard-production-wiring.spec.ts` · `apps/api/src/modules/rbac/rbac.module.spec.ts` · `apps/web/src/features/theme/components/theme-toggle.spec.tsx` · `apps/web/src/features/theme/components/theme-toggle.tsx` · `apps/web/src/features/theme/hooks/use-theme.spec.tsx` · `apps/web/src/features/theme/hooks/use-theme.tsx` · `scripts/docs-verify.mjs` · `docs/work/WORKLOG.md` |
+| **Decisions Made** | (1) **Surgical write, not a bare `pnpm format`** — `--check` had already proved only these 8 files are non-conformant, so the commit diff stays exactly the 8 paths. (2) **`chore:` is the commit type** — AGENTS.md §9's list (`feat fix test refactor docs chore`) has no `style`, and a formatting-only change is not a `fix`. (3) **The CI half of OPS-113 is deferred by construction, not skipped** — the repo has zero CI (debt D-2), so "format as a required check" lands with `OPS-101`'s first workflow in EPIC-B. (4) **The unit total is corrected 1,431 → 1,432** — the per-package counts (1,264+123+28+10+7) have always summed to 1,432; the recorded 1,431 was a hand-arithmetic error. This is finding F-13, the exact failure mode `DOC-101` (`report-status.mjs`) exists to end. |
+| **Next Steps** | EPIC-B reproducibility, in order: `SEC-101` (baseline Prisma migration + shadow-DB deploy script + `PLT-401` immutability proof) → `OPS-101` (first CI workflow; format enters the required-check list here, closing OPS-113's T3) → `OPS-103` (build-gates-on-gates) → `OPS-112` (integration flake root-cause) → `SEC-115` (env reconciliation) → `OPS-106` (git hooks) → `OPS-105` (gitleaks). |
+| **Quality** | Full gate table above, measured 2026-10-08 on the formatted tree. TDD note: a formatting-only change has no logic test to write first — the red→green observation *is* `format:check` itself (exit 1 before, exit 0 after). |
+
+---
 ## 2026-10-08 — `RBAC-01` — the in-flight tree lands: `PLT-205`, `PLT-202`, `PLT-203`, `PLT-101`
 
 | Field | Entry |
