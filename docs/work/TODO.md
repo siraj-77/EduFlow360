@@ -1,10 +1,10 @@
 # TODO — Next Actions
 
-> **Resume note for 2026-10-03 is in `docs/work/RESUME_2026-10-03.md`.**
+> **Resume note for 2026-10-08 is in `docs/work/RESUME_2026-10-08.md`.**
 > **Read section 2 before starting work:** `pnpm test:integration` is flaky and the
-> failure is inside the setup-token concurrency test. It is not root-caused.
+> failure is inside the setup-token concurrency test. It is not root-caused (`OPS-112`).
 
-**Last updated:** 2026-10-03 (session close)
+**Last updated:** 2026-10-08 (session close)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ▶ START HERE TOMORROW — `docs/work/RESUME_2026-10-02.md`

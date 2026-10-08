@@ -1,4 +1,4 @@
-# Epic status — 2026-10-03
+# Epic status — 2026-10-03 (corrected 2026-10-08)
 
 > Measured from the tree, not from a plan file. Every figure below was read off the
 > code. Where a claim is "0%" that means **no production code exists**, not that it is
@@ -40,12 +40,11 @@ gates, no enforcement. `AGENTS.md` §4 asks whether a gate is _sound_, not wheth
 
 | Page            | State             | Evidence                                                                             |
 | --------------- | ----------------- | ------------------------------------------------------------------------------------ |
-| Sign in         | ⚠ **stub**        | `app/[locale]/sign-in/page.tsx` is 61 lines with **0 form controls and 0 API calls** |
+| Sign in         | ✔ real             | `PLT-101` replaced the stub: the page (45 lines) delegates to `features/auth/pages/sign-in-screen.tsx`; form, state hook, request client and specs all exist |
 | Forgot password | ❌ does not exist | no route, no page                                                                    |
 | Reset password  | ❌ does not exist | no route, no page                                                                    |
 | Landing + shell | ✔ real            | `features/landing/`, layout, middleware, i18n routing                                |
 The **backend** for sign-in exists and is tested: `POST /auth/login` verifies, issues a
-session and sets a real cookie, exercised over a socket. So the login page is the one
 session and sets a real cookie, exercised over a socket. So the login page is the one
 auth page that is buildable today.
 
