@@ -1,30 +1,30 @@
 # SSOT — Single Source of Truth
 
 **Purpose:** The answer to "what is the current state of this project?"
-**Last updated:** 2026-10-05
+**Last updated:** 2026-10-08
 **Precedence:** `AGENTS.md` and `ADR-003` > this file > all other documents. This file records _state and decisions_. It does not restate the rules — see `ARCHITECTURE.md` for those.
 
 ---
 
-## 1. Current State — 2026-10-05
+## 1. Current State — 2026-10-08
 
 | | |
 |---|---|
 | **Phase** | Milestone 1 (Platform Core & RBAC), Prompt Pack **P6**. `PLT-EPIC-02` is the current blocker on the critical path. |
-| **Application code** | **Real application code, not a scaffold.** 16 Prisma models · 5 controllers · 3 enforcing guards · a permission catalogue with 5 system roles · an ownership-policy engine · a Redis permission-cache adapter. **1,431 unit** + **235 integration** + **37 e2e** tests. 9 of 12 API module directories are still empty scaffolds. |
+| **Application code** | **Real application code, not a scaffold.** 16 Prisma models · 5 controllers · 3 enforcing guards · a permission catalogue with 5 system roles · an ownership-policy engine · a Redis permission-cache adapter. **1,432 unit** + **235 integration** + **37 e2e** tests. 9 of 12 API module directories are still empty scaffolds. |
 | **Toolchain** | ✅ **Working.** pnpm 11 workspace + Turborepo, TS strict, ESLint 9 flat config, Prettier, **Vitest** (`ADR-020`), Playwright configured. |
-| **Version control** | ✅ **71 commits** on `main`. ⚠️ **The working tree is NOT clean — 40 uncommitted paths**, being `PLT-205` T1/T2, the `PLT-203` ownership engine, the `PLT-202` cache, and the whole web sign-in feature including **all four locale JSON files**. `SEC-110`'s fix is committed and tested against that code, so `RBAC-01` can land it. |
+| **Version control** | ✅ **76 commits** on `main`, working tree **clean**. The 40-path WIP tree landed 2026-10-08 as three commits (`RBAC-01`: `fdfcda2` `feat(rbac)` · `0b2021d` `feat(web)` · `6b6e5ad` `docs`), and `OPS-113` closed the last red gate (`a4f0b5a`). |
 | **Repository contents** | `AGENTS.md` · `CLAUDE.md` · `README.md` · `apps/{api,web}` · `packages/{config,shared-types,ui-kit,i18n-resources}` · `infra/docker` · `docs` · `scripts` |
-| **Quality gates** | ✅ **All ten green**, measured 2026-10-05 with the cache bypassed: typecheck 8/8 · lint 8/8 (1 pre-existing warning) · **unit 1,431** · **coverage 8/8** · build 5/5 · integration 235/235 · e2e 37/37 · `docs:verify` 233 refs · `check:route-guards` 83 files. **`test:coverage` was red for the repository's entire life and went green on 2026-10-05** — `WEB-05` closed `OPS-102`. Three flakes recorded for CI to fix first: `OPS-112`. |
+| **Quality gates** | ✅ **All ten green**, re-measured 2026-10-08: typecheck 8/8 · lint 8/8 (1 pre-existing warning) · **unit 1,432** · **coverage 8/8** · build 5/5 · integration 235/235 · e2e 37/37 · `docs:verify` 238 refs · `check:route-guards` 83 files · `format:check` ✅ 0 files. **`format:check` was red on 8 files for the repository's entire life and went green on 2026-10-08** — `OPS-113` closed it. **`test:coverage` was red for the repository's entire life and went green on 2026-10-05** — `WEB-05` closed `OPS-102`. Three flakes recorded for CI to fix first: `OPS-112`. |
 | **CI** | ❌ **None.** No `.github/`, no `infra/ci/`, no hooks. Every rule phrased "CI must fail on X" is enforced only by a script a developer may never run. `OPS-101`. |
 | **Database** | 🔴 **Zero migrations.** `apps/api/prisma/migrations/` does not exist; everything is `db push`, and `prisma/hardening/audit-immutability.sql` must be applied by hand. For a product whose isolation story is *one database per school* there is no reproducible provisioning path. `SEC-101`. |
 | **Guards** | 🟡 **1 of 3 mandatory guards enforces.** `PermissionGuard` ✅ — and now correctly wired, `SEC-110`. `@RequireEntitlement` ❌ read by nothing, on 0 of 5 routes. `@Audited` ❌ writes nothing, though the append-only schema and its `REVOKE` + trigger are correct. |
 | **ERD** | ✅ **Written and committed 2026-09-29**, generated from one source that also draws the diagram, so the two cannot drift. **16** entities. ⚠️ sign-off still owed. |
 | **Stories completed** | **2 of 34.** `PLT-101` and `PLT-107` complete. `PLT-EPIC-02` is **~75%**: `PLT-202` AC-2 and the `PLT-203` engine done, `PLT-205` T1+T2 of 6 done, `PLT-201`/`PLT-204` untouched. ~35 of 206 points. The remaining **30 stories (~156 pts) are untouched** — `notifications/`, `storage/`, `diagnostics/`, `licensing/`, `audit/`, `modules/`, `health/`, `users/` are all empty directory trees. |
 
-**The correct description is:** _"milestone 1 in progress with real application code; all ten quality gates green for the first time; no CI; no migrations; one of three mandatory guards enforcing; two of thirty-four stories complete; 40 uncommitted paths."_
+**The correct description is:** _"milestone 1 in progress with real application code; all ten quality gates green; no CI; no migrations; one of three mandatory guards enforcing; two of thirty-four stories complete; working tree clean."_
 
-**Every row in this table was measured on 2026-10-05 with the Turbo cache bypassed.** This table is hand-maintained and has now been wrong in four consecutive versions — 2026-09-29 said "8 commits, working tree clean"; 2026-09-30 said "14 commits, tree NOT clean"; 2026-10-01 said "132 unit tests, 48 commits, tree clean"; none matched reality. Today's session added a *fifth* wrong number (`1,401` unit tests, written from memory before measuring, when the measured figure is `1,431`).
+**Every row in this table was measured on 2026-10-05 with the Turbo cache bypassed, and re-measured 2026-10-08.** This table is hand-maintained and has now been wrong in four consecutive versions — 2026-09-29 said "8 commits, working tree clean"; 2026-09-30 said "14 commits, tree NOT clean"; 2026-10-01 said "132 unit tests, 48 commits, tree clean"; none matched reality. The 2026-10-05 session added a *fifth* wrong number (`1,401` unit tests, written from memory before measuring, when the measured figure was recorded as `1,431`). 2026-10-08 added a *sixth* (`F-13`): the recorded total `1,431` was itself a hand-arithmetic error — the per-package counts (1,264+123+28+10+7) have always summed to `1,432`.
 
 > ⚑ **`G2-2` / `DOC-101` is not housekeeping — it is the highest-leverage single item in the repository.** `scripts/report-status.mjs` would generate this section. **Eight documents already cite it as though it exists.** Hand-maintained numbers decay faster than they can be corrected, and this table is the proof: four wrong versions in nine days, plus one introduced while writing the fix for the other four.
 

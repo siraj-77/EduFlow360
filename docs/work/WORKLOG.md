@@ -5,6 +5,22 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 
 ---
+## 2026-10-08 — `F-13` — the unit total was a hand-arithmetic error: 1,431 → 1,432
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-08 |
+| **Phase** | Record-keeping. Follow-up to `OPS-113`. |
+| **Task** | Correct the unit-test total in every current-state document |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. |
+| **Activity** | The post-`OPS-113` coverage run reports per-package counts of api 1,264 · web 123 · ui-kit 28 · i18n-resources 10 · shared-types 7, which sum to **1,432** — every record that said "1,431" mis-summed the same five numbers. No test was added or removed; the error was in the hand-maintained total only. Corrected in the current-state documents: `SSOT.md` §1 (also synced to the post-landing tree — 76 commits, clean, all ten gates green, `docs:verify` 238 refs, `format:check` closed) and `RESUME_2026-10-08.md`, plus the vault 2026-10-08 pair and vault `Index.md`. Historical 2026-10-05 records keep their as-reported figures. |
+| **Files Changed** | `docs/core/SSOT.md` · `docs/work/RESUME_2026-10-08.md` · `docs/work/WORKLOG.md` |
+| **Decisions Made** | Historical entries are **not** rewritten — the 2026-10-05 sessions genuinely reported 1,431; only the current-state records carry the correction. This is finding `F-13`, the sixth wrong hand-maintained number in the repository's history and the exact failure mode `DOC-101` (`report-status.mjs`) exists to end. |
+| **Next Steps** | EPIC-B, in order: `SEC-101` baseline migration + shadow-DB deploy script + `PLT-401` immutability proof → `OPS-101` first CI workflow (format enters the required-check list, closing `OPS-113` T3) → `OPS-103` → `OPS-112` → `SEC-115` → `OPS-106` → `OPS-105`. |
+| **Quality** | No code changed; the correction is arithmetic. Gate state unchanged from the `OPS-113` entry: all ten green. |
+
+---
 ## 2026-10-08 — `OPS-113` — `format:check` green: the last red gate is closed
 
 | Field | Entry |
