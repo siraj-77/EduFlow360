@@ -1,4 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
+import type { PermissionKey } from '../../modules/rbac/domain/permission-catalogue.js';
 
 /**
  * The three guards `AGENTS.md` 2.3 requires on every route.
@@ -28,8 +29,20 @@ import { SetMetadata } from '@nestjs/common';
  * *works*, only that it is *present*, which is the honest ceiling today.
  */
 
-/** A `MODULE_ACTION` key from the code catalogue (`ADR-012`). */
-export type PermissionKey = string;
+/**
+ * A `MODULE_ACTION` key from the code catalogue (`ADR-012`).
+ *
+ * **The union, not `string`.** It was `string` until `PLT-205` T1, and the difference is the
+ * whole point: `RequirePermission('ATTENDANCE_MARAK')` is now a **compile error** rather than
+ * a route that returns 403 for every role in the system. A key absent from
+ * `PERMISSION_CATALOGUE` is not a permission — it is a typo, and a typo should not compile.
+ *
+ * Re-exported from its own module so every import site reads the same as every other port
+ * here. `permission-catalogue.spec.ts` is the other half: it reconciles the catalogue against
+ * every key the real controllers declare, in **both** directions, so a key cannot enter the
+ * union without either gating a route or stating why it does not yet.
+ */
+export type { PermissionKey } from '../../modules/rbac/domain/permission-catalogue.js';
 
 /** A feature key from the signed licence certificate (`ADR-009`). */
 export type EntitlementKey = string;

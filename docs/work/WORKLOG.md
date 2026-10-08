@@ -5,6 +5,54 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 
 ---
+## 2026-10-08 — `RBAC-01` — the in-flight tree lands: `PLT-205`, `PLT-202`, `PLT-203`, `PLT-101`
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-08 |
+| **Phase** | Platform Core · `PLT-EPIC-02` (`PLT-205` T1/T2, `PLT-202`, `PLT-203`) + `PLT-EPIC-01` (`PLT-101` sign-in). Closes `RBAC-01`. |
+| **Task** | Land the 44 dirty paths (40 WIP + 4 record-correction docs) as coherent commits, every gate verified green on the tree **before** anything was staged |
+| **Agent** | kilo (landing session; the work itself is the 2026-10-03…05 sessions') |
+| **Status** | ✅ Complete — three commits: `feat(rbac)` (26 API paths + this worklog), `feat(web)` (13 paths), `docs` (4 paths). |
+| **Activity** | Full gate sweep on the uncommitted tree: `typecheck` ✅ 8/8 · `lint` ✅ 8/8, 1 pre-existing warning (`sign-in-form.spec.tsx:185:18` non-null assertion) · `test` ✅ **1,431** (api **1,264** — the new RBAC suites all pass: `permission-matrix` 14, `permission-catalogue` 12, `system-roles` 26, `seed-source` 17, `cached-permission-lookup` 18, `decide-ownership` 21, `static-ownership-policy-registry` 12, `owns-resource.decorator` 11, plus the three over-HTTP guard suites) · `test:coverage` ✅ 8/8 (api 87.74% stmts / 93.45% branch; every new RBAC domain file 97–100%) · `build` ✅ 5/5 (Next.js 15.5.26; `/[locale]/sign-in` built for all four locales) · `test:integration` ✅ **235/235** (13 files, real Postgres — the flaky setup-token test passed this run) · `test:e2e` ✅ **37/37** (chromium; locale shell incl. `/ar` RTL, theme shell, design tokens applied) · `docs:verify` ✅ 238 refs / 8 documents · `check:route-guards` ✅ 83 files. `format:check` 🔴 8 files — all already-committed `SEC-110`/`DSN-05` files, **none in this landing**; `OPS-113` follows. |
+| **Files Changed** | **Commit 1 `feat(rbac)`** (26 API paths): `apps/api/prisma/seed.mjs` · `apps/api/prisma/read-declaration.mjs` · `apps/api/src/common/guards/{permission,route-guards.decorator}.ts` · `apps/api/src/common/guards/{owns-resource.decorator,owns-resource.decorator.spec,permission-cache-over-http.spec,permission-ownership-over-http.spec}.ts` · `apps/api/src/modules/rbac/rbac.module.ts` · `apps/api/src/modules/rbac/domain/{permission-catalogue,permission-catalogue.spec,seed-source.spec,system-roles,system-roles.spec}.ts` · `.../domain/ports/{ownership-policy,ownership-policy.spec,permission-cache}.ts` · `.../domain/services/{cached-permission-lookup,cached-permission-lookup.spec,decide-ownership,decide-ownership.spec}.ts` · `.../infrastructure/adapters/{redis-permission-cache,redis-permission-cache.spec,static-ownership-policy-registry,static-ownership-policy-registry.spec}.ts` · `apps/api/src/testing/fake-ownership-policy.ts` · `docs/work/WORKLOG.md`. **Commit 2 `feat(web)`** (13 paths): `apps/web/src/app/[locale]/sign-in/{page.tsx,loading.tsx}` · `sign-in.css` deleted · `apps/web/src/features/auth/` · `apps/web/src/features/landing/landing.css` (formatter-only reformat) · `apps/web/src/lib/{api-base-url,api-base-url.spec}.ts` · `packages/i18n-resources/src/locales/{en,ta,si,ar}.json` · `packages/ui-kit/src/components/ui/{field,spinner}.tsx`. **Commit 3 `docs`** (4 paths): `docs/work/{EPIC_STATUS,TODO}.md` · `docs/work/RESUME_2026-10-08.md` (new) · `docs/superpowers/plans/2026-10-07-foundation-hardening.md` (new). |
+| **Decisions Made** | (1) **Three commits, not the two the 2026-10-07 plan proposed** — the tree had grown to 44 paths (the plan doc is the 40th; the 2026-10-08 record corrections are 4 more) and documentation is a separable concern from the two code concerns. (2) **This `RBAC-01` entry rides in the first landing commit** (`AGENTS.md` §9: worklog in the same commit as the change); the `DOC-114`/`DOC-100` entries already in the file ride the same path and are disclosed here. (3) **`landing.css`'s formatter-only reformat rides with the web commit** it belongs to — it is not one of the 8 red files `OPS-113` must fix. (4) **`permission-matrix.spec.ts` is tracked while its catalogue fixture was untracked** — HEAD was mid-feature; this landing is what makes the tree coherent again. |
+| **Next Steps** | `OPS-113` (P0) — `format:check` green on the 8 committed files and into CI. Then EPIC-B: `SEC-101` baseline migration, `OPS-101` first CI workflow. `PLT-205` T4–T6 (the matrix fixture and its validating spec landed here; the per-role granted/denied parametrization, the CI maintenance gate and the owner review remain). |
+| **Quality** | The full gate table above, measured 2026-10-08 on the exact tree that landed. `format:check` is the only red gate and is out of this landing's scope by construction. |
+
+---
+## 2026-10-08 — `DOC-114` — comprehensive status deep-dive, JIRA action plan, and record corrections
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-08 |
+| **Phase** | Documentation & record-keeping. Closes findings F-5…F-12 from the 2026-10-08 audit; produces the vault status + action plan that supersede the 2026-10-04/05 pair. No product code changed. |
+| **Task** | Comprehensive project status update: deep-dive analysis of codebase and docs, technical-debt/inconsistency/gap register, strategic roadmap, and a point-by-point JIRA/epic action plan — then update TurboVault and the repo docs |
+| **Agent** | kilo |
+| **Status** | ✅ Complete (documentation deliverables). The 40-path WIP tree was **not** committed — landing it is the owner's `RBAC-01` decision. |
+| **Activity** | Re-measured the workspace against HEAD `fef4110`: `check-route-guards` ✅ 83 source files · `docs-verify` ✅ 238 references / 8 documents · `vitest run src/config/test-file-oracle.spec.ts` ✅ 15/15 — the 2026-10-04/05 vault claim that "no gate is runnable in this environment" is **obsolete**. Counted **273 spec files / 227 source files** across apps+packages. Verified the sign-in feature is fully wired (`page.tsx` → `SignInScreen` → `sign-in-form.tsx` + `use-sign-in.ts` + `sign-in-request.ts`, all spec'd) — `EPIC_STATUS.md`'s "61-line stub, 0 form controls, 0 API calls" row had been false since `PLT-101`. Produced the vault pair: `EduFlow_PROJECT_STATUS_2026-10-08.md` (measured state, debt register D-1…D-10, findings F-5…F-12, five-wave roadmap, open owner decisions) and `EduFlow_JIRA_ACTION_PLAN_2026-10-08.md` (EPIC-A…H: **367 engineering points + 171 remaining Platform Core points**, per-story T-tasks and AC checkboxes, owner decision register, dependency graph, DoD). Corrected the record: `EPIC_STATUS.md` sign-in row + a duplicated sentence at ~lines 47–50 (F-9); `TODO.md`'s stale header, which pointed at `RESUME_2026-10-03.md` while its body held a 2026-10-05 section (F-8); vault `Index.md` — EduFlow row 10→12 files, entry point → the 2026-10-08 plan, "1,256 unit tests" → 1,431, "T1+T2 of 6" → current state, last-activity line 2026-10-04→2026-10-08, and the "7 legacy files" count corrected to 5 (F-6). |
+| **Files Changed** | **Vault** (`H:\MyNote\TurboVault\TurboVault`): `01 - Software Development Dashboard/EduFlow/EduFlow_PROJECT_STATUS_2026-10-08.md` (new) · `.../EduFlow_JIRA_ACTION_PLAN_2026-10-08.md` (new) · `Index.md` · plus the 5 previously-untracked 2026-10-04/05 EduFlow docs now committed alongside. **Repo**: `docs/work/RESUME_2026-10-08.md` (new) · `docs/work/TODO.md` · `docs/work/EPIC_STATUS.md` · `docs/work/WORKLOG.md` |
+| **Decisions Made** | (1) **No `CHANGELOG.md` entry** — today's work is documentation-only, and the CHANGELOG's own scope line routes such changes to `WORKLOG.md`. (2) **The 40-path WIP tree stays uncommitted** — landing it is the owner's `RBAC-01` decision; the two-commit split is proposed in the 2026-10-07 plan, Task 1. (3) **The vault commit stages only the EduFlow folder + `Index.md`** — the vault's pre-existing uncommitted REMS/qa-bot/`.obsidian` changes belong to their own sessions and are left untouched. (4) **`EPIC_STATUS.md`'s "~100 of 199 points" vs "~35 of 206 points" discrepancy is flagged, not silently reconciled** — picking a number by hand is the exact failure mode DOC-101/DOC-110 exist to end. |
+| **Next Steps** | EPIC-A of the 2026-10-08 plan, in order: `RBAC-01` (owner decision: land the 40 paths) → `OPS-113` (`format:check` green, the one red gate) → `DOC-113` (commit the 2026-10-07 plan doc — it is itself the 40th dirty path) → EPIC-B reproducibility (`SEC-101` baseline migration, `OPS-101` first CI). |
+| **Quality** | No code changed, so no gate re-run was required; the three re-executed verifications above all pass. Vault: 2 new docs + `Index.md` updated and committed. Repo: 3 docs corrected + 1 new handoff, left uncommitted with the rest of the WIP tree per decision (2). |
+
+---
+## 2026-10-05 — `DOC-100` — handoff for 2026-10-06 (retroactive entry, added 2026-10-08)
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-05 (commit `fef4110`, 23:54:57 +0400). **Entry written retroactively 2026-10-08** — the commit shipped without a WORKLOG entry, which is finding F-11 (`AGENTS.md` §9 requires the worklog in the same commit). |
+| **Phase** | Documentation |
+| **Task** | "the record, measured rather than remembered" — handoff for 2026-10-06 |
+| **Agent** | opencode (prior session) |
+| **Status** | ✅ Complete |
+| **Activity** | Re-measured `SSOT.md` §1 rather than carrying figures forward; wrote `RESUME_2026-10-05.md` (158 lines); updated `CHANGELOG.md`, `EPIC_STATUS.md`, `PLATFORM_CORE_PLAN.md`, `TODO.md`; fixed `scripts/docs-verify.mjs`. |
+| **Files Changed** | `docs/core/SSOT.md` · `docs/work/CHANGELOG.md` · `docs/work/EPIC_STATUS.md` · `docs/work/PLATFORM_CORE_PLAN.md` · `docs/work/RESUME_2026-10-05.md` (new) · `docs/work/TODO.md` · `scripts/docs-verify.mjs` — 7 files, +281/−29 |
+| **Decisions Made** | Record over memory: every figure in the handoff was re-measured, because the session had just caught a fourth wrong hand-maintained number (`1,401` vs the measured `1,431` unit tests). |
+| **Next Steps** | The 2026-10-06 session. The 40-path tree remained uncommitted (`RBAC-01`). |
+| **Quality** | Gate table as of that commit: see `RESUME_2026-10-05.md` §"Quality gates" — all ten green except `format:check`. |
+
+---
 ## 2026-10-05 — `SEC-110` — the shipped `PermissionGuard` now receives all four of its tokens
 
 | Field | Entry |
