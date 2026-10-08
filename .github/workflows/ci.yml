@@ -1,0 +1,154 @@
+# EduFlow CI — OPS-101.
+#
+# WHY THIS EXISTS
+# ---------------
+# Before this file, every gate was run by hand. A red gate was a
+# fact about the person who remembered to run it, not about the
+# commit. The repository's own history is the evidence: the
+# `CRRITICAL` enum typo (SEC-101) passed all ten local gates
+# because no gate reads the generated SQL the way the migration
+# diff does, and `format:check` was red on the same eight files
+# for the repository's entire life (OPS-113) because nobody ran
+# it. A commit that fails a gate must fail the push, not a
+# reviewer's patience.
+#
+# DESIGN DECISIONS
+# ----------------
+# 1. **Fail-fast ordering (T4).** Cheapest gate first: typecheck
+#    fails in seconds, e2e fails in minutes. A broken commit
+#    costs seconds of runner time, not a full pipeline.
+# 2. **Every gate, in the AGENTS.md §4 order.** The same ten
+#    commands a developer runs, in the same order, so "green in
+#    CI" and "green locally" mean the same thing.
+# 3. **Postgres and Redis as service containers (T2).** The
+#    integration suite talks to a real PostgreSQL — it is the
+#    gate that caught the unbuildable foreign keys (see
+#    `database-contract.integration.spec.ts`). Redis runs as a
+#    service too, but `REDIS_URL` is deliberately NOT set: the
+#    cache-less boot is a first-class deployment (PLT-202 AC-2,
+#    `cached-permission-lookup.spec.ts`: "works with `cache`
+#    absent, which is every school with no REDIS_URL"), and a
+#    configured-but-unreachable Redis is a failure mode the
+#    permission guard reports. The suite's contract is the
+#    cache-less path; a future test that wires the cache sets
+#    `REDIS_URL` itself.
+# 4. **The Prisma client is generated explicitly.** `@prisma/
+#    client`'s own postinstall does this, but an implicit step
+#    is a step nobody can see fail; the explicit `prisma
+#    generate` makes the dependency visible and deterministic.
+# 5. **`CI: true` is set explicitly.** Playwright reads it
+#    (`forbidOnly`, retries, the github reporter) and the
+#    workflow should not depend on GitHub's implicit value.
+# 6. **Runs on every branch push, not just `main` (AC 1).**
+#    "Push to a branch runs all ten gates" is the acceptance
+#    criterion, and it is also what makes the negative test
+#    (AC 2) observable: a deliberately broken commit pushed to
+#    a branch must fail this pipeline.
+#
+# REQUIRED CHECK
+# --------------
+# The job name is `CI`, so the status context is `CI`. It is
+# configured as a required check on `main` (strict, enforced
+# for admins) — see the OPS-101 WORKLOG entry for how that was
+# applied.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+
+jobs:
+  gates:
+    name: CI
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: eduflowdbuser
+          POSTGRES_PASSWORD: eduflow123
+          POSTGRES_DB: eduflowdb_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate the Prisma client
+        run: pnpm --filter @eduflow/api exec prisma generate
+
+      # Fail-fast ordering: cheapest gate first (T4).
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Coverage
+        run: pnpm test:coverage
+
+      - name: Build
+        run: pnpm build
+
+      - name: Integration tests
+        run: pnpm test:integration
+        env:
+          DATABASE_URL: postgresql://eduflowdbuser:eduflow123@localhost:5432/eduflowdb_ci?schema=public
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @eduflow/web exec playwright install chromium --with-deps
+
+      - name: E2E tests
+        run: pnpm test:e2e
+
+      - name: Docs verify
+        run: pnpm docs:verify
+
+      - name: Route guards
+        run: pnpm check:route-guards

@@ -5,6 +5,22 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 
 ---
+## 2026-10-08 — `OPS-101` — the first CI workflow: all ten gates on every push
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-08 |
+| **Phase** | EPIC-B · `OPS-101` (13 pts, P0). Closes debt D-2 (zero CI). |
+| **Task** | First CI workflow: all ten gates on every branch push, containerized Postgres + Redis services, fail-fast ordering, required-check configuration |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. |
+| **Activity** | `.github/workflows/ci.yml` created — the repository's first CI. Triggers on push to **every** branch and on PRs (AC 1: "push to a branch runs all ten gates"). One job named `CI`, fail-fast ordered cheapest-first (T4): typecheck → lint → format:check → unit → coverage → build → integration → e2e → docs:verify → route-guards — the same ten commands in the same order as AGENTS.md §4, so green in CI and green locally mean the same thing. Services (T2): `postgres:18` (the integration suite's real database; `DATABASE_URL` pointed at it) and `redis:7-alpine`. **`REDIS_URL` is deliberately not set**: the cache-less boot is a first-class deployment (PLT-202 AC-2; `cached-permission-lookup.spec.ts` asserts "works with `cache` absent, which is every school with no REDIS_URL"), and a configured-but-unreachable Redis is a failure mode the permission guard reports — the suite's contract is the cache-less path, and a future test that wires the cache sets `REDIS_URL` itself. The Prisma client is generated explicitly (an implicit postinstall is a step nobody can see fail). Playwright chromium installed with `--with-deps`; the e2e suite needs no API service (shell/theme/locale only — Playwright starts its own web server per `playwright.config.ts`, `reuseExistingServer: false`). |
+| **Files Changed** | `.github/workflows/ci.yml` (new) · `docs/work/WORKLOG.md` |
+| **Decisions Made** | (1) **The job is named `CI`** so the status context is `CI` — the check configured as required on `main` (T3). (2) **`branches: ['**']`, not just `main`** — AC 1 is literally "push to a branch runs all ten gates", and it makes the negative test (AC 2) observable on a branch without opening a PR. (3) **Redis service present, `REDIS_URL` unset** — the plan asks for the service, the code's contract is the cache-less deployment, and both hold (see Activity). (4) **Node 22 / pnpm 11.22.0** — the `engines`/`packageManager` floor, not the local Node 26. (5) **`concurrency` cancels in-progress** so a force-pushed branch does not stack runs. (6) **`permissions: contents: read`** — least privilege; the workflow only reads the repo. |
+| **Next Steps** | Observe the first run (positive test). Negative test (AC 2): a deliberately broken commit pushed to a branch must fail the pipeline — evidence appended below. Then configure `CI` as a required check on `main` (strict, enforced for admins) via `gh api`. EPIC-B continues: `OPS-103` → `OPS-112` → `SEC-115` → `OPS-106` → `OPS-105`. |
+| **Quality** | Workflow syntax is validated by GitHub on push (the workspace has no local YAML parser); the run itself is the verification. Gate state on the tree: all ten green (measured post-`SEC-101`). |
+
+---
 ## 2026-10-08 — `SEC-101` — baseline migration, deploy script, shadow-DB check, `PLT-401` proof
 
 | Field | Entry |
