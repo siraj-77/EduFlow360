@@ -31,8 +31,10 @@
 > settle the doc-generation conflicts that the debt register lists as open.
 ---
 
-> **Resume note is in `docs/work/RESUME_2026-10-10.md`** (close of the repository-recovery
-> session; supersedes `RESUME_2026-10-09.md`).
+> **Resume note is in `docs/work/RESUME_2026-10-10-session-2.md`** (close
+> of the Phase 0 + SEC-115 criteria session; supersedes
+> `RESUME_2026-10-10.md`, whose "what is next #1" — write SEC-115's
+> acceptance criteria — is done).
 > **Measured gate evidence: `docs/work/GATE_RESULTS_2026-10-09.md`.**
 > **Debt register and roadmap: `docs/superpowers/plans/2026-10-09-strategic-roadmap-v2.md`.**
 > **Read section 2 before starting work:** `pnpm test:integration` is flaky and the

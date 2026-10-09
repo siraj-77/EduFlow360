@@ -701,8 +701,8 @@ Five causes explain all 42 debt items. Fixing symptoms without fixing these repr
 | 0.3 — install `.gitignore` | **DONE.** `.gitignore` = 2,795 B, covers `.env`, `.env.*`, `.claude/`, `*.7z` | skip |
 | 0.4 — extract the archive | **DONE**, but without the `-x"!node_modules"` filter: 42,426 files, 36,309 of them `node_modules` | keep; delete `node_modules` in place, do not re-extract |
 | 0.5–0.9 — diff, adopt `.git`, restore, quarantine, prove | not done | → Phase B |
-| 1.5 — port contract | not done; **new evidence**: the recovered `env.ts` is the authority | → Phase C-4 |
-| 1.6 — env reconciliation | not done; **this is the recovered repo's own next ticket, `SEC-115`** | → Phase C-2 |
+| 1.5 — port contract | **decision RESOLVED by evidence** (API 3001, web 3500; `RESUME_2026-10-10.md` O-2). Stale 3030/3031 prose edits remain | → Phase C-4 |
+| 1.6 — env reconciliation | **criteria written 2026-10-09** (`docs/superpowers/plans/2026-10-09-sec-115-acceptance-criteria.md`); execution pending | → Phase C-2 |
 | 1.9 — fill `ARCHITECTURE.md` | **NO-OP.** The recovered file is 26,993 B | skip |
 | — | **not in the prior plan** | Phase A: dead remote + no backup |
 | — | **not in the prior plan** | Phase C: the doc split is a *forward refresh*, not a truncation — it needs adjudication, not restoration |
@@ -1377,7 +1377,7 @@ Execute in this order. Each item names the debt it retires.
 
 | # | Work | Points | Retires | Notes |
 |---|---|---|---|---|
-| **E-1** | **`SEC-115` env reconciliation** | P0 | D-05, D-07, D-09 | Already scoped in Phase C-2. **This is the recovered repo's own next ticket.** |
+| **E-1** | **`SEC-115` env reconciliation** | P0 | D-05, D-07, D-09 | Already scoped in Phase C-2. **This is the recovered repo's own next ticket.** Criteria written 2026-10-09: `docs/superpowers/plans/2026-10-09-sec-115-acceptance-criteria.md` — execution is the next task. |
 | **E-2** | **RBAC soundness: `PLT-205` T4–T6, `SEC-113`** | 42 | D-17, D-18 | Turn `@RequirePermission` from vocabulary into control. The largest single block and the biggest soundness gap. Requires D-1 first. |
 | **E-3** | **Audit writer `PLT-402`** | 8 | D-17 | `@Audited` is on sensitive routes and writes **nothing**. Wire `audit-immutability.sql`. |
 | **E-4** | **`i18n` + RTL shell** | — | D-20, D-37, G-9 | Author every application string × 4 locales; build the RTL app shell from scratch (the template gives 4 CSS rules and 0 app keys). Requires D-12. |
