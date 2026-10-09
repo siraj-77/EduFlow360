@@ -4148,3 +4148,54 @@ update.
 **Next:** Phase 1 — write `SEC-115`'s acceptance criteria (the repo's own
 next ticket, per `RESUME_2026-10-10.md`), then the Phase C remainder
 (doc-delta register, port contract).
+
+## 2026-10-09 — Phase 1: `SEC-115` acceptance criteria written
+
+| Field | Value |
+| --- | --- |
+| Phase | Phase 1 — `SEC-115` env-var reconciliation, criteria stage |
+| Status | ✅ Criteria written and committed. **Execution pending.** |
+| Artefact | `docs/superpowers/plans/2026-10-09-sec-115-acceptance-criteria.md` |
+
+Six acceptance criteria, each with a runnable verification command, written
+against the measured state rather than the roadmap's stale C-2 sketch:
+
+- **AC-1** one name per variable — `NEXT_PUBLIC_API_URL` (documented in
+  `.env.example:121`, read by nothing) renamed to `NEXT_PUBLIC_API_BASE_URL`
+  (read by `api-base-url.ts:61`, undocumented); `OIDC_CALLBACK_MAX_ATTEMPTS`
+  / `_WINDOW_MS` added to the template; `WEB_ORIGIN` enters the `env.ts`
+  schema with a documented default and `main.ts:57`'s silent `??` is
+  removed — closing `FIX-08`/`G1-11`.
+- **AC-2** zero placeholders — the 11 bracketed values in `.env.example`
+  (lines 13, 17, 22, 23, 24, 30, 31, 36, 56, 57, 84) become greppable
+  `localdev`-marked local-development values.
+- **AC-3** no `NEXTAUTH_*` — `.env.local` deleted (it carries the forbidden
+  pair and the leaked Google secret); the real Google credentials are
+  re-entered from the Google console into the recreated `.env`.
+- **AC-4** `pnpm migration:run` with no hand-exported `DATABASE_URL` — the
+  one genuine loader gap: the Prisma CLI reads `.env` beside `schema.prisma`
+  (`apps/api/prisma/.env`, absent), while the test runners read the repo root.
+- **AC-5** the `vitest.integration.config.ts` comment matches D46 — its claim
+  that `process.loadEnvFile()` "overwrites existing keys" is false (measured
+  Node 26.7.0; SSOT D46 records a test catching the opposite assumption
+  before it shipped). The guard stays; the rationale is corrected.
+- **AC-6** the reconciliation table committed as evidence — every variable,
+  its schema entry, its template line, its reader, its verdict.
+
+Measured corrections to the roadmap's C-2 sketch, recorded in the document:
+its conflict table names `WEB_PORT`/`API_PORT` as "code" (they exist in
+planning prose only), and its Step 5 tests reference `loadEnv({ nodeEnv })`
+and `SEED_SUPERADMIN_PASSWORD`, neither of which exists in the recovered
+code (the real API is `loadConfig(env)`, `env.ts:417`). The placeholder
+count is 11 bracketed values, not 12 (the 12th is the nested `<password>`
+token inside `DATABASE_URL`'s value).
+
+No owner decision was required — every criterion resolves against
+code-as-authority or an existing convention. Credential rotation (A-1/A-2),
+the SSOT Naming-legend find-and-replace, and the stale port-prose edits are
+recorded as explicitly out of scope.
+
+**Next:** execute `SEC-115` against the criteria (TDD: RED-first tests for
+the `WEB_ORIGIN` schema entry and the `NEXT_PUBLIC_API_BASE_URL` rename),
+then Phase 2 — the Phase C remainder (doc-delta register, Auth.js proof,
+port-prose edits, credential rotation, archive redaction).

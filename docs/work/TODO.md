@@ -60,15 +60,30 @@
 > coverage-tiers OK. Full record: **`docs/work/WORKLOG.md`** (2026-10-09
 > entry).
 
-> ## ▶ NEXT — Phase 1: write `SEC-115`'s acceptance criteria
+> ## ✔ DONE 2026-10-09 — Phase 1: `SEC-115` acceptance criteria written
 >
-> Per `RESUME_2026-10-10.md`: *"Write SEC-115's acceptance criteria. That
-> is the task, not a preliminary."* Five proposed criteria are listed there
-> (one env-var naming scheme; zero unresolved placeholders in `.env.example`;
-> no `NEXTAUTH_*` in `.env.local`; `pnpm migration:run` without a
-> hand-exported `DATABASE_URL`; the `loadEnvFile` comment matches SSOT D46).
-> Then the Phase C remainder: the doc-delta register (`DOC_DELTA_2026-10-09.md`)
-> and the port contract (code is authority: API 3001, web 3500).
+> Six criteria with runnable verification commands, written against the
+> **measured** state (not the roadmap's stale C-2 sketch): **AC-1** one
+> name per variable (`NEXT_PUBLIC_API_URL`→`NEXT_PUBLIC_API_BASE_URL`;
+> `OIDC_CALLBACK_*` documented; `WEB_ORIGIN` into the `env.ts` schema,
+> closing `FIX-08`/`G1-11`'s silent `??` in `main.ts:57`) · **AC-2** zero
+> placeholders (11 bracketed values → greppable `localdev` values) ·
+> **AC-3** no `NEXTAUTH_*` (`.env.local` deleted) · **AC-4**
+> `pnpm migration:run` with no hand-exported `DATABASE_URL` (the one
+> genuine loader gap) · **AC-5** the `loadEnvFile` comment matches D46
+> (its "overwrites" claim is false — measured Node 26.7.0) · **AC-6** the
+> reconciliation table committed as evidence.
+> Full document: **`docs/superpowers/plans/2026-10-09-sec-115-acceptance-criteria.md`**.
+> No owner decision was required.
+
+> ## ▶ NEXT — execute `SEC-115` against its criteria
+>
+> TDD: RED-first tests for the `WEB_ORIGIN` schema entry and the
+> `NEXT_PUBLIC_API_BASE_URL` rename, then the fixes, then all six
+> verification blocks plus the full gate set. After that, Phase 2: the
+> Phase C remainder (doc-delta register `DOC_DELTA_2026-10-09.md`,
+> Auth.js proof C-3, stale port-prose edits C-4, credential rotation
+> A-1/A-2, archive redaction A-4/A-5).
 
 > ## ▶ START HERE — `docs/work/RESUME_2026-10-09.md`
 >
