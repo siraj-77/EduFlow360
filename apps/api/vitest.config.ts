@@ -42,6 +42,30 @@ export default defineConfig({
      */
     include: ['src/**/*.spec.ts'],
     exclude: ['**/node_modules/**', '**/*.integration.spec.ts'],
+    /**
+     * The default 5s budget was the last ungated timeout in this suite,
+     * and the plausible mechanism behind the cold-cache guard-spec
+     * flakes (`OPS-112`).
+     *
+     * The two over-HTTP guard specs boot a Nest application and a real
+     * socket per test. On a cold turbo cache every package's vitest
+     * instance starts at once, and CPU contention alone can push a boot
+     * past 5s — a failure that has nothing to do with the code under
+     * test. The claimed ~1-in-5 cold rate did not reproduce on
+     * 2026-10-09 (20/20 isolated runs, 10/10 cold full-suite runs),
+     * but the one unexplained failure that session was the first run
+     * after a `turbo.json` change, which invalidates the entire cache —
+     * exactly the cold condition.
+     *
+     * Headroom is the mechanism-agnostic fix, and the same reasoning
+     * that raised the Playwright budgets to 90s
+     * (`apps/web/playwright.config.ts`): a genuinely hung test still
+     * fails, just later. The plan's alternative — polling a cache until
+     * it is warm — does not map to these specs: their caches are
+     * synchronous in-memory doubles with no warmup state, so there is
+     * no race for a readiness assertion to close.
+     */
+    testTimeout: 30_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

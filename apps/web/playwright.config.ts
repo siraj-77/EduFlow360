@@ -86,7 +86,7 @@ export default defineConfig({
   // test failure. The dev server compiles from source, so the suite cannot be
   // broken by a production build left over from an earlier commit.
   //
-  // AND `.next` IS CLEARED FIRST, which the comment above used to claim was
+  // `.next` IS CLEARED FIRST, which the comment above used to claim was
   // unnecessary. It is not. `next dev` writes to the same `.next` an interactive
   // `pnpm dev` session uses, so a suite started after someone has been looking
   // at the app inherits their half-written webpack cache. Twice on 2026-09-30
@@ -95,11 +95,23 @@ export default defineConfig({
   // stale build. The suite was not testing the application; it was testing
   // someone's leftover editor state.
   //
-  // `node -e ... rmSync` rather than `rm -rf`, for the same reason as
-  // `AGENTS.md` §8 records: this is a Windows workstation.
+  // The wipe is chained into the server command, BEFORE `dev`, and it must
+  // stay there. It was once moved to `globalSetup` (OPS-112, 2026-10-09) on
+  // the reasoning that a global setup step runs before the server — that
+  // reasoning is wrong. Playwright starts the webServer PLUGIN before it runs
+  // `globalSetup` (the plugin setup tasks precede the global-setup tasks in
+  // the runner's task list), so a `globalSetup` wipe deletes `.next` out from
+  // under the already-running dev server: `ENOENT ... routes-manifest.json`,
+  // webpack pack-cache ENOENTs, and 27 of 37 tests failing, while the same
+  // suite passed 37/37 with the wipe chained into the command. The `&&` chain
+  // is the ordering guarantee; the wipe itself lives in `scripts/clean-next.mjs`
+  // via the `dev:e2e` script, so it is a named, hand-runnable step rather than
+  // shell text embedded in a config value.
+  //
+  // `reuseExistingServer: false` stays, because a leftover dev server on the
+  // port is exactly the state this suite must not inherit.
   webServer: {
-    command:
-      "node -e \"require('node:fs').rmSync('.next',{recursive:true,force:true})\" && npm run dev",
+    command: 'pnpm dev:e2e',
     url: `${BASE_URL}${PROBE_PATH}`,
     reuseExistingServer: false,
     timeout: 120_000,
