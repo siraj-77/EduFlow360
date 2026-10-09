@@ -7,13 +7,14 @@
 > (the repo was renamed `EduFlow` → `EduFlow360`; every clone's old `origin` 404'd, so the
 > 88-commit history existed only inside a 217 MB archive).
 >
-> - `main` is clean and in sync at **`bb27b6f`, 89 commits**, pushed and verified by fresh clone.
+> - `main` is clean, in sync with `origin`, and pushed; **91 commits**, of which the
+>   first 88 predate this session. Verified by a fresh clone of `EduFlow360`.
 > - **All 14 gates green on a clean install**, re-measured — not carried over:
 >   install · prisma generate · typecheck 8/8 · lint 8/8 · format:check · unit **1,432** ·
 >   coverage 8/8 · build 9/9 · migration:run · integration **240**/14 files · e2e **37/37** ·
->   docs:verify 251 refs · check:route-guards 83 files · check:coverage-tiers.
+>   docs:verify 256 refs · check:route-guards 83 files · check:coverage-tiers.
 > - Full evidence: **`docs/work/GATE_RESULTS_2026-10-09.md`**.
-> - The 42-item technical-debt register and the 10-row cross-document contradiction matrix
+> - The 44-item technical-debt register and the 10-row cross-document contradiction matrix
 >   are in **`docs/superpowers/plans/2026-10-09-strategic-roadmap-v2.md`**.
 >
 > **Read before starting work — two things the setup docs did not say:**
@@ -30,7 +31,10 @@
 > settle the doc-generation conflicts that the debt register lists as open.
 ---
 
-> **Resume note for 2026-10-09 is in `docs/work/RESUME_2026-10-09.md`.**
+> **Resume note is in `docs/work/RESUME_2026-10-10.md`** (close of the repository-recovery
+> session; supersedes `RESUME_2026-10-09.md`).
+> **Measured gate evidence: `docs/work/GATE_RESULTS_2026-10-09.md`.**
+> **Debt register and roadmap: `docs/superpowers/plans/2026-10-09-strategic-roadmap-v2.md`.**
 > **Read section 2 before starting work:** `pnpm test:integration` is flaky and the
 > failure is inside the setup-token concurrency test. It is not root-caused; its
 > likely owner is `SEC-112` (the integration config's missing schema isolation),
