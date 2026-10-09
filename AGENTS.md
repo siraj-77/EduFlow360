@@ -1,34 +1,23 @@
-# AGENTS.md — EduFlow (new application)
+# AGENTS.md — EduFlow360 (fresh development)
 
 > **Read this before writing any code.** It is the operating contract for this repository.
-> **Decided:** September 27, 2026 · **Governing ADR:** `docs/adr/ADR-003-new-app-single-tenant-selective-reuse.md`
-> **Revised:** September 28, 2026 — merged with the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.2.
-> **Revised:** October 5, 2026 — status corrected after a full-tree audit. See the amendment log below.
-> **Status:** milestone 1 (Platform Core & RBAC) in progress. Application code exists: 16 Prisma models, 5 controllers, 3 enforcing guards, 1,401 unit + 235 integration + 37 e2e tests. **9 of the 12 API module directories are still empty scaffolds.**
+> **Decided:** September 27, 2026 · **Governing ADR:** `docs/adr/ADR-003-fresh-build-single-tenant.md`
+> **Revised:** October 9, 2026 — product renamed **EduFlow360**; fresh build (no legacy code); default **Superadmin** system user; admin console at `http://localhost:3030/admin`; **template-fidelity** rule; School Setup & Academic modules; 70–80% agentic delivery model.
+> **Status:** pre-scaffold. No application code exists yet.
 
 **Precedence:** this file and ADR-003 win over every other planning document. Where the Master Plan, SRS or idea-bank disagree with them (for example on tenancy), follow this file and flag the discrepancy.
-
-### Amendment log
-
-| Date | Change | Authority |
-|---|---|---|
-| 2026-09-28 | Initial contract. Merged the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.2. | Master Plan v5.2 |
-| 2026-10-05 | **Status block corrected.** It read *"pre-scaffold. No application code exists yet."* That was false from 2026-09-29 onward, and it was the first thing every session read. | Owner approval of ⚑'B, 2026-10-05 |
-| 2026-10-05 | **§3.1 and §4 testing row: Jest → Vitest.** `docs/adr/ADR-020-test-runner-is-vitest.md` was Accepted 2026-09-30; only this amendment was outstanding. | Owner approval of ⚑'A, 2026-10-05 |
-| 2026-10-05 | **§7: `PLT-101`'s Definition of Done amended** — mobile parity is milestone 2 per `ADR-005`, so it is no longer part of the web/API DoD. | Owner approval of ⚑N4, 2026-10-05 |
-| 2026-10-05 | **§6, §12 and §13 corpus pointer corrected.** All three named `docs/archive/corpus/`, which does not exist. §6 already named `docs/core/` as the source; the other two contradicted it. | Owner decision on ⚑2, 2026-10-05 |
 
 ---
 
 ## 1. What this repository is
 
-EduFlow is a **school management system / school ERP** being built as a **new application**: web (Next.js), API (NestJS), mobile (Expo, milestone 2). Features are gated by a **digitally signed licence** (Basic / Standard / Deluxe / Enterprise). Languages: **English (default), Tamil, Sinhala, Arabic (RTL)**.
+EduFlow360 is a **school management system / school ERP** being built as a **new application**: web (Next.js), API (NestJS), mobile (Expo, milestone 2). Features are gated by a **digitally signed licence** (Basic / Standard / Deluxe / Enterprise). Languages: **English (default), Tamil, Sinhala, Arabic (RTL)**.
 
-This repository holds the requirements, the architecture and the delivery plan **and the application code built from them.** The codebase is scaffolded and the first vertical slice of milestone 1 is shipped.
+This repository contains the requirements, architecture and delivery plan. The codebase is not yet scaffolded.
 
-**A separate legacy implementation exists at `H:\AI-Dev\MyProjects\EduFlowV3\EduFlowV3\eduflow\`.** It is a Next.js 16 monolith with a multi-tenant SaaS data model. It is **read-only reference material**. You are not extending it, not deploying it, and not porting it wholesale. See §5 for exactly what may be reused.
+**This is a fresh development.** EduFlow360 has **no relationship to any earlier implementation** (including any project named EduFlow360, (removed) or similar). Do not look for, read, copy, port, or import code, schemas, tests or conventions from any other codebase on the developer's machine. Everything is built new from the planning documents and the approved UI templates. See §5.
 
-**Planning documents (current):** `EduFlow_Project_Master_Plan_v5.2.md` (architecture, module tree, editions, roadmap), `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (FR-xxx requirements, test strategy, MVP, phases), `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (epic/story/AC template), `EduFlow_School_Setup_Workflow_v1.md` (delivery process, gates G0–G9), `EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` (how to drive an agent; **its P0–P14 sequence supersedes any sprint map**), `SSOT.md` (current state of record) and `ARCHITECTURE.md` (the technical form of this contract). Keep them under `docs/core/`.
+**Planning documents (current):** `EduFlow360_Project_Master_Plan_v5.3.md` (architecture, module tree, editions, roadmap), `EduFlow360_SRS_TestPlan_MVP_Roadmap_v1.3.md` (FR-xxx requirements, test strategy, MVP, phases), `EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md` (epic/story/AC template). Keep them under `docs/core/`.
 
 ---
 
@@ -52,7 +41,7 @@ Hard constraints, not preferences. If a task seems to require violating one, **f
 Therefore:
 
 - **Do not build tenant-scoping machinery.** No `schoolId`-scoped query extensions, no ambient tenant context, no cross-tenant guards, no row-level-security dependency for isolation. They defend against a threat that does not exist here, and each one is a new surface that can be bypassed.
-- **Do not add a `SUPER_ADMIN` cross-tenant role.** There is nothing to be cross-tenant about. The highest role is an in-school administrator.
+- **There is no cross-school ("platform") super-user.** The highest role is **`SUPERADMIN`**, which exists *inside* this one school's deployment only. It is seeded as the default system user (§2.16). There is nothing cross-tenant for it to administer.
 - **Do not write cross-school aggregate queries against the product database.** That is a separate analytical store, out of scope.
 - **Do carry a `schoolId` column** on school-scoped entities — for auditability, licence portability and future flexibility. It is **metadata, not a security control**. Uniqueness constraints are scoped within a school's database, never assumed global.
 - **No `if (schoolId === ...)` branches and no ad hoc feature flags.** Capabilities and premium features are gated through the licence/entitlement engine only (§2.3).
@@ -87,9 +76,8 @@ Every route is protected by guards. All three compose; none is optional.
 | Permission | `@RequirePermission('<PERMISSION_KEY>')` | The user's role grants this action |
 | Entitlement | `@RequireEntitlement('<feature_key>')` | The school's licence includes this feature |
 | Audit | `@Audited('<ACTION_KEY>')` | The action is recorded append-only |
-| Public | `@Public('<reason>')` | The **only** exemption from `@RequirePermission`. The reason is mandatory |
 
-- **A route with no `@RequirePermission` and no `@Public('<reason>')` is a defect.** A CI static check must fail on any controller route carrying neither. It accepts either one; every `@Public` use is listed in a checked-in allowlist file with its justification, so exemptions are reviewable rather than invisible. Fail-closed, never fail-open.
+- **A route with no `@RequirePermission` is a defect.** A CI static check must fail on any controller route lacking it. Fail-closed, never fail-open.
 - `@RequireEntitlement` is required on any feature-gated capability so a Basic-edition school cannot reach Deluxe functionality by calling the API directly.
 - `@Audited` is required on every sensitive action: finance, grades, permissions, attendance overrides, leave approvals, document issuance, GL postings, hall-booking overrides, wallet movements.
 - **Ownership policies are enforced, not just roles** (`IOwnershipPolicy`): teacher → own classes, parent → own children, vendor → own outlet. Role-denial and ownership-denial are distinguishable in logs.
@@ -98,7 +86,7 @@ Every route is protected by guards. All three compose; none is optional.
 
 ### 2.4 Time-dependent logic uses `IClock`
 
-Domain and use-case code **must never** call `Date.now()`, `new Date()` or `Math.random()` directly. Inject `IClock` (and an injected id generator for randomness). Required for deterministic tests of accrual, licence expiry, deadlines and hold expiry.
+Domain and use-case code **must never** call `Date.now()` or `new Date()` directly. Inject `IClock`. Required for deterministic tests of accrual, licence expiry, deadlines and hold expiry.
 
 ### 2.5 Money is never a float
 
@@ -124,9 +112,7 @@ Domain and use-case code **must never** call `Date.now()`, `new Date()` or `Math
 
 All UI text goes through i18n resource files. English (default), Tamil, Sinhala, Arabic. A literal English string in JSX/TSX is a review-blocking issue.
 
-**Start from the existing assets, not from scratch.** `docs/template/EduFlow — Frontend Template.html` contains a **light/dark token set** (harvest in full), and the **pattern** for RTL (`dir` set on `<html>`, rules scoped under `html[dir="rtl"]`) — harvest the pattern. It does **not** contain a usable dictionary: it has **21 keys, all landing-page marketing copy, and zero application keys**, so real i18n content is authored per module. Its RTL implementation is **4 CSS rules that mirror a landing page** — no sidebar, form, table, logical properties or icon mirroring — so app-shell RTL is built from scratch. It also has **no `prefers-reduced-motion`** rule. Harvest the tokens into `packages/ui-kit`; build the dictionary in `packages/i18n-resources`. Assessment: `docs/design/FRONTEND_TEMPLATE.md`.
-
-**Take the i18n, RTL and tokens. Do not take the marketing claims** — "Trusted by 200+ schools" and "1.2M Students Managed" are false, and "Start Free Trial" contradicts a per-school deployment sold on editions.
+**Start from the approved templates (§2.17).** `docs/template/EduFlow360_Template_Landing_Auth.html` already contains a complete `en`/`ta`/`si`/`ar` dictionary, a working RTL implementation (`html[dir="rtl"]` rules plus a runtime `dir` attribute) and the light/dark token set. Move the dictionary into `packages/i18n-resources/` and the tokens into `packages/ui-kit` **without changing any value or wording**. Placeholder marketing copy in the templates is reproduced as-is and flagged as *owner decision pending* (§2.17 rule 6).
 
 ### 2.9 One shared engine per concern
 
@@ -174,6 +160,75 @@ Biometric templates are stored as irreversible hashes and never logged. Alumni d
 
 Every `ERROR`/`CRITICAL` is written to **both** the rotating structured-JSON file log **and** the DB error log — never one without the other. Logs carry correlation IDs and pass through redaction (§2.13). Rotation: 25 MB active file, 3 historical files.
 
+### 2.16 Default system user: `superadmin`
+
+This is a **single-tenant** application, so every fresh deployment starts with exactly one built-in **system user**:
+
+| Property | Value |
+|---|---|
+| Username | `superadmin` (immutable) |
+| Role | `SUPERADMIN` — immutable system role holding every permission |
+| Flags | `isSystemUser = true`, `mustChangePassword = true` |
+| Created by | Idempotent seed (`pnpm --filter api db:seed`), also run automatically on first boot in dev |
+| Initial password | Read from `SEED_SUPERADMIN_PASSWORD` in the git-ignored `.env`. If unset **in development only**, a random password is generated and printed to the console **once**. In staging/production the seed **fails fast** if it is unset. |
+
+Rules:
+- **No password is ever written in a tracked file, test fixture (use generated values), log, or audit payload.** `.env.example` holds a placeholder only.
+- First login **must** force a password change (reuse the reset flow). Until changed, the session may call only the change-password endpoint.
+- `superadmin` cannot be deleted, renamed, or have its role changed; it cannot be disabled while it is the last active `SUPERADMIN`. Enforce server-side and test it.
+- The seed is idempotent: running it again never creates a second user and **never resets an existing password**.
+- Every use is audited (`LOGIN_*`, `PASSWORD_CHANGED`, any permission or settings change). `SUPERADMIN` actions are not exempt from `@Audited`.
+- `SUPERADMIN` may create `SCHOOL_ADMIN` and other users; day-to-day work should use named accounts, and the school is advised to keep `superadmin` for break-glass use.
+- Never implement a "backdoor" bypass of guards for `superadmin`: it passes the same guards as everyone, because it holds all permissions.
+
+### 2.17 Template fidelity (use the UI templates as they are)
+
+The approved HTML templates are the **visual source of truth**:
+
+| Template | Contents |
+|---|---|
+| `docs/template/EduFlow360_Template_Landing_Auth.html` | Landing page (animated hero), theme toggle, language switcher (EN/TA/SI/AR + RTL), login, forgot password, reset password |
+| `docs/template/EduFlow360_Template_Admin_Dashboard.html` | Admin app shell (collapsible left menu with submenus, top bar), School Dashboard, Settings-style tabbed form pattern |
+
+**Rules (hard):**
+1. **Do not modify the template files.** They are read-only reference artefacts. Only the owner changes them, and only by explicit instruction recorded in `docs/work/WORKLOG.md` (as "Template change authorised by owner").
+2. **Reproduce them as they are** in the Next.js app: same layout, structure, spacing, colours (CSS tokens), typography, iconography, copy, animations, light/dark behaviour, RTL behaviour and responsive breakpoints. Do **not** "improve", re-style, rename, re-order, re-colour or simplify anything.
+3. **What you may change without asking:** replace demo *behaviour* with real behaviour — the template's client-side demo lockout, demo credentials, fake social buttons and static numbers are demo logic, not design. Wire real services behind the same markup. Keep the markup/visual output identical.
+4. **Screens that do not exist in the templates** (e.g. School Setup tabs, Academic screens) must be composed **only from the templates' existing tokens, components and patterns** (cards, tabs, tables/rows, form fields, buttons, pills, toggles, progress bars). Do not invent a new visual language. Show a screenshot to the owner and get approval before merging a new screen pattern.
+5. If a template cannot be reproduced exactly (a technical limitation), **stop and ask**; record the deviation and the owner's decision.
+6. **Placeholder copy** in the templates (e.g. marketing numbers such as "200+ schools", "1.2M students", "Start Free Trial") is reproduced as-is and flagged in `docs/work/TODO.md` as *owner decision pending*. Do not silently rewrite it.
+7. Visual regression tests (Playwright screenshot comparison against the template, both themes, LTR and RTL) are part of the Definition of Done for every templated screen.
+8. shadcn/ui primitives are allowed and preferred **where they can be styled to match the template exactly**. Template fidelity wins over shadcn defaults.
+
+### 2.18 Dev server, ports and the admin console
+
+| Item | Value |
+|---|---|
+| Web dev server | **`http://localhost:3030`** (port **3030**; `next dev -p 3030`, `next start -p 3030`) |
+| **Admin console** | **`http://localhost:3030/admin`** |
+| Public pages | `/` landing · `/login` · `/forgot-password` · `/reset-password` |
+| API dev server | `http://localhost:3031` (assumption — change in `.env` if needed; never hard-code) |
+
+- Ports come from `WEB_PORT` / `API_PORT` in `.env` with these defaults; scripts, CORS, Playwright `baseURL`, e-mail links and OAuth redirect URIs must all derive from them.
+- `/admin` and everything beneath it require authentication **and** the `ADMIN_CONSOLE_ACCESS` permission. Unauthenticated → redirect to `/login?next=/admin`; authenticated but unauthorised → 403 page.
+- Admin routes: `/admin` (dashboard) · `/admin/school-setup` (tabs `?tab=general|system|holidays|event-categories|houses|scheduler`) · `/admin/academic/<screen>` · `/admin/settings/...`.
+
+### 2.19 School Setup & Academic terminology (avoid collisions)
+
+The owner's UI labels are authoritative for users; use **distinct domain names** in code:
+
+| UI label | Domain name | Notes |
+|---|---|---|
+| Academic Sections (Academic Level) | `AcademicLevel` | KG, Primary, Secondary… (was "Education Stage" in earlier plans). Holds the class schedule and break configuration. |
+| Section | `Section` | A, B, C… class division |
+| Grade | `Grade` | belongs to one `AcademicLevel` |
+| Class | `SchoolClass` | Grade + Section + Medium + Syllabus (+ Academic Year) — avoid the bare identifier `class` |
+| Class Medium | `ClassMedium` | language of instruction |
+| Academic Calendar | `AcademicYear` | |
+| Terms Management | `AcademicTerm` | term / semester / quarter |
+
+Configuration entities are **singletons** (School Profile, System Configuration, Scheduler Constraints) or **lists with soft-delete/deactivate** (everything else). Never hard-delete a record that other records reference.
+
 ---
 
 ## 3. Repository structure
@@ -181,7 +236,7 @@ Every `ERROR`/`CRITICAL` is written to **both** the rotating structured-JSON fil
 Scaffold **both** trees in full before writing logic in a new module.
 
 ```
-EduFlow/
+eduflow360/
 ├── apps/
 │   ├── api/src/modules/<module-name>/
 │   │   ├── controllers/            # routes + @RequirePermission/@RequireEntitlement/@Audited
@@ -216,7 +271,7 @@ One folder per feature/module holds its components, hooks, services and tests. R
 
 | Layer | Stack |
 |---|---|
-| Web | Next.js, React, TypeScript (strict), Tailwind CSS, shadcn/ui — UI only; the API is a separate service (no server actions) |
+| Web | Next.js, React, TypeScript (strict), Tailwind CSS, shadcn/ui — UI only; the API is a separate service (no server actions). Dev port **3030**, admin at `/admin` |
 | API | NestJS, Prisma, Zod |
 | Database | PostgreSQL, one per school |
 | Cache / queue | Redis + BullMQ |
@@ -224,7 +279,7 @@ One folder per feature/module holds its components, hooks, services and tests. R
 | Mobile | React Native + Expo (milestone 2) |
 | i18n | per Master Plan §2.1 (`next-intl`/`react-i18next` web, `i18next` mobile) — confirm before adding |
 | Documents | headless Chromium or PDFKit/Handlebars, locale-aware font embedding |
-| Testing | **Vitest** (`ADR-020`), React Testing Library, Playwright (web). Detox deferred with mobile to milestone 2 (`ADR-005`) |
+| Testing | Jest, React Testing Library, Playwright (web), Detox (mobile) |
 
 ### 3.2 UI rules (mandatory)
 
@@ -257,7 +312,7 @@ No production code is merged without all of these green.
 | Coverage | `pnpm test:coverage` | Thresholds enforced (see below) |
 | Build | `pnpm build` | Green |
 | Integration | `pnpm test:integration` | Containerized real-Postgres, isolated schema |
-| E2E | `pnpm test:e2e` | Playwright (web). Detox arrives with mobile, milestone 2 |
+| E2E | `pnpm test:e2e` | Playwright (web) / Detox (mobile) |
 
 **Coverage thresholds** — tiered, from the corpus SRS §12:
 
@@ -302,62 +357,30 @@ Write the failing test. Watch it fail for the right reason. Write the minimum co
 
 ---
 
-## 5. Legacy reuse: the whitelist
+## 5. Fresh build — no legacy code
 
-`EduFlowV3` is a legacy implementation. Reuse is **explicit and bounded**. Anything not listed below is **not** ported.
+EduFlow360 is **new development**. There is no legacy implementation to reuse and none must be consulted.
 
-### 5.1 Reuse these
-
-> **Carve-out (decision D1): Attendance, Leave and Grading are designed fresh. Nothing in those three domains is ported, and the legacy implementations are not the specification. Their tests do not port either.**
-
-| Category | Notes |
-|---|---|
-| **Business logic** | Fee calculation, fee assignment, promotion rules, scheduling engine. **Excludes** attendance, leave and grading — see carve-out above. Verified during the September 2026 audit; covered by table-driven tests. |
-| **Login / authentication logic** | Credential verification, password hashing, password reset, session handling, CSPRNG temporary passwords. |
-| **Table / schema definitions** | Entity shapes and field semantics. Re-derive tenancy per §2.1 — do **not** port the legacy scoping columns as a mechanism. |
-| **Validation rules** | Field-level and cross-field validation, including money precision and boundary conditions. |
-| **Tests for the above** | The table-driven rule-engine tests are the executable specification. Porting them ports the spec. |
-
-Inventory and per-file judgements: `docs/analysis/LEGACY_REUSE_INVENTORY.md`.
-
-### 5.2 Do not reuse these
-
-| Category | Why |
-|---|---|
-| **All UI, components, styling** | The interface is being redesigned. Nothing carries over. |
-| **Tenant-scoping layer** | `prisma-tenant-extension.ts`, `tenant-context.ts`, 35-model scoping. Solves a problem that does not exist under §2.1. Importing it adds a bypass surface with no threat behind it. |
-| **Global cross-school `@unique` constraints** | 14 legacy constraints assume a shared database. Irrelevant and wrong here. |
-| **Raw-SQL repositories** | **149** `$queryRaw`/`$executeRaw` call sites. Not ported. Method: recursive `*.ts`/`*.tsx` scan of the legacy app excluding `node_modules`/`.next`, measured 2026-09-28. See `docs/analysis/LEGACY_REUSE_INVENTORY.md` §2. |
-| **Next.js server actions / App Router API** | New build uses a separate API service. |
-| **Workspace artefacts** | Root scratch scripts, 4 stale generated Prisma clients, self-nested clone, 431KB log dumps. |
-
-**When in doubt, do not port.** A ported file must be named in the reuse inventory with a reason.
+- **Never** import, copy or "port" code, schemas, migrations, tests, scripts, assets or conventions from any other project. If you recall patterns from other repositories (tenant scoping, global unique constraints, raw SQL repositories, server actions), do not apply them here — the rules in §2 are the whole specification.
+- Re-derive everything from: this file, the planning documents (§0), the requirements baseline (§6) and the approved UI templates (§2.17).
+- Third-party open-source libraries are allowed through normal package management (checked against the tech-stack table, §3.1).
+- If you believe code from elsewhere is needed, **stop and ask**; the owner decides and records it in an ADR.
 
 ---
 
 ## 6. Requirements baseline
 
-> ⚠️ **The `docs/idea-bank/` extraction has NOT been performed. The directory contains five loud, empty stubs.** Corrected 2026-09-29 by **D28**.
->
-> This section previously tabulated **139 modules / 20 domains · 257 rules · 35 entities · 15 risks / 40 boundary tests / 41 failure modes · 73 FRs + 9 NFRs** as the contents of those five files. **None of those figures has a source in this repository.** The files are 43–62 lines of header, column schema, acceptance criteria and trap list, totalling **16,124 bytes** — physically incapable of holding that content. Each declares `**Status:** Placeholder. Zero …rows.`
->
-> The figures are **removed, not replaced.** Independently enumerating `SRS` §3 yields **87 unique FR IDs** — so even the FR count was wrong — but substituting 87 without running the extraction would be a *second* invention, which is the exact failure `docs/idea-bank/README.md` exists to prevent. Only the **9 NFR** figure was correct (`SRS` §5, `NFR-01`…`NFR-09`).
->
-> **Do not size work from any figure in this section.** Run the extraction first (`REQ-01`…`REQ-05`).
+The authoritative requirements are in `docs/idea-bank/`, extracted from the archived planning corpus:
 
-| File | Status |
+| File | Contents |
 |---|---|
-| `module-inventory.md` | 🔴 **Empty stub.** Will carry modules with priority, required entities, licence gate and engine dependencies |
-| `business-rules.md` | 🔴 **Empty stub.** Will carry rules with a **source citation and a test target** |
-| `domain-entities.md` | 🔴 **Empty stub.** Will carry entities with field definitions, constraints, `schoolId`/money flags |
-| `edge-cases-and-risks.md` | 🔴 **Empty stub.** Will carry risks, boundary tests, failure modes and test standards |
-| `fr-index.md` | 🔴 **Empty stub.** Will carry FR/NMR traceability from `SRS` to epic → story → test |
+| `module-inventory.md` | 139 modules across 20 domains, with priority and required entities |
+| `business-rules.md` | 257 rules with source citations and edge cases |
+| `domain-entities.md` | 35 entities, field definitions, constraints, `schoolId`/money flags |
+| `edge-cases-and-risks.md` | 15 risks, 40 boundary tests, 41 failure modes, test standards, known gaps |
+| `fr-index.md` | 73 FRs + 9 NFRs, MVP in/out, traceability |
 
-**Where the requirements actually are today:** the archived corpus in `docs/core/` — `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (the FR and NFR source of record, **87 FRs + 9 NFRs**), `EduFlow_Project_Master_Plan_v5.2.md` (the module tree, §5) and `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (9 epics · 33 stories · 199 points). There is no `docs/archive/corpus/`; ⚑2 is answered — **`docs/core/` is the corpus.**
-
-**Read the relevant `docs/core/` section before implementing any module.** **Before creating any entity, enum, interface or engine, check `docs/core/SSOT.md`, `docs/core/ARCHITECTURE.md` and §2.9 for an existing equivalent** — creating a parallel concept under a new name is the most common way this codebase drifts.
-
-**A gap in the corpus is recorded as `GAP — needs design (PC-xxx)`. Never invent a threshold, a formula or a schedule to fill a table.** A missing rule is visible; a fabricated one is not.
+**Read the relevant idea-bank section before implementing any module.** **Before creating any entity, enum, interface or engine, check `docs/core/SSOT.md`, the idea-bank and §2.9 for an existing equivalent** — creating a parallel concept under a new name is the most common way this codebase drifts.
 
 ### 6.1 Known requirements gaps — resolve before building these
 
@@ -370,20 +393,20 @@ These are **blocking**. The corpus does not contain the design.
 | **Grading & Moderation** — P0, zero rules | Exams, report cards, promotion, analytics | `PC-002` |
 | **Tax & currency** — never mentioned, despite invoicing | Fees, payroll, procurement | `PC-003` |
 | **Admission** — in MVP list, no FR behind it | MVP scope | `PC-004` |
-| **BookShop, Canteen, School Hall rental** — specified in Master Plan v5.2 §17.6–17.9 (newer than the idea-bank extraction); needs FR/rule/entity extraction and settlement design | Retail outlets, hall rental | `PC-005` *(proposed — not yet ticketed)* |
+| **BookShop, Canteen, School Hall rental** — specified in Master Plan v5.3 §17.6–17.9 (newer than the idea-bank extraction); needs FR/rule/entity extraction and settlement design | Retail outlets, hall rental | `PC-005` *(proposed — not yet ticketed)* |
 | **Student Wallet** — stored-value legal review and GL design | Wallet | `PC-006` *(proposed — not yet ticketed)* |
 
 ---
 
 ## 7. Delivery plan
 
-**First milestone: Platform Core & RBAC** — `PLT-EPIC-01` … `PLT-EPIC-09`, ~199 points. (Story count: see `docs/work/PLATFORM_CORE_PLAN.md`; the Jira plan file lists 33 — reconcile if they differ.)
+**Milestone 1 — Platform Core & RBAC + Admin Console:** `PLT-EPIC-01` … `PLT-EPIC-10` (39 stories, 233 points — see `docs/core/EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md`). **Milestone 2 — School Setup & Academic Setup:** `SET-EPIC-00` … `SET-EPIC-06`, `HRM-EPIC-01` (minimal teacher directory), `ACD-EPIC-01` … `ACD-EPIC-08` — 54 stories, 269 points — see `docs/core/EduFlow360_Jira_Epics_SchoolSetup_Academic_v1.md`. (Mobile is a later milestone.)
 
 Epic and story IDs are taken unchanged from the corpus and are the traceability backbone. **Do not renumber them.**
 
 | Epic | Name | Pts |
 |---|---|---|
-| `PLT-EPIC-01` | Authentication & Session Management | 34 |
+| `PLT-EPIC-01` | Authentication & Session Management (incl. default `superadmin` seed, PLT-107) | 39 |
 | `PLT-EPIC-02` | Dynamic RBAC & Policy Engine | 42 |
 | `PLT-EPIC-03` | Licensing & Entitlement Enforcement | 29 |
 | `PLT-EPIC-04` | Immutable Audit Logging System | 21 |
@@ -392,12 +415,11 @@ Epic and story IDs are taken unchanged from the corpus and are the traceability 
 | `PLT-EPIC-07` | Multi-Channel Notification Router | 13 |
 | `PLT-EPIC-08` | Storage & File Manager | 13 |
 | `PLT-EPIC-09` | System Health & Monitoring | 13 |
+| `PLT-EPIC-10` | Admin Console Shell, Template Port & Dev Environment (port 3030) | 29 |
 
 **Critical path:** `PLT-EPIC-01` → `PLT-EPIC-02` → `PLT-EPIC-03` → `PLT-EPIC-04`. Every later module assumes these decorators exist and work.
 
-> **`PLT-101`'s Definition of Done is amended (⚑N4, owner-approved 2026-10-05).** The Jira DoD required mobile parity, while `D5` / `ADR-005` place `apps/mobile` in milestone 2 — so the DoD was unsatisfiable and `PLT-101` could not be formally signed off. Mobile parity is **removed** from the web/API Definition of Done. The story is complete on web/API scope; `PLT-104`, `PLT-106` and the push half of `PLT-702` carry the mobile work into milestone 2.
-
-**Decided scope (September 27, 2026):** licensing ships in this milestone (D4). **`apps/mobile` is milestone 2** (D5) — `PLT-104`, `PLT-106` and the push half of `PLT-702` move with it. The milestone-2 MVP is a **reduced vertical slice**: enrolment → class assignment → attendance → fee invoice → GL posting → receipt.
+**Decided scope:** licensing ships in milestone 1 (D4). **`apps/mobile` is deferred** (D5) — `PLT-104`, `PLT-106` and the push half of `PLT-702` move with it. The first business MVP is a **reduced vertical slice**: School Setup → Academic Setup → enrolment → class assignment → attendance → fee invoice → GL posting → receipt. **Default system user `superadmin` (PLT-107) replaces the earlier "bootstrap token" idea.**
 
 Plan: `docs/work/PLATFORM_CORE_PLAN.md`.
 
@@ -485,6 +507,11 @@ REDIS_URL="redis://<host>:6379"
 JWT_ACCESS_SECRET="<generate with: openssl rand -base64 32>"
 JWT_REFRESH_SECRET="<generate with: openssl rand -base64 32>"
 LICENSE_PUBLIC_KEY_PATH="./keys/license.pub.pem"
+WEB_PORT="3030"
+API_PORT="3031"
+WEB_BASE_URL="http://localhost:3030"
+API_BASE_URL="http://localhost:3031"
+SEED_SUPERADMIN_PASSWORD="<set a strong value in the git-ignored .env; never commit>"
 STORAGE_ENDPOINT="<s3-compatible endpoint>"
 # OAuth client IDs/secrets, payment, WhatsApp/SMS/email and video providers: see docs/core
 ```
@@ -497,27 +524,30 @@ STORAGE_ENDPOINT="<s3-compatible endpoint>"
 
 | Question | Answer lives in |
 |---|---|
-| What are we building, and why this way? | `docs/adr/ADR-003-*` |
+| What are we building, and why this way? | `docs/adr/ADR-003-fresh-build-single-tenant.md` |
 | What is the current state of the project? | `docs/core/SSOT.md` |
-| How is it architected? | `docs/core/ARCHITECTURE.md`, Master Plan v5.2 §5 |
-| What are the exact business rules? | 🔴 **`docs/idea-bank/business-rules.md` is an empty stub — see §6.** Until `REQ-03` runs: SRS v1.2, then Master Plan v5.2 |
-| What entities and fields exist? | 🔴 **`docs/idea-bank/domain-entities.md` is an empty stub.** Until `REQ-02` runs: `SSOT.md` §4 decisions, `ADR-002`, and the ERD once it exists |
-| What is in the MVP? | **`docs/core/EduFlow360_SRS_TestPlan_MVP_Roadmap_v1.3.md` Part D §19** — not the idea-bank, which is a stub |
-| BookShop / Canteen / Hall / newer requirements? | Master Plan v5.2 §17; SRS v1.2 FR-RET / FR-CAN / FR-BKS / FR-FAC / FR-WAL |
+| How is it architected? | `docs/core/ARCHITECTURE.md`, Master Plan v5.3 §5 |
+| What are the exact business rules? | `docs/idea-bank/business-rules.md` |
+| What entities and fields exist? | `docs/idea-bank/domain-entities.md` |
+| What is in the MVP? | `docs/idea-bank/fr-index.md`, SRS v1.3 Part D |
+| BookShop / Canteen / Hall / newer requirements? | Master Plan v5.3 §17; SRS v1.3 FR-RET / FR-CAN / FR-BKS / FR-FAC / FR-WAL |
 | What are we building first? | `docs/work/PLATFORM_CORE_PLAN.md` |
-| How do I write epics/stories? | `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` |
+| How do I write epics/stories? | `EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md` |
 | What is the next task? | `docs/work/TODO.md` |
 | What was decided and why? | `docs/adr/` |
-| What can I reuse from the legacy app? | `docs/analysis/LEGACY_REUSE_INVENTORY.md` |
-| What is the UI direction? | `docs/design/FRONTEND_TEMPLATE.md` |
-| What is the original corpus? | `docs/core/` — the SRS, Master Plan, Jira epics, setup workflow and agentic prompt pack. **There is no `docs/archive/corpus/`; it was never created.** |
+| What is the UI direction? | `docs/template/*.html` (read-only, §2.17) and `docs/design/FRONTEND_TEMPLATE.md` |
+| School Setup / Academic field-level spec? | Master Plan v5.3 §5A–5B; SRS v1.3 FR-SET / FR-ACD; `EduFlow360_Jira_Epics_SchoolSetup_Academic_v1.md` |
+| What is the original corpus? | `docs/archive/corpus/` (historical) |
 
 ---
 
 ## 13. What NOT to do
 
-- **Do not build tenancy-scoping machinery.** See §2.1. This is the single most likely wrong turn, because the legacy codebase is full of it and it looks like a good pattern.
-- **Do not port legacy code that is not on the reuse whitelist.** See §5.
+- **Do not build tenancy-scoping machinery.** See §2.1. This is a common wrong turn because multi-tenant patterns look like good practice; here they are unnecessary and harmful.
+- **Do not use, read or port code from any other project.** This is a fresh build. See §5.
+- **Do not modify the UI templates**, restyle them, or "improve" them. See §2.17.
+- **Do not create a second default/system user, a backdoor, or a hard-coded password.** See §2.16.
+- **Do not hard-code ports or URLs.** Web `3030`, admin at `/admin`, API `3031` come from configuration. See §2.18.
 - **Do not add a route without all three guards.** CI must fail on a missing `@RequirePermission`.
 - **Do not write directly to `journal_entries` or `audit_records`.**
 - **Do not create a second attendance, stock, booking, approval, document or notification engine.** See §2.9.
@@ -528,7 +558,7 @@ STORAGE_ENDPOINT="<s3-compatible endpoint>"
 - **Do not auto-submit purchase orders, publish AI output, or let the chatbot write without human approval.**
 - **Do not ship a screen that works only in one theme, one language, or left-to-right only.**
 - **Do not renumber `PLT-*` IDs.**
-- **Do not treat the corpus figures as a build order without running the extraction first.** `AGENTS.md` §6 is the requirements baseline; the working extraction target is `docs/idea-bank/`.
+- **Do not treat `docs/archive/corpus/` as a build order.** It is a historical reference. The working requirements are in `docs/idea-bank/`.
 - **Do not implement real Google/Microsoft/Apple/Facebook OAuth** without confirming which client credentials and redirect URIs are configured for the current environment — these differ between local, staging and production.
 - **Do not add a new top-level module** without checking `docs/idea-bank/module-inventory.md` and Master Plan §5 — it may already be scoped.
 
@@ -541,11 +571,31 @@ Confirm against `package.json` / `turbo.json` once scaffolded — this is the ex
 ```bash
 pnpm install
 docker-compose -f infra/docker/docker-compose.yml up -d     # Postgres + Redis
-pnpm --filter web dev && pnpm --filter api dev              # mobile: milestone 2
+pnpm --filter api db:seed                                   # creates default 'superadmin' (idempotent)
+pnpm --filter web dev        # http://localhost:3030  (admin: /admin)
+pnpm --filter api dev        # http://localhost:3031  (mobile: later milestone)
 pnpm lint && pnpm typecheck && pnpm test && pnpm test:coverage && pnpm build
 pnpm test:integration && pnpm test:e2e
 pnpm --filter api migration:generate --name <name> && pnpm --filter api migration:run
 ```
+
+---
+
+---
+
+## 15. Agentic delivery model (70–80% of the code is agent-written)
+
+Roughly **70–80% of implementation is done by AI agents**; humans decide, review, verify and operate. The Jira plans tag every sub-task: 🤖 agent-led · 🤝 paired (agent drafts, human decides) · 👤 human-led.
+
+**Agent-ready story contract (Definition of Ready):** a story is only handed to an agent when it has (1) a one-paragraph goal, (2) numbered acceptance criteria, (3) the ports/interfaces involved, (4) the template screen or pattern to reproduce (if UI), (5) the permission keys, audit action keys and i18n namespaces, (6) any open decision marked *owner decision pending*. Otherwise the agent must ask — never guess.
+
+**Per-story loop:** plan (read-only) → owner/lead approves plan for risky stories → RED → GREEN → REFACTOR → gates → fresh-session reviewer → human gate → merge. One story per session; the repo, `WORKLOG.md` and `TODO.md` are the memory, not the chat.
+
+**Humans always own:** product and policy decisions; the permission matrix; security and authorization review; licence keys and secrets; production infrastructure; legal/compliance (wallet, e-invoicing, data protection); template changes; UAT and sign-off; anything marked ⚠ Provisional.
+
+**Agent guardrails:** no scope creep; never weaken a test to pass; never edit `AGENTS.md`, ADRs, or template files without explicit owner instruction; stop and ask on ambiguity; report deviations honestly in the worklog.
+
+**Reviewer independence:** the session that wrote the code never approves it — run the review prompt in a fresh session (Prompt Pack §4.3).
 
 ---
 
