@@ -502,7 +502,7 @@ STORAGE_ENDPOINT="<s3-compatible endpoint>"
 | How is it architected? | `docs/core/ARCHITECTURE.md`, Master Plan v5.2 §5 |
 | What are the exact business rules? | 🔴 **`docs/idea-bank/business-rules.md` is an empty stub — see §6.** Until `REQ-03` runs: SRS v1.2, then Master Plan v5.2 |
 | What entities and fields exist? | 🔴 **`docs/idea-bank/domain-entities.md` is an empty stub.** Until `REQ-02` runs: `SSOT.md` §4 decisions, `ADR-002`, and the ERD once it exists |
-| What is in the MVP? | **`docs/core/EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` Part D §19** — not the idea-bank, which is a stub |
+| What is in the MVP? | **`docs/core/EduFlow360_SRS_TestPlan_MVP_Roadmap_v1.3.md` Part D §19** — not the idea-bank, which is a stub |
 | BookShop / Canteen / Hall / newer requirements? | Master Plan v5.2 §17; SRS v1.2 FR-RET / FR-CAN / FR-BKS / FR-FAC / FR-WAL |
 | What are we building first? | `docs/work/PLATFORM_CORE_PLAN.md` |
 | How do I write epics/stories? | `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` |

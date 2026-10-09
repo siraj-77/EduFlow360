@@ -1,6 +1,6 @@
 # PLATFORM CORE PLAN — Milestone 1
 
-**Project key:** `PLT` · **Source of truth for stories:** `docs/core/EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md`
+**Project key:** `PLT` · **Source of truth for stories:** `docs/core/EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md`
 **Execution authority:** `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5 — **its P0–P14 sequence supersedes the sprint map below** (`SSOT.md` D17)
 **This file** is the *engineering* view: entry conditions, the prompt-by-prompt order, TDD obligations, exit gates.
 **Last updated:** 2026-09-28
@@ -263,4 +263,4 @@ mandatory; `:139`'s retracted "P14 sits after P8" claim is removed rather than r
 
 ---
 
-*Companion documents: `docs/core/EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (authoritative stories) · `docs/core/SSOT.md` · `docs/core/ARCHITECTURE.md` · `docs/work/GAP_ANALYSIS_2026-09-28.md` · `docs/work/TODO.md`.*
+*Companion documents: `docs/core/EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md` (authoritative stories) · `docs/core/SSOT.md` · `docs/core/ARCHITECTURE.md` · `docs/work/GAP_ANALYSIS_2026-09-28.md` · `docs/work/TODO.md`.*

@@ -109,3 +109,11 @@ desktop.ini
 # ---- Optional tooling output referenced by AGENTS.md section 10 ----
 graphify-out/
 .graphify_*.json
+
+# ---- Backups: live OUTSIDE the working tree, never merely untracked ----
+# New folder.7z held the entire project plus two credential files. If it sat
+# untracked here it would still be swept into any cloud sync, backup or
+# accidental `git add -A`. Keep backups in H:\AI-Dev\_backups\eduflow360\.
+*.7z
+*.zip
+*.tar.gz

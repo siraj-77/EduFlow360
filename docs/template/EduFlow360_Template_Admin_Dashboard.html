@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!-- EduFlow360 approved UI template (Admin shell + School Dashboard). READ-ONLY: reproduce as-is; change only on explicit owner instruction (AGENTS.md §2.17). Owner-authorised change 2026-10-09: menu gained 'School Setup' and 'Academic' groups; nothing else changed. Placeholder data is demo only. -->
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EduFlow360 — Dashboard</title>
+<style>
+:root{--bg:#f7f8fb;--surface:#fff;--text:#161a23;--muted:#6b7280;--border:#e6e8ee;--brand:#4f46e5;--brand2:#7c3aed;--accent:#06b6d4;--danger:#dc2626;--ok:#059669;--warn:#d97706;--shadow:0 10px 30px rgba(20,20,40,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0f16;--surface:#141824;--text:#eef0f6;--muted:#9099ad;--border:#242938;--shadow:0 10px 30px rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg:#0d0f16;--surface:#141824;--text:#eef0f6;--muted:#9099ad;--border:#242938;--shadow:0 10px 30px rgba(0,0,0,.4)}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,"Noto Sans","Noto Sans Tamil","Noto Sans Sinhala","Noto Sans Arabic",Arial,sans-serif;font-size:14px}
+button{font:inherit;color:inherit;cursor:pointer}
+.shell{display:flex;min-height:100%}
+.sidebar{width:264px;flex-shrink:0;background:var(--surface);border-inline-end:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;transition:width .2s;z-index:30}
+.sb-head{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;font-weight:800;font-size:18px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+.dot{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,var(--brand),var(--accent));flex-shrink:0}
+.menu{flex:1;overflow-y:auto;padding:4px 10px 12px}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 10px 6px}
+.item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;background:none;border-radius:9px;color:var(--muted);text-align:start}
+.item:hover{background:var(--bg);color:var(--text)}
+.item.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.item .ic{width:20px;text-align:center;flex-shrink:0}
+.item .lb{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .ch{font-size:10px;transition:transform .2s}
+.item.open .ch{transform:rotate(90deg)}
+[dir=rtl] .item .ch{transform:scaleX(-1)}[dir=rtl] .item.open .ch{transform:scaleX(-1) rotate(90deg)}
+.sub{display:none;margin:2px 0 4px;padding-inline-start:20px;border-inline-start:1px solid var(--border);margin-inline-start:19px}
+.sub.open{display:block}
+.sub .item{padding:7px 10px;font-size:13px}
+.badge{background:var(--danger);color:#fff;border-radius:999px;font-size:10px;padding:1px 7px}
+.sb-foot{border-top:1px solid var(--border);padding:10px}
+.collapsed .sidebar{width:68px}
+.collapsed .lb,.collapsed .ch,.collapsed .grp,.collapsed .sub,.collapsed .sb-head span.nm,.collapsed .badge{display:none}
+.collapsed .item{justify-content:center}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.iconbtn{border:1px solid var(--border);background:none;border-radius:9px;padding:7px 10px}
+.search{flex:1;max-width:380px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--text)}
+.spacer{flex:1}
+.toggle{width:44px;height:24px;border-radius:20px;background:var(--border);position:relative;cursor:pointer;flex-shrink:0}
+.knob{position:absolute;top:2px;inset-inline-start:2px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:11px;transition:.2s}
+[data-theme=dark] .knob{inset-inline-start:22px}
+select.lang{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:7px 8px}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px}
+.content{padding:22px;max-width:1400px;width:100%;margin:0 auto}
+.crumb{color:var(--muted);font-size:12.5px;margin-bottom:4px}
+h1{font-size:22px;margin:0 0 18px}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:16px}
+.two{grid-template-columns:2fr 1fr;margin-bottom:16px}.three{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-bottom:16px}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 12px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.card h3 a{font-size:12px;color:var(--brand);font-weight:600;cursor:pointer}
+.kpi span{color:var(--muted);font-size:12.5px}.kpi b{display:block;font-size:26px;margin:4px 0}
+.up{color:var(--ok);font-size:12px}.down{color:var(--danger);font-size:12px}
+.bars{display:flex;align-items:flex-end;gap:14px;height:150px;padding-top:8px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar i{width:100%;max-width:38px;border-radius:8px 8px 0 0;background:linear-gradient(180deg,var(--brand),var(--accent));display:block}
+.bar small{color:var(--muted);font-size:11px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}.row:last-child{border:0}
+.row .grow{flex:1;min-width:0}.row small{color:var(--muted);display:block;font-size:12px}
+.btn{border:0;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600}
+.ok{background:rgba(5,150,105,.14);color:var(--ok)}.no{background:rgba(220,38,38,.12);color:var(--danger)}
+.pill{font-size:11px;padding:2px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--border);color:var(--muted)}
+.prog{height:8px;border-radius:8px;background:var(--bg);overflow:hidden;margin:6px 0 12px}.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--accent))}
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.qa button{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 8px;font-size:12.5px}
+.qa button:hover{border-color:var(--brand)}
+.field{margin-bottom:14px}.field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px}
+.field input,.field select{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
+.field small{color:var(--muted)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.tab{border:1px solid var(--border);background:none;border-radius:999px;padding:6px 14px;font-size:13px;color:var(--muted)}
+.tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.empty{text-align:center;color:var(--muted);padding:60px 20px}
+.hamb{display:none}
+@media(max-width:860px){
+ .hamb{display:inline-block}
+ .sidebar{position:fixed;inset-block:0;inset-inline-start:0;transform:translateX(-105%);width:264px!important;box-shadow:var(--shadow)}
+ [dir=rtl] .sidebar{transform:translateX(105%)}
+ .sidebar.open{transform:none!important}
+ .collapsed .lb,.collapsed .ch,.collapsed .grp,.collapsed .sb-head span.nm{display:revert}
+ .search{display:none}
+ .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25;display:none}.scrim.show{display:block}
+}
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head"><span class="dot"></span><span class="nm">EduFlow360</span></div>
+    <nav class="menu" id="menu"></nav>
+    <div class="sb-foot"><button class="item" onclick="document.getElementById('shell').classList.toggle('collapsed')"><span class="ic">⇔</span><span class="lb">Collapse menu</span></button></div>
+  </aside>
+  <div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="iconbtn hamb" onclick="openDrawer()" aria-label="Menu">☰</button>
+      <input class="search" placeholder="Search students, staff, invoices…">
+      <span class="spacer"></span>
+      <select class="lang" id="lang" onchange="setLang(this.value)" aria-label="Language">
+        <option value="en">EN</option><option value="ta">TA</option><option value="si">SI</option><option value="ar">AR</option>
+      </select>
+      <div class="toggle" onclick="toggleTheme()" title="Theme"><div class="knob" id="knob">☀️</div></div>
+      <div class="avatar">AD</div>
+    </header>
+    <main class="content" id="page"></main>
+  </div>
+</div>
+
+<script>
+/* ---------- Menu definition (add modules here; gate by license/permission in real app) ---------- */
+const MENU=[
+ {g:"Overview",items:[{id:"dashboard",ic:"🏠",t:"Dashboard"}]},
+ {g:"Academics",items:[
+  {id:"students",ic:"🧑‍🎓",t:"Students & Exams",sub:["Students","Timetable","Exams & Grades","Admissions"]},
+  {id:"academic",ic:"🎓",t:"Academic",sub:["Academic Calendar","Terms Management","Syllabus","Academic Sections","Section","Grade","Class Medium","Subject","Class","Assign Subject to Class","Assign Subject to Teacher","Subject Assignments","Assign Class Teacher","Student Promotion"]},
+  {id:"attendance",ic:"✅",t:"Attendance",sub:["Student Attendance","Teacher & Staff","Leave Requests"],badge:7},
+  {id:"learning",ic:"📚",t:"Learning",sub:["Homework","Online Classes","Lesson Plans"]}]},
+ {g:"Finance",items:[
+  {id:"finance",ic:"💰",t:"Finance",sub:["Fees & Invoices","General Ledger","Payroll","Reports"]}]},
+ {g:"Operations",items:[
+  {id:"ops",ic:"🏫",t:"Operations",sub:["Library","Transport","Hostel","Assets & Inventory"]},
+  {id:"fac",ic:"🏟️",t:"Facilities",sub:["Bookings","School Hall","Swimming Pool & Courts","IT Lab"]},
+  {id:"retail",ic:"🛒",t:"BookShop & Canteen",sub:["Outlets","Canteen","BookShop","Concession Settlements","Student Wallet"]}]},
+ {g:"Community",items:[
+  {id:"comm",ic:"🎉",t:"Community",sub:["Events & Sports","Clubs & Prefects","Alumni","Announcements"]},
+  {id:"docs",ic:"🪪",t:"ID Cards & Certificates",sub:["ID Cards","Certificates","Report Cards"]},
+  {id:"help",ic:"🛟",t:"Helpdesk",sub:["Tickets","Complaints"]},
+  {id:"an",ic:"📊",t:"Reports & Analytics"}]},
+ {g:"Administration",items:[
+  {id:"setup",ic:"🏫",t:"School Setup",sub:["General","System Configuration","Holidays","Event Categories","Houses","Scheduler Constraints"]},
+  {id:"settings",ic:"⚙️",t:"Settings",sub:["General","Academic Year & Terms","Users & Roles","Permissions","License & Modules","Languages & Localization","Notifications","Integrations","Fees & GL Setup","Outlets & Concessions","Audit Logs","Backup & Restore"]}]}
+];
+const state={page:"dashboard",sub:null,open:{}};
+const $=s=>document.querySelector(s);
+
+function renderMenu(){
+  $("#menu").innerHTML=MENU.map(g=>`<div class="grp">${g.g}</div>`+g.items.map(it=>{
+    const has=!!it.sub, open=state.open[it.id]||state.page===it.id;
+    const act=state.page===it.id&&!state.sub;
+    return `<button class="item ${act?'active':''} ${has&&open?'open':''}" onclick="nav('${it.id}',null)">
+      <span class="ic">${it.ic}</span><span class="lb">${it.t}</span>${it.badge?`<span class="badge">${it.badge}</span>`:''}${has?'<span class="ch">▶</span>':''}</button>`+
+      (has?`<div class="sub ${open?'open':''}">${it.sub.map(s=>`<button class="item ${state.page===it.id&&state.sub===s?'active':''}" onclick="nav('${it.id}','${s.replace(/'/g,"\\'")}')"><span class="lb">${s}</span></button>`).join('')}</div>`:'');
+  }).join('')).join('');
+}
+function nav(id,sub){
+  const it=MENU.flatMap(g=>g.items).find(i=>i.id===id);
+  if(it&&it.sub&&!sub){state.open[id]=!state.open[id]; if(state.page===id&&!state.sub){renderMenu();return}}
+  state.page=id;state.sub=sub;if(sub)state.open[id]=true;
+  renderMenu();render();closeDrawer();window.scrollTo(0,0);
+}
+function openDrawer(){$("#sidebar").classList.add("open");$("#scrim").classList.add("show")}
+function closeDrawer(){$("#sidebar").classList.remove("open");$("#scrim").classList.remove("show")}
+
+/* ---------- Pages ---------- */
+function render(){
+  const it=MENU.flatMap(g=>g.items).find(i=>i.id===state.page);
+  if(state.page==="dashboard")return $("#page").innerHTML=dashboard();
+  if(state.page==="settings")return $("#page").innerHTML=settings(state.sub||"General");
+  const title=state.sub||it.t;
+  $("#page").innerHTML=`<div class="crumb">${it.t}${state.sub?' / '+state.sub:''}</div><h1>${title}</h1>
+   <div class="card empty">Module screen placeholder — build <b>${title}</b> as a feature folder (pages / components / hooks / services / schemas / permissions).</div>`;
+}
+function dashboard(){
+  const att=[["Mon",96],["Tue",94],["Wed",97],["Thu",93],["Fri",91]];
+  return `<div class="crumb">Home</div><h1>School Dashboard <span class="pill">Term 2 · 2026/27</span></h1>
+  <div class="grid kpis">
+   <div class="card kpi"><span>Total Students</span><b>1,482</b><span class="up">▲ 24 new this term</span></div>
+   <div class="card kpi"><span>Present Today</span><b>94.5%</b><span class="down">▼ 1.2% vs yesterday</span></div>
+   <div class="card kpi"><span>Fees Collected (Term)</span><b>$284,200</b><span class="up">▲ 82% of target</span></div>
+   <div class="card kpi"><span>Staff Present</span><b>131 / 138</b><span class="pill">7 on leave</span></div>
+  </div>
+  <div class="grid two">
+   <div class="card"><h3>Weekly Attendance <a onclick="nav('attendance','Student Attendance')">View all</a></h3>
+    <div class="bars">${att.map(a=>`<div class="bar"><small>${a[1]}%</small><i style="height:${a[1]-60}%"></i><small>${a[0]}</small></div>`).join('')}</div></div>
+   <div class="card"><h3>Fee Collection</h3>
+    <small>Tuition</small><div class="prog"><i style="width:86%"></i></div>
+    <small>Transport</small><div class="prog"><i style="width:71%"></i></div>
+    <small>Canteen & BookShop settlements</small><div class="prog"><i style="width:64%"></i></div>
+    <small>Hall & facility hire</small><div class="prog"><i style="width:92%"></i></div></div>
+  </div>
+  <div class="grid two">
+   <div class="card"><h3>Pending Approvals <span class="pill">6</span></h3>
+    ${[["Leave — Ms. Perera","3 days · Sick leave"],["Hall hire — Royal Academy","Sat 14 Nov · Sports day"],["Certificate — Bonafide","Grade 9-B · A. Nadeem"],["Purchase order (draft)","BookShop · Grade 7 sets"],["Gate pass — Hostel","R. Silva · Fri"],["Concession settlement","Canteen · October"]]
+      .map(r=>`<div class="row"><div class="grow"><b>${r[0]}</b><small>${r[1]}</small></div><button class="btn ok">Approve</button><button class="btn no">Reject</button></div>`).join('')}</div>
+   <div class="card"><h3>Quick Actions</h3><div class="qa">
+     <button>➕<br>Admit student</button><button>✅<br>Mark attendance</button><button>🧾<br>New invoice</button>
+     <button>🏛️<br>Book hall</button><button>🍽️<br>Canteen menu</button><button>🪪<br>Print ID cards</button></div></div>
+  </div>
+  <div class="grid three">
+   <div class="card"><h3>Canteen · Today <span class="pill">School-run</span></h3><b style="font-size:22px">$1,240</b><small style="display:block;color:var(--muted)">412 orders · 38 pre-orders pending · 3 allergy overrides</small></div>
+   <div class="card"><h3>BookShop <span class="pill">Third-party</span></h3><b style="font-size:22px">18 titles low</b><small style="display:block;color:var(--muted)">Grade 8 workbooks · settlement due 31 Oct</small></div>
+   <div class="card"><h3>School Hall</h3><b style="font-size:22px">Next: Fri 09:00</b><small style="display:block;color:var(--muted)">Assembly · 2 tentative external holds</small></div>
+  </div>
+  <div class="grid two">
+   <div class="card"><h3>Upcoming Events</h3>
+    ${[["Inter-house Sports Meet","12 Nov · Football ground"],["Parent–Teacher Meeting","18 Nov · School hall"],["Term 2 Exams begin","24 Nov"]].map(e=>`<div class="row"><div class="grow"><b>${e[0]}</b><small>${e[1]}</small></div></div>`).join('')}</div>
+   <div class="card"><h3>Recent Activity</h3>
+    ${["Invoice INV-2291 reversed (reason logged)","Grade 10 marks published","New hall enquiry — City Music Society","Vendor licence expiring: Canteen (30 days)"].map(a=>`<div class="row"><div class="grow">${a}</div></div>`).join('')}</div>
+  </div>`;
+}
+function settings(sub){
+  const it=MENU.flatMap(g=>g.items).find(i=>i.id==="settings");
+  const tabs=it.sub.map(s=>`<button class="tab ${s===sub?'active':''}" onclick="nav('settings','${s}')">${s}</button>`).join('');
+  const forms={
+   "General":[["School name","EduFlow360 International School"],["Timezone","Asia/Muscat"],["Currency","OMR"],["Default language","English"]],
+   "Languages & Localization":[["Default language","English"],["Enabled languages","English, Tamil, Sinhala, Arabic"],["Date format","DD/MM/YYYY"]],
+   "Outlets & Concessions":[["BookShop operator","Third-party"],["Canteen operator","School-run"],["Commission %","8"],["Settlement cycle","Monthly"]],
+   "Fees & GL Setup":[["Chart of accounts template","Default (school)"],["Period close","Soft close, monthly"],["Rounding","2 decimals"]]
+  };
+  const f=forms[sub]||[["Setting A","—"],["Setting B","—"]];
+  return `<div class="crumb">Settings / ${sub}</div><h1>${sub}</h1><div class="tabs">${tabs}</div>
+  <div class="card" style="max-width:640px"><h3>${sub}</h3>
+   ${f.map(x=>`<div class="field"><label>${x[0]}</label><input value="${x[1]}"></div>`).join('')}
+   <button class="btn ok" style="padding:9px 18px">Save changes</button>
+   <div class="field" style="margin-top:14px"><small>Changes are audit-logged. Replace this template form with the module's real settings schema.</small></div></div>`;
+}
+
+/* ---------- Theme & language (RTL) ---------- */
+function toggleTheme(){
+  const r=document.documentElement,n=r.getAttribute("data-theme")==="dark"?"light":"dark";
+  r.setAttribute("data-theme",n);$("#knob").textContent=n==="dark"?"🌙":"☀️";
+  try{localStorage.setItem("eduflow360-theme",n)}catch(e){}
+}
+function setLang(c){
+  document.documentElement.lang=c;document.documentElement.dir=c==="ar"?"rtl":"ltr";
+  try{localStorage.setItem("eduflow360-lang",c)}catch(e){}
+}
+try{
+  const t=localStorage.getItem("eduflow360-theme");if(t){document.documentElement.setAttribute("data-theme",t);$("#knob").textContent=t==="dark"?"🌙":"☀️"}
+  const l=localStorage.getItem("eduflow360-lang");if(l){$("#lang").value=l;setLang(l)}
+}catch(e){}
+renderMenu();render();
+</script>
+</body>
+</html>

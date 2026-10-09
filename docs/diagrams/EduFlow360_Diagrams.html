@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EduFlow360 — ERD, DFD, UML & Setup Workflow</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+:root{--bg:#f7f8fb;--surface:#fff;--text:#161a23;--muted:#6b7280;--border:#e6e8ee;--brand:#4f46e5;--accent:#06b6d4;--shadow:0 10px 30px rgba(20,20,40,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0f16;--surface:#141824;--text:#eef0f6;--muted:#9099ad;--border:#242938}}
+:root[data-theme="dark"]{--bg:#0d0f16;--surface:#141824;--text:#eef0f6;--muted:#9099ad;--border:#242938}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding-top:env(safe-area-inset-top,0px)}
+header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:14px 5vw;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header b{font-size:17px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-inline-start:auto}
+nav a{font-size:12.5px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--muted);text-decoration:none;cursor:pointer}
+nav a:hover{border-color:var(--brand);color:var(--text)}
+.toggle{width:44px;height:24px;border-radius:20px;background:var(--border);position:relative;cursor:pointer}
+.toggle i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:11px;transition:.2s}
+[data-theme=dark] .toggle i{left:22px}
+main{max-width:1200px;margin:0 auto;padding:24px 5vw 80px}
+section{margin-bottom:52px}
+h2{font-size:20px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+h2 .tag{font-size:11px;background:var(--brand);color:#fff;padding:2px 9px;border-radius:999px;font-weight:600}
+p.desc{color:var(--muted);font-size:13.5px;margin:0 0 16px;max-width:800px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow);overflow-x:auto}
+.mermaid{display:flex;justify-content:center}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+footer{text-align:center;color:var(--muted);font-size:12.5px;padding:30px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <b>📐 EduFlow360 — Diagrams</b>
+  <nav>
+    <a onclick="document.getElementById('erd').scrollIntoView({behavior:'smooth'})">ERD</a>
+    <a onclick="document.getElementById('dfd0').scrollIntoView({behavior:'smooth'})">DFD L0</a>
+    <a onclick="document.getElementById('dfd1').scrollIntoView({behavior:'smooth'})">DFD L1</a>
+    <a onclick="document.getElementById('uml-class').scrollIntoView({behavior:'smooth'})">UML Class</a>
+    <a onclick="document.getElementById('uml-seq').scrollIntoView({behavior:'smooth'})">UML Sequence</a>
+    <a onclick="document.getElementById('setup').scrollIntoView({behavior:'smooth'})">Setup Workflow</a>
+    <a onclick="document.getElementById('setup-erd').scrollIntoView({behavior:'smooth'})">Setup ERD</a>
+    <a onclick="document.getElementById('setup-order').scrollIntoView({behavior:'smooth'})">Academic Order</a>
+  </nav>
+  <div class="toggle" onclick="toggleTheme()"><i id="knob">☀️</i></div>
+</header>
+
+<main>
+
+<section id="erd">
+<h2>Entity Relationship Diagram <span class="tag">ERD</span></h2>
+<p class="desc">Core domain entities for one school's database (single-tenant — no cross-school keys). Simplified to the Platform Core + Academic + Attendance + Finance + Retail entities most relevant to setup ordering.</p>
+<div class="card"><pre class="mermaid">
+erDiagram
+  SCHOOL_SETTINGS ||--o{ ACADEMIC_YEAR : configures
+  ACADEMIC_YEAR ||--o{ ACADEMIC_PERIOD : has
+  EDUCATION_STAGE ||--o{ GRADE : contains
+  GRADE ||--o{ SECTION : contains
+  SECTION ||--o{ SUBJECT_ASSIGNMENT : offers
+  SUBJECT ||--o{ SUBJECT_ASSIGNMENT : "assigned via"
+  CURRICULUM ||--o{ SUBJECT : defines
+  GRADE ||--o{ STUDENT : enrolls
+  SECTION ||--o{ STUDENT : places
+  STUDENT ||--o{ STUDENT_GUARDIAN : links
+  GUARDIAN ||--o{ STUDENT_GUARDIAN : links
+  DEPARTMENT ||--o{ STAFF : employs
+  STAFF ||--o{ SUBJECT_ASSIGNMENT : teaches
+  ROLE ||--o{ ROLE_PERMISSION : grants
+  PERMISSION ||--o{ ROLE_PERMISSION : "granted via"
+  USER ||--|| ROLE : has
+  USER ||--o| STUDENT : "is (optional)"
+  USER ||--o| STAFF : "is (optional)"
+  USER ||--o| GUARDIAN : "is (optional)"
+  USER ||--o{ ATTENDANCE_RECORD : marks
+  STUDENT ||--o{ ATTENDANCE_RECORD : "attended as"
+  STAFF ||--o{ ATTENDANCE_RECORD : "attended as"
+  STAFF ||--o{ LEAVE_REQUEST : submits
+  LEAVE_TYPE ||--o{ LEAVE_REQUEST : categorizes
+  STUDENT ||--o{ INVOICE : billed
+  FEE_STRUCTURE ||--o{ INVOICE : generates
+  INVOICE ||--o{ PAYMENT : receives
+  ACCOUNT ||--o{ JOURNAL_LINE : posted_to
+  JOURNAL_ENTRY ||--o{ JOURNAL_LINE : contains
+  PAYMENT ||--o{ JOURNAL_ENTRY : triggers
+  OUTLET ||--o{ OUTLET_SALE : records
+  OUTLET_SALE ||--o{ JOURNAL_ENTRY : posts
+  FACILITY ||--o{ FACILITY_BOOKING : reserved_as
+  USER ||--o{ AUDIT_RECORD : performs
+  LICENSE ||--|| SCHOOL_SETTINGS : entitles
+
+  SCHOOL_SETTINGS {
+    string language
+    string currency
+    string timezone
+  }
+  STUDENT {
+    uuid id
+    string admissionNo
+    date dob
+    uuid gradeId
+    uuid sectionId
+  }
+  STAFF {
+    uuid id
+    string employeeNo
+    string contractType
+    uuid departmentId
+  }
+  ATTENDANCE_RECORD {
+    uuid id
+    string actorType
+    string status
+    date recordDate
+    string source
+  }
+  LEAVE_REQUEST {
+    uuid id
+    date startDate
+    date endDate
+    string status
+  }
+  INVOICE {
+    uuid id
+    int amountMinor
+    string currency
+    string status
+  }
+  JOURNAL_ENTRY {
+    uuid id
+    date postedAt
+    string reason
+  }
+  ACCOUNT {
+    uuid id
+    string code
+    string type
+  }
+  OUTLET {
+    uuid id
+    string type
+    string operatorModel
+  }
+  FACILITY_BOOKING {
+    uuid id
+    string useType
+    string status
+  }
+  AUDIT_RECORD {
+    uuid id
+    string action
+    string module
+    json beforeAfter
+  }
+</pre>
+<div class="legend">
+<span><i style="background:#4f46e5"></i>Platform</span>
+<span><i style="background:#06b6d4"></i>Academic</span>
+<span><i style="background:#059669"></i>Attendance/Workforce</span>
+<span><i style="background:#d97706"></i>Finance/Retail</span>
+</div>
+</div>
+</section>
+
+<section id="dfd0">
+<h2>Data Flow Diagram — Level 0 (Context) <span class="tag">DFD</span></h2>
+<p class="desc">The whole EduFlow360 instance as one process, showing external actors and systems it exchanges data with.</p>
+<div class="card"><pre class="mermaid">
+flowchart LR
+  Parent["👪 Parent / Student"] -->|login, attendance view, pay fees, submit homework| SYS(("EduFlow360\nSchool System"))
+  Teacher["🧑‍🏫 Teacher"] -->|mark attendance, grades, homework, leave request| SYS
+  Staff["🧑‍💼 Non-teaching Staff"] -->|check-in/out, leave, HR docs| SYS
+  Admin["🛠️ School Admin"] -->|configure school, roles, settings| SYS
+  Finance["💰 Finance Officer"] -->|invoices, GL, payroll| SYS
+  Vendor["🏪 Outlet Vendor"] -->|catalog, sales, settlement| SYS
+  SYS -->|reports, dashboards, receipts, certificates| Parent
+  SYS -->|schedules, results, payslips| Teacher
+  SYS -->|rosters, receipts| Vendor
+  SYS <-->|activate, validate signature| License["🔑 Licence Activation Server"]
+  SYS <-->|charge, refund| Gateway["💳 Payment Gateway"]
+  SYS -->|email/SMS/WhatsApp/push| Notify["📣 Notification Providers"]
+  SYS <-->|schedule, join, recordings| Video["🎥 Video Conferencing\n(Zoom/Meet/Jitsi)"]
+  SYS <-->|check-in events| Hardware["🔌 Biometric/RFID/Bell Hardware"]
+</pre></div>
+</section>
+
+<section id="dfd1">
+<h2>Data Flow Diagram — Level 1 (Key Processes) <span class="tag">DFD</span></h2>
+<p class="desc">Decomposition of the central process into the major subsystems and their data stores.</p>
+<div class="card"><pre class="mermaid">
+flowchart TB
+  subgraph P["EduFlow360 — Level 1"]
+  direction TB
+  P1["1.0 Manage Identity\n& Access (Auth/RBAC)"]
+  P2["2.0 Manage Academic\nStructure & Timetable"]
+  P3["3.0 Manage\nAttendance & Leave"]
+  P4["4.0 Manage Finance\n& General Ledger"]
+  P5["5.0 Manage Learning\n(Homework/Online Class)"]
+  P6["6.0 Manage Retail &\nFacilities (BookShop/Canteen/Hall)"]
+  P7["7.0 Manage\nCommunication & AI"]
+  end
+
+  D1[("D1 Users/Roles")]
+  D2[("D2 Academic Data")]
+  D3[("D3 Attendance/Leave")]
+  D4[("D4 Ledger/Invoices")]
+  D5[("D5 Homework/Classes")]
+  D6[("D6 Outlets/Bookings")]
+  D7[("D7 Messages/AI Logs")]
+  D8[("D8 Audit Log")]
+
+  Parent(["Parent/Student"]) --> P1
+  Teacher(["Teacher"]) --> P2 & P3 & P5
+  Finance(["Finance Officer"]) --> P4
+  Vendor(["Outlet Vendor"]) --> P6
+
+  P1 --> D1
+  P2 --> D2
+  P3 --> D3
+  P4 --> D4
+  P5 --> D5
+  P6 --> D6
+  P7 --> D7
+  P1 & P2 & P3 & P4 & P5 & P6 & P7 -.sensitive actions.-> D8
+
+  P3 -->|attendance %, discrepancy| P4
+  P2 -->|class/subject data| P3
+  P4 -->|invoice/receipt| P6
+  P3 -->|absence alert| P7
+  P6 -->|hire/settlement notice| P7
+</pre></div>
+</section>
+
+<section id="uml-class">
+<h2>UML Class Diagram — Platform Core <span class="tag">UML</span></h2>
+<p class="desc">Key domain classes and the adapter/port interfaces they depend on (Clean Architecture: domain depends on interfaces, not concrete adapters).</p>
+<div class="card"><pre class="mermaid">
+classDiagram
+  class User {
+    +UUID id
+    +string email
+    +string passwordHash
+    +Role role
+    +login()
+    +resetPassword()
+  }
+  class Role {
+    +string name
+    +bool isSystemRole
+    +Permission[] permissions
+  }
+  class Permission {
+    +string key
+    +string module
+  }
+  class AttendanceRecord {
+    +UUID actorId
+    +ActorType actorType
+    +Date date
+    +AttendanceStatus status
+    +CaptureSource source
+  }
+  class IAttendanceCaptureAdapter {
+    <<interface>>
+    +captureEvent()
+    +bulkImport()
+  }
+  class LeaveRequest {
+    +UUID staffId
+    +LeaveType type
+    +Date startDate
+    +Date endDate
+    +ApprovalStatus status
+  }
+  class IApprovalWorkflow {
+    <<interface>>
+    +submit()
+    +approve()
+    +escalate()
+  }
+  class JournalEntry {
+    +Date postedAt
+    +string reason
+    +JournalLine[] lines
+    +assertBalanced()
+  }
+  class ILedgerPostingRule {
+    <<interface>>
+    +toJournalEntries()
+  }
+  class Outlet {
+    +OutletType type
+    +OperatorModel operatorModel
+  }
+  class IConcessionSettlementStrategy {
+    <<interface>>
+    +calculateSettlement()
+  }
+  class License {
+    +string edition
+    +Date expiryDate
+    +json allowedModules
+    +json limits
+    +validateSignature()
+  }
+  class IClock {
+    <<interface>>
+    +now()
+  }
+  class AuditRecord {
+    +UUID actorId
+    +string action
+    +json beforeValue
+    +json afterValue
+  }
+
+  User "1" --> "1" Role
+  Role "1" --> "*" Permission
+  User "1" --> "*" AttendanceRecord : marks
+  AttendanceRecord ..> IAttendanceCaptureAdapter : uses
+  User "1" --> "*" LeaveRequest : submits
+  LeaveRequest ..> IApprovalWorkflow : uses
+  JournalEntry ..> ILedgerPostingRule : "created by"
+  Outlet ..> IConcessionSettlementStrategy : uses
+  Outlet --> JournalEntry : posts via rule
+  AttendanceRecord ..> IClock : uses
+  LeaveRequest ..> IClock : uses
+  User "1" --> "*" AuditRecord : generates
+  License "1" --> "1" User : "gates via entitlement"
+</pre></div>
+</section>
+
+<section id="uml-seq">
+<h2>UML Sequence Diagrams <span class="tag">UML</span></h2>
+<p class="desc">Two representative flows: secured login with lockout, and attendance marking through to a parent alert.</p>
+<div class="card"><pre class="mermaid">
+sequenceDiagram
+  actor U as User
+  participant UI as Web/App
+  participant API as Auth API
+  participant Guard as PermissionGuard
+  participant DB as Postgres
+  participant Audit as AuditRecorder
+
+  U->>UI: enter email + password
+  UI->>API: POST /auth/login
+  API->>DB: find user + check lock status
+  alt locked (5+ fails in window)
+    API-->>UI: 429 Too Many Attempts
+  else valid credentials
+    API->>DB: verify password hash
+    API->>API: issue access + refresh tokens
+    API->>Audit: log LOGIN_SUCCESS
+    API-->>UI: 200 + tokens
+    UI->>Guard: subsequent requests carry token
+    Guard->>Guard: resolve role → permissions (cached)
+  else invalid credentials
+    API->>DB: increment failed-attempt counter
+    API->>Audit: log LOGIN_FAILED
+    API-->>UI: 401 generic error
+  end
+</pre></div>
+<div class="card" style="margin-top:16px"><pre class="mermaid">
+sequenceDiagram
+  actor T as Teacher
+  participant UI as Web/App
+  participant ATT as Attendance Service
+  participant DB as Postgres
+  participant JOB as Absentee Detector (cron)
+  participant NOT as Notification Router
+  actor P as Parent
+
+  T->>UI: mark class attendance
+  UI->>ATT: POST /attendance (bulk)
+  ATT->>ATT: validate ownership (own class only)
+  ATT->>DB: write AttendanceRecord rows
+  ATT->>DB: write AuditRecord (if regularized)
+  Note over JOB: scheduled window closes
+  JOB->>DB: query unmarked/absent students
+  JOB->>NOT: send ABSENCE_ALERT events
+  NOT->>NOT: resolve channel (email default)
+  NOT-->>P: absence notification
+</pre></div>
+</section>
+
+<section id="setup">
+<h2>EduFlow360 School Configuration — Data-Entry Dependency Workflow <span class="tag">After development</span></h2>
+<p class="desc">Where to start entering data once the system is built, and which modules must be populated <b>before</b> others because they depend on that data. Follow the arrows — do not start a box until every arrow pointing into it is complete.</p>
+<div class="card"><pre class="mermaid">
+flowchart TD
+  A["① Activate Licence\n(serial key → signed certificate)"] --> B["② Sign in as default superadmin\n(seeded · forced password change)"]
+  B --> C["③ School Settings\nlanguage · currency · timezone · security policy"]
+  C --> D["④ Enable Modules\n(per licence entitlement)"]
+  D --> E["⑤ Roles & Permissions\n+ approval chains"]
+
+  C --> F["⑥ Academic Year & Periods"]
+  F --> G["⑦ Education Stages → Grades → Sections"]
+  G --> H["⑧ Subjects & Curriculum Tracks"]
+  H --> I["⑨ Rooms, Bell Schedule, Holiday Calendar"]
+
+  E --> J["⑩ Departments & Staff\n(employee records, HR docs)"]
+  G --> J
+  J --> K["⑪ Timetable\n(teacher × subject × section)"]
+  H --> K
+  I --> K
+
+  G --> L["⑫ Students\n(admission no., grade, section)"]
+  L --> M["⑬ Guardians\n(linked to students)"]
+  L --> N["⑭ Class Allocation\n(confirm section placement)"]
+
+  J --> O["⑮ Attendance & Leave Policy ⚠"]
+  L --> O
+
+  E --> P["⑯ Chart of Accounts\n& Posting Rules"]
+  P --> Q["⑰ Fee Structures"]
+  L --> R["⑱ Fee Assignment\n(structures → students)"]
+  Q --> R
+  R --> S["⑲ Opening Balances\n(single balanced journal)"]
+
+  D --> T["⑳ Operational Modules\nLibrary · Transport · Facilities/Hall · BookShop · Canteen"]
+  L --> T
+  P --> T
+
+  D --> U["㉑ Document Templates\nID cards · Certificates · Report Cards (A4/A5)"]
+  L --> U
+  J --> U
+
+  D --> V["㉒ Integrations & Hardware\nbell · biometric · gateway · email/SMS/WhatsApp"]
+
+  O & S & T & U & V --> W["㉓ Data Migration\n& Reconciliation"]
+  K --> W
+  W --> X["㉔ UAT → Training"]
+  X --> Y["㉕ GO-LIVE"]
+
+  classDef done fill:#b2f2bb,stroke:#2f9e44,color:#1e1e1e
+  classDef money fill:#ffd8a8,stroke:#e8590c,color:#1e1e1e
+  classDef people fill:#a5d8ff,stroke:#1971c2,color:#1e1e1e
+  classDef ops fill:#eebefa,stroke:#9c36b5,color:#1e1e1e
+  classDef launch fill:#ffc9c9,stroke:#e03131,color:#1e1e1e
+  class A,B,C,D,E done
+  class F,G,H,I,K people
+  class J,L,M,N,O people
+  class P,Q,R,S money
+  class T,U,V ops
+  class W,X,Y launch
+</pre>
+<div class="legend">
+<span><i style="background:#b2f2bb"></i>Foundation (licence, settings, roles)</span>
+<span><i style="background:#a5d8ff"></i>Academic & people</span>
+<span><i style="background:#ffd8a8"></i>Finance & GL</span>
+<span><i style="background:#eebefa"></i>Operational modules</span>
+<span><i style="background:#ffc9c9"></i>Migration → launch</span>
+</div>
+</div>
+<p class="desc" style="margin-top:14px"><b>Rule of thumb:</b> nothing that references a parent record can be entered before that parent exists — you cannot assign a fee structure (⑰) to a student (⑫) that doesn't exist yet, and you cannot allocate a class (⑭) before sections (⑦) exist. Steps ⑥–⑨ (Academic Structure) and ⑯–⑰ (Chart of Accounts / Fee Structures) are the two long poles: almost everything else depends on one of them. Full step-by-step detail is in <i>EduFlow360_School_Setup_Workflow_v1.md</i>.</p>
+</section>
+
+
+<section id="setup-erd">
+<h2>ERD — School Setup &amp; Academic Setup <span class="tag">ERD</span></h2>
+<p class="desc">Entities behind the School Setup tabs and the Academic menu (Master Plan §5A–5B). Singletons: SchoolProfile, SchoolLogo, SystemConfiguration, SchedulerConstraints.</p>
+<div class="card"><pre class="mermaid">
+erDiagram
+  SCHOOL_PROFILE ||--|| SCHOOL_LOGO : "has (blob, separate table)"
+  ACADEMIC_YEAR ||--o{ ACADEMIC_TERM : contains
+  ACADEMIC_LEVEL ||--o{ GRADE : groups
+  GRADE ||--o{ SUBJECT : "offers (per grade)"
+  SYLLABUS ||--o{ SUBJECT : defines
+  SYLLABUS ||--o{ SCHOOL_CLASS : follows
+  GRADE ||--o{ SCHOOL_CLASS : has
+  SECTION ||--o{ SCHOOL_CLASS : divides
+  CLASS_MEDIUM ||--o{ SCHOOL_CLASS : "taught in"
+  ACADEMIC_YEAR ||--o{ SCHOOL_CLASS : "for year"
+  SCHOOL_CLASS ||--o{ CLASS_SUBJECT : studies
+  SUBJECT ||--o{ CLASS_SUBJECT : "assigned to class"
+  STAFF_MEMBER ||--o{ TEACHER_SUBJECT : teaches
+  SUBJECT ||--o{ TEACHER_SUBJECT : "taught by"
+  SCHOOL_CLASS ||--o| CLASS_TEACHER_ASSIGNMENT : "has one"
+  STAFF_MEMBER ||--o{ CLASS_TEACHER_ASSIGNMENT : "is class teacher"
+  DEPARTMENT ||--o{ STAFF_MEMBER : employs
+  PROMOTION_CRITERIA }o--|| GRADE : "per grade"
+  PROMOTION_RUN ||--o{ PROMOTION_DECISION : produces
+  HOLIDAY }o--o| ACADEMIC_YEAR : "optional link"
+  EVENT_CATEGORY ||--o{ SCHOOL_EVENT : classifies
+  HOUSE ||--o{ STUDENT_HOUSE : groups
+
+  SCHOOL_PROFILE {
+    string name
+    string shortName
+    string registrationNumber
+    string officialEmail
+    string phone
+    string whatsappNumber
+    string address
+  }
+  SCHOOL_LOGO {
+    bytea data
+    string mime
+    int byteSize
+    string sha256
+  }
+  SYSTEM_CONFIGURATION {
+    string schoolCode
+    string studentIdFormat
+    string timezone
+    string currencyCode
+    int decimalPrecision
+    string attendanceType
+    string weekStartDay
+    int workingDaysPerWeek
+  }
+  SCHEDULER_CONSTRAINTS {
+    int maxTeacherHoursPerWeek
+    int maxPeriodsPerTeacherPerWeek
+    int maxConsecutiveClasses
+  }
+  ACADEMIC_LEVEL {
+    string code
+    time scheduleStart
+    time scheduleEnd
+    int periodDurationMin
+    int periodsPerDay
+    int break1DurationMin
+    int break1AfterPeriod
+    int break2DurationMin
+    int break2AfterPeriod
+  }
+  SUBJECT {
+    string code
+    string subjectType
+    string difficulty
+    string color
+  }
+  SCHOOL_CLASS {
+    string className
+    string roomNumber
+    int capacity
+  }
+</pre></div>
+</section>
+
+<section id="setup-order">
+<h2>Academic Menu — Data-Entry Order <span class="tag">Workflow</span></h2>
+<p class="desc">The order in which the Academic screens must be filled (each box needs everything pointing into it).</p>
+<div class="card"><pre class="mermaid">
+flowchart LR
+  S["School Setup\n6 tabs"] --> C["Academic Calendar"]
+  C --> T["Terms Management"]
+  S --> SY["Syllabus"]
+  S --> L["Academic Sections\n(Academic Levels)"]
+  L --> G["Grade"]
+  S --> SE["Section"]
+  S --> M["Class Medium"]
+  SY --> SU["Subject"]
+  G --> SU
+  C --> CL["Class"]
+  G --> CL
+  SE --> CL
+  M --> CL
+  SY --> CL
+  CL --> AC["Assign Subject to Class"]
+  SU --> AC
+  ST["Teacher directory\n(HRM-EPIC-01)"] --> AT["Assign Subject to Teacher"]
+  AC --> AT
+  AT --> SA["Subject Assignments\n(overview)"]
+  ST --> CT["Assign Class Teacher"]
+  CL --> CT
+  SA --> TT["Timetable"]
+  CT --> TT
+  TT --> SP["Student Promotion\n(year end)"]
+</pre></div>
+</section>
+
+</main>
+<footer>EduFlow360 — Diagrams companion to Master Plan v5.3 · SRS v1.3 · School Setup Workflow v1.1</footer>
+
+<script>
+// capture original mermaid source for every block before rendering, so we can re-render on theme change
+const MERMAID_SRC = Array.from(document.querySelectorAll('pre.mermaid')).map(el => el.textContent);
+
+async function renderAll(theme){
+  mermaid.initialize({ startOnLoad:false, theme, securityLevel:'loose', flowchart:{useMaxWidth:true} });
+  const blocks = document.querySelectorAll('pre.mermaid, div.mermaid');
+  blocks.forEach((el,i) => {
+    el.removeAttribute('data-processed');
+    el.innerHTML = MERMAID_SRC[i];
+    el.className = 'mermaid';
+  });
+  try{ await mermaid.run({ querySelector: '.mermaid' }); }
+  catch(e){ console.error('Mermaid render error:', e); }
+}
+
+function toggleTheme(){
+  const r=document.documentElement, n=r.getAttribute('data-theme')==='dark'?'light':'dark';
+  r.setAttribute('data-theme',n); document.getElementById('knob').textContent = n==='dark'?'🌙':'☀️';
+  renderAll(n==='dark' ? 'dark' : 'default');
+}
+
+renderAll('default');
+</script>
+</body>
+</html>

@@ -1,10 +1,12 @@
-# EduFlow
+# EduFlow360
 
 **Single-tenant school ERP.** One PostgreSQL database and one application deployment **per school** (`AGENTS.md` §2.1, `ADR-003`).
 
 > **Before you write any code, read [`AGENTS.md`](AGENTS.md).** It is the operating contract and it overrides every other document in this repository. Current state: [`docs/core/SSOT.md`](docs/core/SSOT.md). Execution order: `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5.
 
 **Status: milestone 1 (Platform Core & RBAC) in progress.** `PLT-101` (5 routes) and `PLT-107` shipped; `PLT-EPIC-02` is ~75% built. 1,401 unit + 235 integration + 37 e2e tests pass (measured 2026-10-05). The ERD is written and generated from one source, so it cannot drift from the Prisma schema.
+
+**Scope.** Milestone 1 is the platform: auth, RBAC, licensing, audit, diagnostics, module registry, notification router, storage, health, and the admin console. School Setup and Academic Setup are specified and decomposed but not built. `apps/mobile` is milestone 2 (`ADR-005`) and is not scaffolded.
 
 ---
 
@@ -36,6 +38,11 @@ pnpm dev
 | API | http://localhost:3001 |
 | MinIO console *(with Docker)* | http://localhost:9001 |
 | Mailpit *(with Docker)* | http://localhost:8025 |
+
+**Ports are configuration, never hard-coded** (`AGENTS.md` §2.14). `WEB_PORT` is 3500 in
+`apps/web/src/lib/web-port.ts` and `PORT` defaults to 3001 in `apps/api/src/config/env.ts`;
+`web-port.spec.ts` asserts the value, so it cannot drift silently. Some planning documents
+still say 3030/3031 — **those are stale; the code and its test are the authority.**
 
 ---
 
@@ -143,15 +150,45 @@ docs/             The contract. Start at docs/core/SSOT.md
 
 ## Where to look
 
+**Start here, in this order:**
+
 | Question | Answer |
 |---|---|
-| What is the current state? | `docs/core/SSOT.md` |
-| How is it architected? | `docs/core/ARCHITECTURE.md` |
-| What is the next task? | `docs/work/TODO.md` |
-| In what order do I build it? | `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5 |
-| What are the stories? | `docs/core/EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` |
-| What was decided, and why? | `docs/adr/` |
-| What may be reused from the old app? | `docs/analysis/LEGACY_REUSE_INVENTORY.md` |
+| What am I allowed to do? | [`AGENTS.md`](AGENTS.md) — the contract, overrides everything |
+| What is the current state? | [`docs/core/SSOT.md`](docs/core/SSOT.md) — decisions of record |
+| What is the next task? | [`docs/work/TODO.md`](docs/work/TODO.md) |
+| What was decided, and why? | [`docs/adr/`](docs/adr/) — 21 ADRs |
+| How is it architected? | [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) → [`docs/diagrams/`](docs/diagrams/) |
+| In what order do I build it? | [`docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md`](docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md) §5 |
+
+**Requirements and delivery:**
+
+| Question | Answer |
+|---|---|
+| What must the system do? | [`docs/core/EduFlow360_SRS_TestPlan_MVP_Roadmap_v1.3.md`](docs/core/EduFlow360_SRS_TestPlan_MVP_Roadmap_v1.3.md) — 120 FRs, 9 NFRs, test strategy, MVP |
+| What is the full architecture? | [`docs/core/EduFlow360_Project_Master_Plan_v5.3.md`](docs/core/EduFlow360_Project_Master_Plan_v5.3.md) |
+| Platform stories | [`docs/core/EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md`](docs/core/EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md) — 10 epics, 39 stories |
+| School Setup / Academic stories | [`docs/core/EduFlow360_Jira_Epics_SchoolSetup_Academic_v1.md`](docs/core/EduFlow360_Jira_Epics_SchoolSetup_Academic_v1.md) — 16 epics, 54 stories |
+| How is a school stood up? | [`docs/core/EduFlow360_School_Setup_Workflow_v1.1.md`](docs/core/EduFlow360_School_Setup_Workflow_v1.1.md) — gates G0–G9 |
+| What may be reused from the old app? | [`docs/analysis/LEGACY_REUSE_INVENTORY.md`](docs/analysis/LEGACY_REUSE_INVENTORY.md) |
+| What is the recovery plan? | [`docs/superpowers/plans/2026-10-09-strategic-roadmap-v2.md`](docs/superpowers/plans/2026-10-09-strategic-roadmap-v2.md) |
+
+### Two document generations
+
+The planning docs exist at two versions. The `EduFlow360_*` set is the current one; the
+earlier `EduFlow_*` set is preserved under
+[`docs/core/superseded/`](docs/core/superseded/) for history and is **not** authoritative.
+
+| Current | Supersedes |
+|---|---|
+| `EduFlow360_Project_Master_Plan_v5.3` | `EduFlow_Project_Master_Plan_v5.2` |
+| `EduFlow360_SRS_TestPlan_MVP_Roadmap_v1.3` | `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2` |
+| `EduFlow360_School_Setup_Workflow_v1.1` | `EduFlow_School_Setup_Workflow_v1` |
+| `EduFlow360_Jira_Epics_PlatformCore_RBAC_v2` | `EduFlow_Jira_Epics_PlatformCore_RBAC_v1` |
+| `EduFlow360_Jira_Epics_SchoolSetup_Academic_v1` | *(new)* |
+
+`docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` has **no successor** and is still
+the execution-order document referenced from `AGENTS.md`.
 
 ---
 
