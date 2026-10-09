@@ -40,8 +40,35 @@
 > likely owner is `SEC-112` (the integration config's missing schema isolation),
 > not `OPS-112` (which covered the two guard specs and the Playwright command).
 
-**Last updated:** 2026-10-09 (session close)
+**Last updated:** 2026-10-09 (Phase 0 complete)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
+
+> ## ✔ DONE 2026-10-09 — Phase 0: uncommitted state adjudicated
+>
+> Four uncommitted changes were ruled on with evidence and preserved, not
+> discarded. The uncommitted `AGENTS.md` rewrite — which falsely claimed
+> "pre-scaffold, no application code exists" against a 168-file API tree,
+> and cited a non-existent `ADR-003-fresh-build-single-tenant.md` — was
+> **reverted on `main`**; the committed, corrected `AGENTS.md` (DOC-100,
+> 2026-10-05) is the contract again. The old template deletion was **not
+> applied** (it would break `docs:verify`: `FRONTEND_TEMPLATE.md:3` and
+> `SSOT.md:118` reference the file). Prompt Pack v2 and the new ERD/DFD/UML
+> diagram were **parked, not imported** as authority. The entire uncommitted
+> state is preserved on branch **`docs/phase0-snapshot-2026-10-09`**
+> (`753498c`) for Phase C adjudication. Gates re-verified on `main`:
+> typecheck 8/8 · docs:verify 256 refs · route-guards 83 files ·
+> coverage-tiers OK. Full record: **`docs/work/WORKLOG.md`** (2026-10-09
+> entry).
+
+> ## ▶ NEXT — Phase 1: write `SEC-115`'s acceptance criteria
+>
+> Per `RESUME_2026-10-10.md`: *"Write SEC-115's acceptance criteria. That
+> is the task, not a preliminary."* Five proposed criteria are listed there
+> (one env-var naming scheme; zero unresolved placeholders in `.env.example`;
+> no `NEXTAUTH_*` in `.env.local`; `pnpm migration:run` without a
+> hand-exported `DATABASE_URL`; the `loadEnvFile` comment matches SSOT D46).
+> Then the Phase C remainder: the doc-delta register (`DOC_DELTA_2026-10-09.md`)
+> and the port contract (code is authority: API 3001, web 3500).
 
 > ## ▶ START HERE — `docs/work/RESUME_2026-10-09.md`
 >

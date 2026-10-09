@@ -4096,3 +4096,55 @@ separate defect from this flake and an owner decision. Also unfixed and unrelate
 3. **PowerShell mangled non-Latin output again**, so Tamil/Sinhala/Arabic rendered as mojibake in
    my console output. The files were never corrupted (0 U+FFFD throughout), but reading them in
    that console is misleading. Verify content with Node, never by reading it back in PowerShell.
+
+## 2026-10-09 — Phase 0: the uncommitted state is adjudicated, and the contract is restored
+
+| Field | Value |
+| --- | --- |
+| Phase | Phase 0 — triage the uncommitted working-tree state (strategic roadmap v2, Part VIII gate) |
+| Status | ✅ **Complete.** `main` clean at `3d23895`; the uncommitted state preserved on `docs/phase0-snapshot-2026-10-09` (`753498c`). |
+| Activity | Four uncommitted changes were found at session start. Each was ruled on with evidence; none was silently discarded. |
+
+1. **`AGENTS.md` rewrite — reverted on `main`.** The uncommitted version
+   declared *"pre-scaffold. No application code exists yet"*, which is
+   measurably false: the tree holds 168 `apps/api/src/**/*.ts` (85 spec
+   files), 91 commits, and 14/14 gates green (measured 2026-10-09,
+   `GATE_RESULTS_2026-10-09.md`). The committed `AGENTS.md` was corrected
+   on 2026-10-05 (DOC-100, `03d3059`) precisely because this claim was
+   false; the uncommitted edit re-introduced that defect. It also cited
+   `docs/adr/ADR-003-fresh-build-single-tenant.md`, **which does not exist
+   on disk** (only `ADR-003-new-app-single-tenant-selective-reuse.md`
+   exists), and it dropped the amendment log, the `@Public('<reason>')`
+   exemption rule, and the `Math.random()` ban. Its valuable new sections
+   (§2.16 default superadmin, §2.17 template fidelity, §2.18 ports and
+   admin console, §2.19 terminology, §15 agentic delivery model) are
+   preserved on the snapshot branch for Phase C to adopt selectively.
+2. **Deletion of `docs/template/EduFlow — Frontend Template.html` — not
+   applied to `main`.** The file is referenced by
+   `docs/design/FRONTEND_TEMPLATE.md:3` and `docs/core/SSOT.md:118`;
+   deleting it breaks the `docs:verify` gate (256 references). Retained on
+   `main`; disposition deferred to Phase C.
+3. **`docs/core/EduFlow360_Agentic_Prompt_Pack_v2.md` (untracked) —
+   parked, not imported.** It declares itself an execution authority
+   ("fresh development, no relation to any earlier implementation") while
+   the recovered Prompt Pack v1 is cited by 93 references across the tree
+   and the roadmap (D-12) records it as having no successor. It now lives
+   on the snapshot branch, pending Phase C adjudication.
+4. **`docs/diagrams/EduFlow360 — ERD, DFD, UML & Setup Workflow.html`
+   (untracked) — parked** on the snapshot branch alongside the others.
+
+**Gates re-verified on the restored `main`:** typecheck 8/8 ·
+docs:verify 256 references across 8 documents · check:route-guards 83
+source files, every route guarded · check-coverage-tiers OK (exit 0).
+
+**Why this order:** the strategic roadmap's Phase C exists to rule on
+exactly this class of delta — "every delta needs a verdict: adopt / amend
+/ reject" — and a contract file that asserts something the filesystem
+disproves must not be the starting point for feature work. Nothing was
+deleted: the snapshot branch is the complete record, and `main` is
+byte-identical to `3d23895` apart from this worklog entry and the TODO
+update.
+
+**Next:** Phase 1 — write `SEC-115`'s acceptance criteria (the repo's own
+next ticket, per `RESUME_2026-10-10.md`), then the Phase C remainder
+(doc-delta register, port contract).
