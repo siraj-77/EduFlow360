@@ -1,5 +1,35 @@
 # TODO — Next Actions
 
+> ## 🆕 UPDATED 2026-10-09 (later session) — tree restored, all 14 gates measured green
+>
+> The working tree had been reduced to 25 files with no `.git` and no source code. It has
+> been recovered from the archive and **pushed to `https://github.com/siraj-77/EduFlow360`**
+> (the repo was renamed `EduFlow` → `EduFlow360`; every clone's old `origin` 404'd, so the
+> 88-commit history existed only inside a 217 MB archive).
+>
+> - `main` is clean and in sync at **`bb27b6f`, 89 commits**, pushed and verified by fresh clone.
+> - **All 14 gates green on a clean install**, re-measured — not carried over:
+>   install · prisma generate · typecheck 8/8 · lint 8/8 · format:check · unit **1,432** ·
+>   coverage 8/8 · build 9/9 · migration:run · integration **240**/14 files · e2e **37/37** ·
+>   docs:verify 251 refs · check:route-guards 83 files · check:coverage-tiers.
+> - Full evidence: **`docs/work/GATE_RESULTS_2026-10-09.md`**.
+> - The 42-item technical-debt register and the 10-row cross-document contradiction matrix
+>   are in **`docs/superpowers/plans/2026-10-09-strategic-roadmap-v2.md`**.
+>
+> **Read before starting work — two things the setup docs did not say:**
+> 1. `pnpm install` does not generate the Prisma client. Run
+>    `pnpm --filter @eduflow/api exec prisma generate` or `pnpm typecheck` fails with
+>    `no exported member 'PrismaClient'`. This is deliberate (`ci.yml:35-38`) but was
+>    undocumented; the README now records it.
+> 2. `pnpm migration:run` needs `DATABASE_URL` **exported in your shell** — the Prisma CLI
+>    reads `.env` beside `schema.prisma`, not the repository root. Part of `SEC-115`.
+>
+> **The one-line version:** the project is whole, version-controlled and pushed for the
+> first time. The next task is still **`SEC-115`** (env reconciliation), and the highest-value
+> thing before any new feature is to read **`docs/core/SSOT.md`** (157 KB) — it may already
+> settle the doc-generation conflicts that the debt register lists as open.
+---
+
 > **Resume note for 2026-10-09 is in `docs/work/RESUME_2026-10-09.md`.**
 > **Read section 2 before starting work:** `pnpm test:integration` is flaky and the
 > failure is inside the setup-token concurrency test. It is not root-caused; its

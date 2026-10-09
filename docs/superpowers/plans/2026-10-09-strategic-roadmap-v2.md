@@ -182,13 +182,30 @@ The real repo is `EduFlow360`.
 project was never pushed after the rename.
 **Remedy:** Phase A task A-3.
 
-### D-05 · `.env` / `.env.local` use `KEY = value`, which dotenv will not load
-**Evidence:** `.env` line 2 is `DATABASE_URL = postgres…`. `.env.local` uses the same
-spaced form for all 7 keys.
-**Impact:** the app silently starts with no configuration, or fails on a missing variable
-for the wrong reason. This is a plausible contributor to the recovered `TODO.md` note that
-`pnpm test:integration` is flaky.
-**Remedy:** Phase C task C-2.
+### D-05 · `.env` / `.env.local` use `KEY = value` — **RESOLVED 2026-10-09, this was wrong**
+**Original claim:** `.env` line 2 is `DATABASE_URL = postgres…`; most dotenv parsers require
+`KEY=value`, so the file "may not load at all".
+
+**Corrected by measurement.** Node's built-in `process.loadEnvFile()` — which is what this
+repo actually uses — trims surrounding whitespace. Verified directly:
+
+```
+node -e "fs.writeFileSync('.env.probe','PROBE_A = spaced-value\nPROBE_B=tight-value\n');
+         process.loadEnvFile('.env.probe');
+         console.log(process.env.PROBE_A, process.env.PROBE_B)"
+  ->  spaced-value tight-value
+```
+
+**There is no defect.** `pnpm migration:run`, `pnpm test:integration` and `pnpm test:e2e`
+all ran green against the existing root `.env`. I asserted this without testing it in the
+first pass; the same discipline that caught the `it()`-vs-`test()` correction elsewhere in
+this repo applies here. Remove this item.
+
+**What *is* real, and was found only by running it:** the three env loaders disagree about
+*where* `.env` lives. `vitest.integration.config.ts` resolves `../../.env` from the repo
+root; the **Prisma CLI looks beside `schema.prisma`** (`apps/api/prisma/`), so
+`pnpm migration:run` fails with a bare `Validation Error Count: 1` until `DATABASE_URL` is
+exported by hand. That is the substantive half of D-09, and it belongs in SEC-115.
 
 ### D-06 · `.env.local` contradicts `.env.example`
 **Evidence:** `.env.example:55` — *"Do NOT install Auth.js. Both of its session strategies

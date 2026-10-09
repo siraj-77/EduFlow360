@@ -4,7 +4,25 @@
 
 > **Before you write any code, read [`AGENTS.md`](AGENTS.md).** It is the operating contract and it overrides every other document in this repository. Current state: [`docs/core/SSOT.md`](docs/core/SSOT.md). Execution order: `docs/core/EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` §5.
 
-**Status: milestone 1 (Platform Core & RBAC) in progress.** `PLT-101` (5 routes) and `PLT-107` shipped; `PLT-EPIC-02` is ~75% built. 1,401 unit + 235 integration + 37 e2e tests pass (measured 2026-10-05). The ERD is written and generated from one source, so it cannot drift from the Prisma schema.
+**Status: milestone 1 (Platform Core & RBAC) in progress.** `PLT-101` (5 routes) and `PLT-107` shipped; `PLT-EPIC-02` is ~75% built. **1,432 unit + 240 integration + 37 e2e tests pass** (measured 2026-10-09, 14 integration files, all gates green). The ERD is written and generated from one source, so it cannot drift from the Prisma schema.
+
+### Fresh clone: one required manual step
+
+`pnpm install` does **not** generate the Prisma client, and there is deliberately no
+`postinstall` hook — `.github/workflows/ci.yml` states the reason: *"an implicit step is a
+step nobody can see fail."* Run the generation explicitly:
+
+```bash
+pnpm --filter @eduflow/api exec prisma generate
+```
+
+Without it, `pnpm typecheck` fails with
+`Module '"@prisma/client"' has no exported member 'PrismaClient'` on 11 files. That error
+does not name the cause.
+
+`pnpm migration:run` additionally needs `DATABASE_URL` **exported in your shell** — the
+Prisma CLI looks for `.env` beside `schema.prisma`, not at the repository root, so the
+git-ignored root `.env` is invisible to it. The test runners do read the root `.env`.
 
 **Scope.** Milestone 1 is the platform: auth, RBAC, licensing, audit, diagnostics, module registry, notification router, storage, health, and the admin console. School Setup and Academic Setup are specified and decomposed but not built. `apps/mobile` is milestone 2 (`ADR-005`) and is not scaffolded.
 
