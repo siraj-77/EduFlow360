@@ -386,19 +386,28 @@ Also: `Admission`, `Student Management`, and `Admin & User Management` are decla
 at `:518` but have **zero FRs** anywhere in Part A.
 **Remedy:** Phase D task D-6.
 
-### D-24 · Milestone namespace has three owners and three meanings
-| Source | M1 | M2 |
-|---|---|---|
-| `Master_Plan_v5.3.md:1073` | Platform Core + Admin Console | School Setup + Academic Setup |
-| `SRS_v1.3.md:618-623` | SRS & ERD Sign-Off (end Phase 0) | Foundation Complete (end Phase 1) |
-| `PlatformCore_v2.md` | **36 of 39 stories tagged `M1`** | not used |
-| `SchoolSetup_v1.md:4` | not used | **54 of 54 stories tagged `M2`** |
-| `School_Setup_Workflow_v1.1.md:10` | — | "Mobile app setup is **milestone 2**" |
-| `ADR-005` | — | `mobile-is-milestone-2` |
+### D-24 · Milestone namespace has three owners and three meanings — ✅ **RESOLVED 2026-10-09; I was wrong to list it as open**
 
-Under SRS §24, tagging 269 points of School+Academic Setup as "M2" places them **before**
-M3 = MVP Go-Live. Importing SRS §24 into Jira would relabel ~90 stories incorrectly.
-**Remedy:** Phase D task D-4.
+`SSOT.md:424-437` already carries a **"Naming legend"** that settles this, found only when I
+finally read the file:
+
+| Write this | Means | Source |
+|---|---|---|
+| **Milestone 1** / **Milestone 2** | the *product* milestones. Milestone 2 is the **mobile** milestone | `AGENTS.md` §7 (D5), `ADR-005` |
+| **Gate M1** … **Gate M6** | the *sign-off* gates | `SRS` §24 |
+
+The legend states: *"**Never write a bare 'M2'."* It was written on 2026-09-28 when the
+Agentic Prompt Pack was reconciled with the sprint map (resolves conflict C3).
+
+**So the three-way collision is not unresolved ambiguity — it is a documented convention that
+three files never adopted.** The remaining work is mechanical: apply the legend to
+`PlatformCore_RBAC_v2.md` (36 stories tagged `M1`), `SchoolSetup_Academic_v1.md` (54 tagged
+`M2`) and `School_Setup_Workflow_v1.1.md:10`. That is a find-and-replace, not a decision.
+
+**Lesson, recorded because it cost this analysis a whole phase:** Phase D task D-4 in this
+document proposed to "designate one roadmap and one milestone namespace." Both were already
+decided. `SSOT.md` is 156,704 bytes and this roadmap was written without reading it. **Read
+`SSOT.md` before proposing any decision.**
 
 ### D-25 · The Document/Print Engine is required by Phase 5 and built by no phase
 `Master_Plan_v5.3.md:1025` — Phase 1 includes *"Document/Print Engine skeleton"*.
@@ -493,6 +502,7 @@ Accountant, Auditor — none in the SRS's 11 user classes (`SRS:84-96`).
 **Remedy:** Phase D task D-1.
 
 ### D-37 · The mandated UI template contradicts the mandated stack, and supplies almost nothing
+
 `Master_Plan_v5.3.md:7` declares Tailwind + shadcn/ui. The templates use `--bg`/`--brand`/
 `--accent` tokens, carry **zero Tailwind classes**, and `components.json` is absent from the
 working tree. `EPIC_STATUS.md` records: **21 i18n keys, all marketing copy, zero application
@@ -501,6 +511,45 @@ marketing claims "Trusted by 200+ schools" / "1.2M Students Managed" that are **
 must not be carried over.
 **Remedy:** Phase D task D-2, Phase E task E-4.
 
+### D-43 · `vitest.integration.config.ts` states measured behaviour that is the opposite of actual behaviour — NEW, S3
+
+The file's comment (property **1**, "An already-set `DATABASE_URL` wins") says:
+
+> `process.loadEnvFile()` overwrites existing keys, so the guard is what makes CI
+> deterministic, not the loader's own behaviour.
+
+**That is false, and `SSOT.md` D46 says so explicitly**, with a note that a test caught the
+opposite assumption before it shipped. Measured on this machine, Node v26.7.0:
+
+```
+process.env.PROBE_X = 'from-shell'      // -> from-shell
+process.loadEnvFile(<file: PROBE_X=from-file>)
+process.env.PROBE_X                     // -> from-shell   NOT overwritten
+```
+
+**Impact:** low functionally — the guard is correct defensive coding and harmless — but the
+stated *reason* for it is wrong, so the next engineer will either trust a false claim or
+"fix" the guard. A comment that asserts measurement must be true.
+
+**Remedy:** correct the comment to cite D46, or state that the guard exists so the loader
+never runs when CI has injected the value. One-line change, needs its own test only if the
+behaviour changes.
+
+### D-44 · `SEC-115` is partly already done — NEW, S3
+
+The ticket reads only *"env-var reconciliation, startup fail-fast"* (`RESUME_2026-10-09.md:71`)
+with **no acceptance criteria** — the same defect this register lists against `PC-000…PC-006`.
+But `SSOT.md:253-264` shows two decisions already landed:
+
+| ID | Decision | Status |
+|---|---|---|
+| **D46** | `main.ts` loads the workspace `.env` then `.env.local` before validating. Precedence `process.env` → `.env.local` → `.env`. | implemented |
+| **D47** | `GOOGLE_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` are all-or-nothing, enforced by a Zod `.refine`. | implemented (`env.ts`) |
+
+`env.ts` also already rejects `.env.example` placeholders via `PLACEHOLDER_PATTERN`, validates
+`DATABASE_URL` as `postgresql://`, and fails by name. **So SEC-115 is not a build — it is a
+document reconciliation plus one genuine loader gap (the Prisma CLI, D-09 / F-2).** Write its
+acceptance criteria before touching it, or it will be re-scoped twice.
 ## S4 — Hygiene
 
 ### D-38 · Version and date contradictions
@@ -535,8 +584,8 @@ the reconciliation backlog** — Phase D exists to close them, in this order.
 
 | # | Contradiction | Doc A | Doc B | Severity | Phase D task |
 |---|---|---|---|---|---|
-| **X-1** | **Milestone namespace** | MP `:1073` M1/M2 = features | SRS `:618` M1/M2 = phases | S1 | D-4 |
-| **X-2** | **Roadmap authority** — 16 phases vs 17 rows vs Jira milestone column vs 22 setup phases | MP §28 `:1019` | SRS §22 `:585` | S1 | D-4 |
+| **X-1** | **Milestone namespace** — ✅ **ALREADY RESOLVED in `SSOT.md:424-437`** | MP `:1073` M1/M2 = features | SRS `:618` M1/M2 = phases | ~~S1~~ **closed** | none — apply the legend |
+| **X-2** | **Roadmap authority** — ✅ **ALREADY RESOLVED in `SSOT.md:411-421`** | MP §28 `:1019` | SRS §22 `:585` | ~~S1~~ **closed** | none — apply the table |
 | **X-3** | **Document/Print Engine** — required Phase 1, dropped, needed Phase 5 | MP `:1025` | SRS `:588`, `:593` | S1 | D-6 |
 | **X-4** | **General Ledger** — MP Phase 6; SRS P1 and unassigned; MVP AC4 requires a reconciling payment | MP `:1041` | SRS `:225,228,546,594` | S1 | D-6 |
 | **X-5** | **i18n/RTL** — required at launch ×3 docs; `FR-PLT-09/10` have zero stories | MP `:118,438`; SRS `:322` | `PlatformCore_v2.md:6,1346` | S1 | D-2, E-4 |
