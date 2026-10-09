@@ -1,24 +1,24 @@
 # TODO — Next Actions
 
-> **Resume note for 2026-10-08 is in `docs/work/RESUME_2026-10-08.md`.**
+> **Resume note for 2026-10-09 is in `docs/work/RESUME_2026-10-09.md`.**
 > **Read section 2 before starting work:** `pnpm test:integration` is flaky and the
 > failure is inside the setup-token concurrency test. It is not root-caused (`OPS-112`).
 
-**Last updated:** 2026-10-08 (session close)
+**Last updated:** 2026-10-09 (session close)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
-> ## ▶ START HERE TOMORROW — `docs/work/RESUME_2026-10-08.md`
+> ## ▶ START HERE — `docs/work/RESUME_2026-10-09.md`
 >
-> Written at the close of 2026-10-08 (EPIC-B session). It carries the
+> Written at the close of 2026-10-09 (EPIC-B session). It carries the
 > measured state, the EPIC-B remainder in order, the open owner
-> decisions, and the CI evidence (three runs: fail → green →
-> negative-tested).
+> decisions, and the OPS-103 TDD evidence.
 >
-> **The one-line version:** `main` is clean and in sync at `2712f74`,
-> 83 commits, **all ten gates green**, and CI runs all ten gates on
-> every push (`OPS-101`). **The next task is `OPS-103`** (build
-> depends on gates) — plus one owner decision: repo public or GitHub
-> Pro so `CI` can be an enforceable *required* check (`F-15`).
+> **The one-line version:** `main` is clean and in sync at `53ad6b0`,
+> 84 commits, **all ten gates green**, CI runs all ten gates on every
+> push (`OPS-101`), and `pnpm build` now gates on typecheck and lint
+> (`OPS-103`). **The next task is `OPS-112`** (flake root-cause) —
+> plus one owner decision: repo public or GitHub Pro so `CI` can be an
+> enforceable *required* check (`F-15`).
 
 > ## ✔ DONE 2026-09-30 — `D-4.1`, multi-role (`UserRole` join)
 >
@@ -219,7 +219,7 @@ bypassed; the numbers in `RESUME_2026-10-05.md` come from those runs.
 
 - [x] **SEC-101** · P0 · **DONE 2026-10-08** (`9bb3e96`). Baseline migration `0000_baseline` (497 lines: 8 enums, 16 tables, 36 indexes, 13 FKs) + `deploy:db` + `verify:baseline` (shadow-DB diff empty) + DB-level `PLT-401` append-only proof (5 tests; integration 235→240). Caught the `CRRITICAL` enum typo no prior gate saw.
 - [x] **OPS-101** · P0 · **DONE 2026-10-08** (`f1511d5` + `f514cbe` F-14 fix + `fab6489` + `2712f74`). `.github/workflows/ci.yml` — all ten gates on every push to any branch. AC 1 proven (run `37830464218` green on main); AC 2 proven (broken branch commit failed run `37831524370`). **T3 blocked — `F-15`:** required status checks need GitHub Pro on a private repo (`gh api` → 403); owner decision pending.
-- [ ] **OPS-103** · P0 · **`build` depends on nothing.** Every turbo task is `dependsOn: ["^build"]`, so `pnpm build` succeeds on a tree with type errors, lint errors and failing tests. `AGENTS.md` §4 is operator discipline, not tool enforcement.
+- [x] **OPS-103** · P0 · **DONE 2026-10-09** (`53ad6b0`). `turbo.json` `build.dependsOn` gains `typecheck` and `lint` beside `^build` — `pnpm build` now runs both for every package before any build (9 tasks, 49.4s, vs 5 tasks / 17.75s ungated). TDD: RED A observed (build exited 0 while eslint exited 1 on the same tree — a *used* explicit `any`, an eslint error that is legal TS); GREEN A (build fails at `@eduflow/api#lint`). The typecheck RED was structurally impossible — every build in this repo already typechecks (`nest build` runs tsc, `next build` type-checks, leaf packages' `build === tsc --noEmit`): finding `F-16`, the plan's premise that build succeeds on type errors is false here; the ungated gate was lint. Tests still do not gate `build` (the plan's scope; CI runs them before build in fail-fast order).
 - [ ] **OPS-112** · P1 · **CI reliability, three flakes.** All three will make a first CI run red for no real reason: (a) `permission-cache-over-http` and `permission-ownership-over-http` fail ~1 run in 5 on a **cold** cache and pass 4/4 warm; (b) `playwright.config.ts` runs `rmSync(' .next ')` and `npm run dev` as **one** `webServer` command, so a request mid-wipe can read a half-written manifest — seen once as `SyntaxError: Unexpected end of JSON input` on `/en/sign-in` while all 22 landing tests passed in the same run.
 - [ ] **SEC-112** · P1 · **`vitest.integration.config.ts` claims "an isolated schema" in its own doc comment and implements none** — no `fileParallelism`, no `connection_limit`, no schema isolation; 13 files each construct their own `PrismaClient` against one database. `AGENTS.md` §4's "Containerized real-Postgres, isolated schema" is unimplemented, and `ARCHITECTURE.md` §17 is not the only document asserting a control the code does not have.
 - [ ] **DOC-101** · P0 · **`scripts/report-status.mjs`.** Still the highest-leverage single item. **Eight documents already cite it as though it exists.** Today's session added a *fourth* wrong number to the record (`1,401` unit tests, when the measured figure is `1,431`) — which is the point: hand-maintained numbers decay faster than they can be corrected.
