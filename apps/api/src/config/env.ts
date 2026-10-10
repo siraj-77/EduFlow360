@@ -126,6 +126,23 @@ const schema = z
     LOG_DIR: z.string().min(1).default('logs'),
 
     /**
+     * The origin allowed to call the API.
+     *
+     * A deployment value, not a secret — the `OIDC_STATE_TTL_MS` precedent:
+     * a never-written configuration should produce the conservative answer
+     * (this app's own web origin) rather than a boot failure. The web app
+     * runs on 3500 (`apps/web/web-port.ts`), and that is the only origin
+     * the CSRF guard's assumption permits (`create-app.ts`: one origin,
+     * never a list — a wildcard would undo the CSRF guard).
+     *
+     * Entered here rather than defaulted at the read site, so a typo fails
+     * startup naming the variable, and so `main.ts` reads it from validated
+     * config instead of an ambient `process.env` read with a `??` fallback
+     * (FIX-08 / G1-11: no `??` on an env read remains).
+     */
+    WEB_ORIGIN: z.string().min(1).default('http://localhost:3500'),
+
+    /**
      * Which deployment owns this database.
      *
      * `AGENTS.md` 2.1 makes isolation physical — one database per school — while

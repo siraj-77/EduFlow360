@@ -53,6 +53,10 @@ const ALLOWED_MISSING = new Map([
     'apps/api/prisma/migrations',
     'SEC-101 - ZERO migrations exist; everything is `db push`. Tracked as the largest remaining infrastructure gap, because a product whose isolation story is one database per school has no reproducible provisioning path without it. Referenced by SSOT.md and TODO.md as a documented gap, which is what this list is for.',
   ],
+  [
+    'docs/phase0-snapshot-2026-10-09',
+    'a git BRANCH, not a file — preserves the uncommitted 2026-10-09 state for Phase C adjudication (tip 753498c, local + origin). Referenced by TODO.md. This checker resolves file paths only, so a valid branch reference is allowlisted here deliberately rather than reported as a dangling file link.',
+  ],
 ]);
 
 /**

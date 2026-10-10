@@ -42,7 +42,7 @@
 > likely owner is `SEC-112` (the integration config's missing schema isolation),
 > not `OPS-112` (which covered the two guard specs and the Playwright command).
 
-**Last updated:** 2026-10-09 (Phase 0 complete)
+**Last updated:** 2026-10-10 (SEC-115 complete, pushed)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ✔ DONE 2026-10-09 — Phase 0: uncommitted state adjudicated
@@ -78,14 +78,26 @@
 > Full document: **`docs/superpowers/plans/2026-10-09-sec-115-acceptance-criteria.md`**.
 > No owner decision was required.
 
-> ## ▶ NEXT — execute `SEC-115` against its criteria
+> ## ✔ DONE 2026-10-10 — `SEC-115` executed (all six ACs closed) and pushed
 >
-> TDD: RED-first tests for the `WEB_ORIGIN` schema entry and the
-> `NEXT_PUBLIC_API_BASE_URL` rename, then the fixes, then all six
-> verification blocks plus the full gate set. After that, Phase 2: the
-> Phase C remainder (doc-delta register `DOC_DELTA_2026-10-09.md`,
-> Auth.js proof C-3, stale port-prose edits C-4, credential rotation
-> A-1/A-2, archive redaction A-4/A-5).
+> AC-1 (a/b/c), AC-2, AC-4 and AC-5 are complete and verified against
+> the measured state, TDD-first. **AC-3 resolved by owner decision
+> 2026-10-10: keep `.env.local`** — this is a dev machine and development
+> is just starting, so the file (the only copy of the real Google OIDC
+> credentials) stays. The criterion's substance holds in the committed
+> tree: `NEXTAUTH_*` keys are absent from every tracked file and
+> `.env.local` is git-ignored, so no `NEXTAUTH_*` value is committed.
+> Full record: **`docs/work/WORKLOG.md`** (2026-10-10 entry). All
+> eleven gates green. Committed and pushed to `origin/main`.
+>
+> ## ▶ NEXT — Phase 2: the Phase C remainder
+>
+> `SEC-115` is signed off and pushed. Because `.env.local` is retained,
+> **credential rotation (A-1/A-2) is the natural immediate follow-up** —
+> rotating the Google OIDC secrets keeps the dev machine working while
+> removing any exposure. Then the rest of Phase C: doc-delta register
+> `DOC_DELTA_2026-10-09.md`, Auth.js proof C-3, stale port-prose edits
+> C-4, archive redaction A-4/A-5.
 
 > ## ▶ START HERE — `docs/work/RESUME_2026-10-09.md`
 >

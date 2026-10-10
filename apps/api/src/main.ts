@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { bootBanner, loadConfig } from './config/env.js';
 import { loadEnvFiles, workspaceEnvFilePaths } from './config/env-files.js';
-import { createApp, DEFAULT_WEB_ORIGIN } from './create-app.js';
+import { createApp } from './create-app.js';
 
 /**
  * EduFlow API entry point.
@@ -50,11 +50,11 @@ async function bootstrap(): Promise<void> {
   // documents as its own reason for taking `AppConfig` as a parameter.
   const app = await createApp({
     config: loaded.config,
-    // The one ambient read in the boot path, and it stays here: the allowed
-    // origin is a deployment fact, and this is where the environment becomes
-    // readable. `createApp` holds no `process.env` read of its own, so a test
-    // cannot be perturbed by whatever `WEB_ORIGIN` is in a developer's shell.
-    webOrigin: process.env.WEB_ORIGIN ?? DEFAULT_WEB_ORIGIN,
+    // The allowed origin is a deployment fact, validated by `loadConfig()`
+    // above rather than read ambiently here. `createApp` holds no
+    // `process.env` read of its own, so a test cannot be perturbed by
+    // whatever `WEB_ORIGIN` is in a developer's shell.
+    webOrigin: loaded.config.WEB_ORIGIN,
   });
 
   // `enableShutdownHooks()` is inside `createApp`, not here. Calling it in both

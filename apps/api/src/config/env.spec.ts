@@ -105,6 +105,23 @@ describe('OIDC_STATE_TTL_MS — how long a sign-in may stay open', () => {
   });
 });
 
+describe('WEB_ORIGIN — the origin allowed to call the API', () => {
+  it('defaults to the web app origin when nothing is configured', () => {
+    // A deployment value, not a secret — the OIDC_STATE_TTL_MS precedent:
+    // a never-written configuration produces the conservative answer (this
+    // app's own web origin) rather than a boot failure. The web app runs on
+    // 3500 (apps/web/web-port.ts), the only origin the CSRF guard's
+    // assumption permits (create-app.ts).
+    expect(loadConfig(base).config.WEB_ORIGIN).toBe('http://localhost:3500');
+  });
+
+  it('is read from the environment when a deployment sets one', () => {
+    expect(loadConfig({ ...base, WEB_ORIGIN: 'https://school.edu' }).config.WEB_ORIGIN).toBe(
+      'https://school.edu',
+    );
+  });
+});
+
 describe('bootBanner', () => {
   it('states loudly that persistence is disabled, rather than staying silent', () => {
     const banner = bootBanner(loadConfig(base)).join('\n');

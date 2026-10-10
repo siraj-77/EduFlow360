@@ -21,10 +21,14 @@ import { swcPlugin } from './vitest-swc-plugin.js';
  * implementation detail:
  *
  * 1. **An already-set `DATABASE_URL` wins.** The guard below tests
- *    `process.env.DATABASE_URL` *before* loading, so CI - which injects the
- *    value from a secret - and a developer who exports it keep their value.
- *    `process.loadEnvFile()` overwrites existing keys, so the guard is what
- *    makes CI deterministic, not the loader's own behaviour.
+ *    `process.env.DATABASE_URL` *before* loading, so CI - which injects
+ *    the value from a secret - and a developer who exports it keep their value.
+ *    `process.loadEnvFile()` leaves an already-set key untouched (measured on
+ *    Node 26.7.0; SSOT D46 records a test catching the opposite assumption
+ *    before it shipped), so an exported or CI-injected value wins either way.
+ *    The guard exists to fail fast with a message that names the variable
+ *    when neither the environment nor `.env` supplies it - not to protect
+ *    precedence.
  *
  * 2. **Anchored to this file, not to the working directory.** `import.meta.url`
  *    resolves to this config's own path, so `../../.env` is the repository root

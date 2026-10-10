@@ -37,20 +37,14 @@ import type { AppConfig } from './config/env.js';
  * calls exactly the function production calls.
  */
 
-/**
- * CORS origin used when the environment does not name one.
- *
- * Spelled here and passed in by `main.ts`, so this module holds no ambient read
- * of its own: `process.env` is consulted once, in the entry point, where it has
- * always been consulted. A test therefore cannot be perturbed by whatever
- * `WEB_ORIGIN` happens to be in the developer's shell.
- */
-export const DEFAULT_WEB_ORIGIN = 'http://localhost:3500';
-
 export interface CreateAppOptions {
   /** Already validated by `loadConfig()`. Never read from `process.env` here. */
   readonly config: AppConfig;
-  /** The single browser origin allowed to call this API. */
+  /**
+   * The single browser origin allowed to call this API. Validated by
+   * `loadConfig()` as `WEB_ORIGIN`, whose default is the web app's own
+   * origin — the one origin the CSRF guard's assumption permits.
+   */
   readonly webOrigin: string;
 }
 
