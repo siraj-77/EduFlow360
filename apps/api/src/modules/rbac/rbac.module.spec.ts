@@ -12,6 +12,8 @@ import { IPERMISSION_GRANT_READER } from './domain/ports/permission-grant-reader
 import { IPERMISSION_CACHE } from './domain/ports/permission-cache.js';
 import { IOWNERSHIP_POLICY_REGISTRY } from './domain/ports/ownership-policy.js';
 import { RbacModule } from './rbac.module.js';
+import { PermissionsController } from './controllers/permissions.controller.js';
+import { ReadMyPermissions } from './use-cases/read-my-permissions.js';
 
 /**
  * The wiring, and the claim that a guard which is not registered reads exactly like
@@ -305,8 +307,8 @@ describe('RbacModule.forRoot — the two configurations', () => {
   it('injects the Prisma client into the reader, or the reader gets undefined', () => {
     // A `useFactory` arrow carries no `design:paramtypes`, so omitting `inject` hands
     // Nest an empty argument list. The symptom is a 500 on the first permission check
-    // and a green build — recorded in `auth.module.ts` at `IOIDC_STATE_STORE`, where it
-    // actually happened.
+    // and a green build — recorded in `auth.module.ts` at `IOIDC_STATE_STORE`, where
+    // it actually happened.
     const moduleRef = RbacModule.forRoot(withDatabase());
     const reader = (moduleRef.providers ?? []).find(
       (provider) =>
@@ -317,5 +319,47 @@ describe('RbacModule.forRoot — the two configurations', () => {
     ) as { inject?: unknown } | undefined;
 
     expect(reader?.inject).toHaveLength(1);
+  });
+
+  it('registers the read-my-permissions use-case, wired to the grant reader', () => {
+    // `PLT-204`: the use-case behind `GET /permissions/me`. Registered as a
+    // factory taking the port, so the container — not the use-case — decides
+    // which implementation answers. A missing `inject` here is the same
+    // `undefined`-injection defect the test above names.
+    const moduleRef = RbacModule.forRoot(withDatabase());
+    const useCase = (moduleRef.providers ?? []).find(
+      (provider) =>
+        typeof provider === 'object' &&
+        provider !== null &&
+        'provide' in provider &&
+        provider.provide === ReadMyPermissions,
+    ) as { inject?: unknown } | undefined;
+
+    expect(useCase?.inject).toEqual([IPERMISSION_GRANT_READER]);
+  });
+
+  it('registers the permissions controller when persistence is configured', () => {
+    // The route exists only where its use-case can be answered. Asserted
+    // structurally because a controller registered in the wrong branch is a
+    // route that 404s in one configuration and boots in another — and only
+    // the container would notice.
+    const moduleRef = RbacModule.forRoot(withDatabase());
+
+    expect(moduleRef.controllers).toContain(PermissionsController);
+  });
+
+  it('registers no controller when persistence is absent', () => {
+    // The mirror image: a database-less deployment must not boot a route that
+    // can only refuse. `PermissionGuard` already refuses every gated route in
+    // that state; a 404 is the more honest answer for a route that does not
+    // exist.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const moduleRef = RbacModule.forRoot(testConfig());
+
+      expect(moduleRef.controllers ?? []).toEqual([]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

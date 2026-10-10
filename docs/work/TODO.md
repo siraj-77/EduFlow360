@@ -43,7 +43,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated:** 2026-10-10 (SEC-112 + OPS-105 + OPS-106 complete; SEC-115 pushed earlier today)
+**Last updated:** 2026-10-10 (`PLT-204` + `PLT-205-T3` complete, all gates green; `SEC-112`/`OPS-105`/`OPS-106` and `SEC-115` pushed earlier today)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ✔ DONE 2026-10-09 — Phase 0: uncommitted state adjudicated
@@ -91,14 +91,38 @@
 > Full record: **`docs/work/WORKLOG.md`** (2026-10-10 entry). All
 > eleven gates green. Committed and pushed to `origin/main`.
 >
-> ## ▶ NEXT — Phase 2: the Phase C remainder
+> ## ✔ DONE 2026-10-10 — `PLT-204` + `PLT-205-T3` (frontend permission-aware UI)
 >
-> `SEC-115` is signed off and pushed. Because `.env.local` is retained,
-> **credential rotation (A-1/A-2) is the natural immediate follow-up** —
-> rotating the Google OIDC secrets keeps the dev machine working while
-> removing any exposure. Then the rest of Phase C: doc-delta register
-> `DOC_DELTA_2026-10-09.md`, Auth.js proof C-3, stale port-prose edits
-> C-4, archive redaction A-4/A-5.
+> The web half of the `PLT-EPIC-02` critical path, TDD-first.
+> API: `GET /permissions/me` (`PERMISSION_READ_OWN`, granted to
+> all five system roles) returns the caller's own effective keys —
+> the authenticated principal only, no `userId` parameter to forge.
+> Web: pure wire contract (`permissions-request.ts`),
+> `PermissionsProvider`/`usePermissions` (fail-closed
+> `has`/`hasAny`/`hasAll`), `PermissionGate`, `RequirePermission`
+> (loading→Skeleton, denied→`/{locale}/forbidden`, unauthenticated→
+> `/{locale}/sign-in`, error→null), localized `/forbidden` page,
+> i18n in en/ta/si/ar. `PLT-205-T3`'s over-HTTP negative test
+> proves a second account cannot read the first's permissions.
+> API rbac 14 files/209 tests; web rbac 4 files/42 tests; the
+> four new web source files at 100% coverage. Full gate set green
+> (typecheck 8/8 · lint 8/8 · unit all packages · coverage tiers ·
+> build 9/9 · integration 255/15 files · e2e 37/37 · route-guards
+> 85 files · docs:verify 260 refs · format:check). Full record:
+> **`docs/work/WORKLOG.md`** (2026-10-10 entry).
+>
+> ## ▶ NEXT — the milestone-1 critical path continues
+>
+> `PLT-EPIC-02` remainder: `PLT-204`'s T2-S3/T3-S3 owner
+> visual-approval steps (not code). Then **`PLT-EPIC-03`**
+> (enforce `@RequireEntitlement`) — **blocked on owner decision
+> `⚑D-c`** — and **`PLT-EPIC-04`** (make `@Audited` write, wire
+> `audit-immutability.sql`). The six blocking designs `PC-000`…
+> `PC-006` (`AGENTS.md` §6.1) gate every feature module.
+> Separately, the Phase C remainder (credential rotation A-1/A-2
+> is the natural immediate follow-up while `.env.local` is retained,
+> doc-delta register, Auth.js proof C-3, stale port-prose edits
+> C-4, archive redaction A-4/A-5).
 
 > ## ▶ START HERE — `docs/work/RESUME_2026-10-09.md`
 >

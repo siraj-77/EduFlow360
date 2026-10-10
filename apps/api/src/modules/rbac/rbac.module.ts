@@ -15,6 +15,8 @@ import {
 } from './infrastructure/adapters/redis-permission-cache.js';
 import { StaticOwnershipPolicyRegistry } from './infrastructure/adapters/static-ownership-policy-registry.js';
 import { PrismaPermissionGrantReader } from './infrastructure/postgres/prisma-permission-grant-reader.js';
+import { PermissionsController } from './controllers/permissions.controller.js';
+import { ReadMyPermissions } from './use-cases/read-my-permissions.js';
 
 /**
  * `RbacModule` â€” the wiring, and nothing else.
@@ -38,6 +40,9 @@ import { PrismaPermissionGrantReader } from './infrastructure/postgres/prisma-pe
  * no database to sign anybody in. `PermissionGuard` takes `@Optional()` and refuses
  * every non-public route when the reader is missing, so the module's absence is a
  * refusal rather than a boot failure â€” and never a silent "allowed".
+ * The `PermissionsController` is likewise registered only with the reader, so a
+ * database-less deployment answers 404 for `GET /permissions/me` rather than
+ * booting a route that can only refuse.
  *
  * A half-configured deployment is refused at boot by `readPersistenceConfig`, which is
  * shared with `AuthModule` so the two cannot disagree about when persistence counts.
@@ -144,7 +149,7 @@ export class RbacModule {
           'would go to the database (PLT-202 AC-2, PLT-203).',
       );
 
-      return { module: RbacModule, providers: [], exports: [] };
+      return { module: RbacModule, providers: [], controllers: [], exports: [] };
     }
 
     // Built only once persistence is confirmed, so the warning below can never describe a
@@ -187,10 +192,18 @@ export class RbacModule {
           new PrismaPermissionGrantReader(client, schoolId),
         // `inject` is declared, always. A `useFactory` arrow carries no
         // `design:paramtypes`, so omitting it hands Nest an empty argument list and the
-        // dependency arrives `undefined` â€” which is the defect `AuthModule` records at
+        // dependency arrives `undefined` — which is the defect `AuthModule` records at
         // `IOIDC_STATE_STORE`, where the symptom was a 500 on the first request and a
         // green build.
         inject: [PrismaClient],
+      },
+      {
+        provide: ReadMyPermissions,
+        // The use-case takes the port, and nothing else: it reads a set
+        // through `IPermissionGrantReader` and owns no state of its own.
+        useFactory: (grants: IPermissionGrantReader): ReadMyPermissions =>
+          new ReadMyPermissions(grants),
+        inject: [IPERMISSION_GRANT_READER],
       },
       {
         provide: IOWNERSHIP_POLICY_REGISTRY,
@@ -242,6 +255,10 @@ export class RbacModule {
         // token to resolve against. `useFactory` above reads the parameter, not the token.
         ...(cacheConfigured ? [{ provide: REDIS_CLIENT, useValue: redisClient }] : []),
       ],
+      // The route that serves `PLT-204`: the caller's own permission set.
+      // Registered only in this branch — with no reader, the route could
+      // only refuse, and a 404 is the more honest answer.
+      controllers: [PermissionsController],
       // Exported so the globally-registered `PermissionGuard` — which lives in
       // `common/guards/` and cannot import this module — can inject it.
       exports: [

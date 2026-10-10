@@ -15,7 +15,7 @@ import {
  */
 
 describe('the IPermissionGrantReader port', () => {
-  it('is satisfiable by an implementation with exactly one method', async () => {
+  it('is satisfiable by an implementation with exactly the two methods', async () => {
     // If this stopped compiling, every caller wanting the granted keys would need a
     // cast, and the casts would spread. The real implementation is imported rather
     // than declared here so this asserts the PRODUCTION class satisfies the port, not
@@ -29,18 +29,19 @@ describe('the IPermissionGrantReader port', () => {
     );
 
     expect(typeof reader.isGranted).toBe('function');
+    expect(typeof reader.grantedKeys).toBe('function');
   });
 
-  it('asks one question, and it is phrased as the question the guard asks', () => {
+  it('asks two questions, and they are the questions the guard and the caller ask', () => {
     // A wider port — `getRoles`, `listPermissions`, `hasAll` — would invite a handler
     // to read a role directly, and `SessionPrincipal` deliberately carries no roles
     // precisely so that the engine stays the only thing that can answer this. Asserted
     // from the type, which is where the constraint actually lives.
     type Methods = keyof IPermissionGrantReader;
 
-    const methods: Methods[] = ['isGranted'];
+    const methods: Methods[] = ['isGranted', 'grantedKeys'];
 
-    expect(methods).toHaveLength(1);
+    expect(methods).toHaveLength(2);
   });
 });
 

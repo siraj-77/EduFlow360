@@ -21,6 +21,10 @@ import type { IPermissionGrantReader } from '../../domain/ports/permission-grant
  * grants. Fetching every key a user holds to answer one question would put an
  * unbounded result set in front of a request that wants a boolean.
  *
+ * `grantedKeys` is the deliberate exception: it IS the question "what does this
+ * user hold", so it fetches the keys — and only the keys, through the same
+ * both-ends filter, so the set it returns is this user's and no one else's.
+ *
  * ## The filter is on BOTH ends, and that is the security property
  *
  * `permission: { key }` alone would answer `true` for **every user in the school**,
@@ -78,5 +82,34 @@ export class PrismaPermissionGrantReader implements IPermissionGrantReader {
     });
 
     return grant !== null;
+  }
+
+  /**
+   * The caller's own permission set: the UNION of every role, deduplicated and
+   * sorted ascending.
+   *
+   * The filter is the same one `isGranted` uses — the school, and the roles this
+   * user actually holds — applied to BOTH ends, which is what makes the result
+   * this user's set rather than the school's. A `findMany` on the permission
+   * alone would return every key granted to any role in the school.
+   *
+   * Deduplicated because the same permission can be granted on two roles the
+   * user holds (`D-4.1` unions them into one capability), and sorted so a
+   * response is a stable, comparable value rather than an accident of join
+   * order.
+   */
+  async grantedKeys(params: { userId: string }): Promise<readonly string[]> {
+    const grants = await this.prisma.rolePermission.findMany({
+      where: {
+        schoolId: this.schoolId,
+        // The user's own roles, and no others'. See the file header.
+        role: { users: { some: { userId: params.userId } } },
+      },
+      // Only the key: the response is a list of keys, and nothing here reads
+      // another column.
+      select: { permission: { select: { key: true } } },
+    });
+
+    return [...new Set(grants.map((grant) => grant.permission.key))].sort();
   }
 }

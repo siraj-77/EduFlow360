@@ -25,15 +25,24 @@ import type { PermissionKey } from './permission-catalogue.js';
  * already asserts the word is absent from the schema; this file is where it would actually
  * reappear, because a role is created by *name*.
  *
- * ## Why `TEACHER`, `STUDENT`, `PARENT` and `STAFF` hold NOTHING yet
+ * ## Why the four non-admin roles hold exactly ONE key
  *
- * Not an oversight, and not laziness. There is **no attendance, finance, grading or transport
- * module** to grant anything on, so any grant here would be a permission with no route behind
- * it — a key the admin UI lists, an operator can assign, and that does nothing.
+ * Not an oversight, and not laziness. There is **no attendance, finance,
+ * grading or transport module** to grant anything on, so any module key
+ * here would be a permission with no route behind it — a key the admin UI
+ * lists, an operator can assign, and that does nothing.
  *
- * Empty is the truthful state and it is also useful: it gives the matrix **real denials** from
- * day one. Each role's grants arrive with its module, at which point
- * `permission-catalogue.spec.ts`'s usage test is what forces the addition.
+ * `PERMISSION_READ_OWN` is the exception, and it is a platform-core
+ * capability rather than a module one: `PLT-204` lets every signed-in
+ * account read its own permission set, so the route that serves it
+ * (`GET /permissions/me`) must be reachable by every role. It is the one
+ * grant these roles hold until their modules ship, at which point
+ * `permission-catalogue.spec.ts`'s usage test is what forces the next
+ * addition.
+ *
+ * It also keeps the matrix honest in the other direction: the four roles
+ * are not empty, so a "does this role hold anything" question has a real
+ * answer from day one.
  *
  * ## `SCHOOL_ADMIN` deliberately does NOT hold `PERMISSION_ASSIGN`
  *
@@ -75,8 +84,10 @@ export interface SystemRoleDefinition {
   /**
    * The permission keys this role holds **at seed time**.
    *
-   * Empty is normal and expected for most roles today — see the header. `SCHOOL_ADMIN` is the
-   * only one with a non-empty set, because it is the only role whose capabilities exist.
+   * `SCHOOL_ADMIN` holds the platform-core set an instance is set up
+   * with. The other four hold exactly `PERMISSION_READ_OWN` — the one
+   * platform-core capability every signed-in account needs — until their
+   * modules ship. See the header.
    */
   readonly permissions: readonly PermissionKey[];
 }
@@ -113,28 +124,35 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = Object.freeze([
       // is why `GET /auth/oidc/link` returned 403 for the bootstrap administrator until
       // `PLT-205` T1. Named here so removing it is visibly deliberate.
       'AUTH_LINK_EXTERNAL_IDENTITY',
+      // Every signed-in account reads its own permission set (PLT-204), so the
+      // route that serves it must be reachable by the administrator too.
+      'PERMISSION_READ_OWN',
     ] as readonly PermissionKey[]),
     // `PERMISSION_ASSIGN` is deliberately absent. See the header: no self-escalation.
   },
   {
     name: 'TEACHER',
-    description: 'Teaching staff. Holds nothing until the academic modules ship.',
-    permissions: Object.freeze([] as readonly PermissionKey[]),
+    description:
+      'Teaching staff. Holds the platform-core read key only, until the academic modules ship.',
+    permissions: Object.freeze(['PERMISSION_READ_OWN'] as readonly PermissionKey[]),
   },
   {
     name: 'STUDENT',
-    description: 'Student accounts. Holds nothing until the academic modules ship.',
-    permissions: Object.freeze([] as readonly PermissionKey[]),
+    description:
+      'Student accounts. Hold the platform-core read key only, until the academic modules ship.',
+    permissions: Object.freeze(['PERMISSION_READ_OWN'] as readonly PermissionKey[]),
   },
   {
     name: 'PARENT',
-    description: 'Parent or guardian accounts. Holds nothing until family modules ship.',
-    permissions: Object.freeze([] as readonly PermissionKey[]),
+    description:
+      'Parent or guardian accounts. Hold the platform-core read key only, until the family modules ship.',
+    permissions: Object.freeze(['PERMISSION_READ_OWN'] as readonly PermissionKey[]),
   },
   {
     name: 'STAFF',
-    description: 'Non-teaching staff. Holds nothing until workforce modules ship.',
-    permissions: Object.freeze([] as readonly PermissionKey[]),
+    description:
+      'Non-teaching staff. Hold the platform-core read key only, until the workforce modules ship.',
+    permissions: Object.freeze(['PERMISSION_READ_OWN'] as readonly PermissionKey[]),
   },
 ] as const satisfies readonly SystemRoleDefinition[]);
 

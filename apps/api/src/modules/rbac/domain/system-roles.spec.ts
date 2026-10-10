@@ -156,25 +156,33 @@ describe('the system roles', () => {
     });
   });
 
-  describe('every role except the bootstrap one is honestly empty', () => {
+  describe('every role holds the platform-core read key, and nothing else', () => {
     it.each(['TEACHER', 'STUDENT', 'PARENT', 'STAFF'])(
-      '%s holds nothing, because no module exists to grant anything on',
+      '%s holds exactly the platform-core read key, because no module exists to grant anything on',
       (name) => {
-        // An empty grant set is the truthful state AND it is what gives the matrix real
-        // denials. A speculative grant here would be a permission the admin UI lists and that
-        // does nothing.
+        // The truthful state for a role whose module has not shipped: the one
+        // platform-core capability every signed-in account needs (PLT-204 reads the
+        // caller's own permission set), and nothing else. A speculative grant here
+        // would be a permission the admin UI lists and that does nothing.
         const role = SYSTEM_ROLES.find((candidate) => candidate.name === name);
 
-        expect(role?.permissions).toEqual([]);
+        expect(role?.permissions).toEqual(['PERMISSION_READ_OWN']);
       },
     );
 
-    it('says so in the description, so the emptiness does not read as an oversight', () => {
+    it('says so in the description, so the single grant does not read as an oversight', () => {
       for (const role of SYSTEM_ROLES) {
-        if (role.permissions.length > 0) continue;
+        if (role.name === BOOTSTRAP_ROLE_NAME) continue;
 
-        expect(role.description).toMatch(/nothing until/i);
+        expect(role.description).toMatch(/platform-core read key/i);
       }
+    });
+
+    it('grants the bootstrap role the platform-core read key too', () => {
+      // PLT-204 is for every signed-in account, including the administrator's.
+      const bootstrap = SYSTEM_ROLES.find((role) => role.name === BOOTSTRAP_ROLE_NAME);
+
+      expect(bootstrap?.permissions).toContain('PERMISSION_READ_OWN');
     });
   });
 

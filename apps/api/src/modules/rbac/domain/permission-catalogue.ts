@@ -130,6 +130,14 @@ export const PERMISSION_CATALOGUE = [
       'has no safe default owner yet.',
   },
   {
+    key: 'PERMISSION_READ_OWN',
+    module: 'PERMISSION',
+    action: 'READ_OWN',
+    description: "Read the caller's own permission keys (PLT-204).",
+    // Gated today: `GET /permissions/me`. Recorded as `undefined` on
+    // purpose — its ABSENCE is the signal, and the usage test reads it.
+  },
+  {
     key: 'PLATFORM_MODULE_MANAGE',
     module: 'PLATFORM',
     action: 'MODULE_MANAGE',

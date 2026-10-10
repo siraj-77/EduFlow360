@@ -255,14 +255,17 @@ describe('the permission catalogue', () => {
     });
 
     it('holds exactly the keys this repository actually uses, and no speculative ones', () => {
-      // Nine: the eight the seed carried, plus the one the live route needed and the seed
-      // was missing. Anything more would be a permission for a module that does not exist.
+      // Ten: the eight the seed carried, the one the live route needed and the seed
+      // was missing, and the one PLT-204 added so a signed-in account can read its
+      // own permission set. Anything more would be a permission for a module that
+      // does not exist.
       expect(PERMISSION_KEYS).toEqual([
         'AUDIT_READ',
         'AUTH_LINK_EXTERNAL_IDENTITY',
         'LICENCE_APPLY',
         'LICENCE_UPGRADE',
         'PERMISSION_ASSIGN',
+        'PERMISSION_READ_OWN',
         'PLATFORM_MODULE_MANAGE',
         'SCHOOL_SETTINGS_MANAGE',
         'USER_CREATE',

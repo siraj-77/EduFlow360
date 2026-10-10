@@ -33,10 +33,18 @@
  *   reordered anything.
  *
  * So the evaluation is an **existence question**, not a computation: does a grant row
- * exist joining this user's roles to a `Permission` with this key? That is why this
- * port has one method and no arithmetic — there is no deny-rule, no wildcard and no
+ * exist joining this user's roles to a `Permission` with this key? That is why
+ * `isGranted` has no arithmetic — there is no deny-rule, no wildcard and no
  * inheritance to evaluate, and a port offering any of those would be inviting a
  * permission model that the schema does not have.
+ *
+ * The same join answers the second question the caller asks — "what CAN this
+ * user do?" — and that is `grantedKeys`: the UNION of every key the user's
+ * roles grant, deduplicated and sorted ascending. It is the same query read as a
+ * set rather than asked about one key, so the two methods cannot disagree about
+ * what a grant is. `PLT-204` serves it at `GET /permissions/me`, where the
+ * caller reads their OWN set — never another account's, because the filter is
+ * on the caller's own roles at both ends.
  *
  * The same existence query answers the second question the guard asks — "is this key
  * real?" — for free. A key no `Permission` row carries has no grant row either, so a
@@ -94,4 +102,22 @@ export const IPERMISSION_GRANT_READER = Symbol('IPermissionGrantReader');
  */
 export interface IPermissionGrantReader {
   isGranted(params: { readonly userId: string; readonly permissionKey: string }): Promise<boolean>;
+
+  /**
+   * Every permission key the user holds — the UNION of every role, deduplicated
+   * and sorted ascending.
+   *
+   * The same filter as `isGranted`, on the user's own roles at both ends, so a
+   * caller receives their own set and nothing the school granted to anyone else.
+   * An empty array is the fail-closed answer for a user holding no role: not an
+   * error, and not every key.
+   *
+   * ## Errors are not answers
+   *
+   * As with `isGranted`: an implementation that throws is not returning an empty
+   * set. A database outage is not a permission decision, and the caller lets the
+   * failure propagate so it surfaces as a 500 rather than as "this user can do
+   * nothing".
+   */
+  grantedKeys(params: { readonly userId: string }): Promise<readonly string[]>;
 }

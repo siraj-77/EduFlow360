@@ -268,6 +268,101 @@ describe("one user's grants are not another's", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // `schoolId`
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// `grantedKeys` — the caller's own permission set, as `PLT-204` reads it.
+// The same join, read as a set rather than asked about one key.
+// ═══════════════════════════════════════════════════════════════════════
+describe('grantedKeys', () => {
+  it('returns the UNION of every role, deduplicated and sorted ascending', async () => {
+    // `D-4.1`: permissions UNION across every `UserRole` row. The same
+    // permission is granted on BOTH roles, so a union that repeated it —
+    // or a "primary role" that ignored the second — would answer wrong.
+    const userId = await aUser('union-keys');
+    const readId = await aPermission('KEYS_UNION_READ');
+    const writeId = await aPermission('KEYS_UNION_WRITE');
+    const auditId = await aPermission('KEYS_UNION_AUDIT');
+    await grant(userId, await aRole('keys-reader', [readId, auditId]));
+    await grant(userId, await aRole('keys-writer', [writeId, readId]));
+
+    expect(await reader.grantedKeys({ userId })).toEqual([
+      'KEYS_UNION_AUDIT',
+      'KEYS_UNION_READ',
+      'KEYS_UNION_WRITE',
+    ]);
+  });
+
+  it('returns an empty set for a user holding no role at all', async () => {
+    // The fail-closed answer to "what can this account do?" is "nothing",
+    // not an error and not every key.
+    const userId = await aUser('roleless-keys');
+
+    expect(await reader.grantedKeys({ userId })).toEqual([]);
+  });
+
+  it("returns only this user's keys, not every key granted in the school", async () => {
+    // The security property of the new method, stated directly: the filter
+    // is on the user's own roles at BOTH ends, so a stranger cannot read
+    // the school's permission set back.
+    const holderId = await aUser('holder-keys');
+    const strangerId = await aUser('stranger-keys');
+    const payrollId = await aPermission('KEYS_PAYROLL_READ');
+    await grant(holderId, await aRole('keys-payroll', [payrollId]));
+
+    expect(await reader.grantedKeys({ userId: holderId })).toEqual(['KEYS_PAYROLL_READ']);
+    expect(await reader.grantedKeys({ userId: strangerId })).toEqual([]);
+  });
+
+  it('follows a revocation, so removing the grant removes the key', async () => {
+    const userId = await aUser('revoked-keys');
+    const permissionId = await aPermission('KEYS_REVOKE_PUBLISH');
+    const roleId = await aRole('keys-teacher', [permissionId]);
+    await grant(userId, roleId);
+
+    expect(await reader.grantedKeys({ userId })).toEqual(['KEYS_REVOKE_PUBLISH']);
+
+    await prisma.rolePermission.deleteMany({
+      where: { schoolId: SCHOOL_ID, roleId, permissionId },
+    });
+
+    expect(await reader.grantedKeys({ userId })).toEqual([]);
+  });
+
+  it("is scoped to this school, so another school's grants are invisible", async () => {
+    // One database can hold rows for more than one `schoolId` in a test
+    // run, and the reader is constructed with one. The same "no other
+    // school's rows" property `AGENTS.md` 2.1 buys with a separate
+    // database per school, checked here because a test database is shared.
+    const otherSchoolId = randomUUID();
+    const otherPermissionId = (
+      await prisma.permission.create({
+        data: {
+          schoolId: otherSchoolId,
+          key: 'CROSS_SCHOOL_KEYS_READ',
+          module: 'CROSS',
+          action: 'KEYS_READ',
+        },
+        select: { id: true },
+      })
+    ).id;
+    const otherRoleId = (
+      await prisma.role.create({
+        data: { schoolId: otherSchoolId, name: `cross-keys-${randomUUID()}` },
+        select: { id: true },
+      })
+    ).id;
+    await prisma.rolePermission.create({
+      data: { schoolId: otherSchoolId, roleId: otherRoleId, permissionId: otherPermissionId },
+    });
+
+    const userId = await aUser('crosser-keys');
+    await prisma.userRole.create({
+      data: { schoolId: otherSchoolId, userId, roleId: otherRoleId },
+    });
+
+    expect(await reader.grantedKeys({ userId })).toEqual([]);
+  });
+});
+
 describe('schoolId', () => {
   it('is part of every write, because the composite keys require it', async () => {
     // `AGENTS.md` 2.1 calls `schoolId` metadata, not a security control — isolation is

@@ -49,6 +49,15 @@
       "audited": "SETUP_COMPLETE",
       "owner": "auth",
       "notes": "@Public, and @Audited writes nothing yet. The one-time setup token IS the credential on this route. It is the only unauthenticated WRITE in the system, bounded by the token itself, argon2id and a per-source throttle — all independent of RBAC. Justified in route-guards.allowlist.json."
+    },
+    {
+      "file": "src/modules/rbac/controllers/permissions.controller.ts",
+      "route": "GET /permissions/me",
+      "permission": "PERMISSION_READ_OWN",
+      "entitlement": null,
+      "audited": null,
+      "owner": "rbac",
+      "notes": "The route PLT-204 reads its permission set from. Every system role holds PERMISSION_READ_OWN from the first seed (system-roles.ts), so every legitimate account is answered; a role that did not hold it is refused 403 even with a perfectly valid session, which is the direct-API bypass PLT-205 T3 proves over a real socket in permissions-over-http.integration.spec.ts. The account whose set is read is the principal SessionGuard attached — there is no userId parameter, so a caller cannot read another account's set. Not audited: reading one's own permission keys is not a sensitive action under AGENTS.md 2.3's list (no finance, grades, permissions mutation, override, issuance, posting or wallet movement)."
     }
   ]
 }
