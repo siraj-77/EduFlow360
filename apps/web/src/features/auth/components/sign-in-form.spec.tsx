@@ -182,7 +182,13 @@ describe('the rendered form', () => {
 
     await waitFor(() => expect(calls).toHaveLength(1));
 
-    const init = calls[0]!;
+    const init = calls[0];
+    if (init === undefined) {
+      // Unreachable: the waitFor above asserts the length. The
+      // guard narrows the type without the non-null assertion
+      // the lint config forbids.
+      throw new Error('the form did not send a request');
+    }
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toEqual({
       identifier: 'amara@school.lk',

@@ -62,7 +62,7 @@ const CONFIGURED = {
   GOOGLE_CLIENT_ID: 'test-client-id.apps.googleusercontent.com',
   GOOGLE_CLIENT_SECRET: 'test-client-secret',
   GOOGLE_REDIRECT_URI: 'http://localhost:3001/auth/oidc/callback',
-  JWT_ACCESS_SECRET: 'a-test-signing-key-of-adequate-length-0123456789',
+  JWT_ACCESS_SECRET: 'localdev-test-signing-key-0123456789',
   OIDC_STATE_TTL_MS: 600_000,
 } as unknown as AppConfig;
 

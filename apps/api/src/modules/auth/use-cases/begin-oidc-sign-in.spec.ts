@@ -29,7 +29,7 @@ import { BeginOidcSignIn, UntrustedAuthorizationUrlError } from './begin-oidc-si
 const ORIGIN = 'https://accounts.google.com';
 const NOW = '2026-10-02T09:00:00.000Z';
 const TTL = 600_000;
-const SECRET = 'a-test-signing-key-of-adequate-length-0123456789';
+const SECRET = 'localdev-test-signing-key-0123456789';
 
 /**
  * The four values the provider produced.

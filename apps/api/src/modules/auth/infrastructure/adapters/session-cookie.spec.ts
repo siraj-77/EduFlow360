@@ -39,7 +39,7 @@ function recordingResponse() {
   return { set, carrier: new ExpressCookieCarrier(response) as ICookieCarrier };
 }
 
-const TOKEN = 'kZ7f2QwErTyUiOpAsDfGhJkL4zXcVbNm';
+const TOKEN = 'localdev-session-token';
 
 /**
  * Builds an adapter over a frozen clock.

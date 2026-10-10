@@ -22,11 +22,14 @@
     "docs:verify": "node scripts/docs-verify.mjs",
     "check:route-guards": "node scripts/check-route-guards.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
+    "prepare": "husky",
     "migration:generate": "pnpm --filter @eduflow/api migration:generate",
     "migration:run": "pnpm --filter @eduflow/api migration:run"
   },
   "devDependencies": {
     "@eduflow/config": "workspace:*",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"

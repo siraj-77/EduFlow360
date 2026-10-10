@@ -75,8 +75,55 @@ if (!process.env.DATABASE_URL) {
 }
 
 /**
- * Integration tests run against a real, containerized PostgreSQL on an
- * isolated schema (AGENTS.md section 4; Prompt Pack P4).
+ * Bound the pool every spec's `new PrismaClient()` opens.
+ *
+ * Prisma's default pool is `num_physical_cpus * 2 + 1`, which is
+ * smaller than the eight concurrent connections the setup-token claim
+ * test dispatches on a small runner, so those claims would queue behind
+ * the pool's connection timeout instead of running together - and the
+ * test would then measure the pool, not the database's atomicity. An
+ * explicit limit that comfortably fits the widest concurrent burst keeps
+ * the measurement honest. It is appended here, in the one place all
+ * fourteen specs inherit, rather than repeated in each spec's
+ * `new PrismaClient()`.
+ *
+ * `connection_limit` is a Prisma connection-string parameter, so it
+ * rides the same URL the specs already read; an existing query string
+ * (CI passes `?schema=public`) is preserved with `&`.
+ */
+function withBoundedPool(url: string): string {
+  if (/connection_limit=\d+/.test(url)) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}connection_limit=15`;
+}
+
+const databaseUrl = process.env.DATABASE_URL;
+if (databaseUrl === undefined) {
+  // Unreachable: the guard above already threw when neither the
+  // environment nor .env supplied DATABASE_URL. This branch exists only
+  // to narrow the type for withBoundedPool.
+  throw new Error('DATABASE_URL is not set.');
+}
+process.env.DATABASE_URL = withBoundedPool(databaseUrl);
+
+/**
+ * Integration tests run against a real PostgreSQL (AGENTS.md section 4;
+ * Prompt Pack P4).
+ *
+ * What "isolated" means here, stated honestly rather than claimed: the
+ * suite is SERIALIZED (`fileParallelism: false` below) and every spec
+ * namespaces its rows under a unique `schoolId`, so no two specs write
+ * the same rows and no spec runs concurrently with another. It is NOT
+ * isolated by schema or by database. Locally the suite runs against the
+ * developer's own database (the `DATABASE_URL` in the git-ignored root
+ * `.env`), so its rows accumulate there; in CI it runs against a fresh,
+ * dedicated database the workflow provisions and migrates. A dedicated
+ * test database - created, migrated and dropped per run, so the suite
+ * never touches the development database - is the remaining isolation
+ * gap and is owned by provisioning (OPS-06), not by this config. It is
+ * recorded here rather than asserted, because a config that claims an
+ * isolation it does not implement is the defect class FIX-18 removed
+ * from ARCHITECTURE.md section 17.
  *
  * `passWithNoTests` is deliberately `false`, and the gate is therefore
  * RED until `F-7` supplies the first real integration test.
@@ -115,6 +162,13 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.integration.spec.ts'],
     passWithNoTests: false,
+    // SEC-112: spec files run one at a time. The default is parallel,
+    // which let fourteen specs each open their own PrismaClient against
+    // one database at the same time - the mechanism behind the
+    // setup-token concurrency flake. Serializing the files removes the
+    // cross-file races; the eight contenders inside the setup-token test
+    // still run concurrently on one pool, which is the claim under test.
+    fileParallelism: false,
     testTimeout: 30_000,
   },
 });

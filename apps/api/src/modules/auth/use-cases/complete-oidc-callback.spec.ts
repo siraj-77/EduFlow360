@@ -43,7 +43,7 @@ import {
 
 const NOW = '2026-10-03T09:00:00.000Z';
 const TTL = 600_000;
-const SECRET = 'a-test-signing-key-of-adequate-length-0123456789';
+const SECRET = 'localdev-test-signing-key-0123456789';
 
 const USER_ID = '2f6a1d0c-8e4b-4a1e-9c2f-3d4e5f6a7b8c';
 const SUBJECT = 'google-subject-000000000001';

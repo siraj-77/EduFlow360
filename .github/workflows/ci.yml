@@ -166,3 +166,36 @@ jobs:
 
       - name: Route guards
         run: pnpm check:route-guards
+
+  # OPS-105: secret scanning.
+  #
+  # A secret that was committed and later removed is still in the
+  # repository, so this job checks out the FULL history and scans
+  # every commit — scanning only the tip would miss it. This is the
+  # compensating control for the accepted risk recorded in TODO.md
+  # (D-02: live credentials on disk).
+  #
+  # The gitleaks GitHub Action requires a licence on private
+  # repositories, so the CLI runs directly instead. The release is
+  # pinned by version AND by the SHA256 of its archive, so a tampered
+  # release or a compromised tag cannot execute arbitrary code here.
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the full history, not just the tip
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan every commit for secrets
+        run: |
+          set -euo pipefail
+          VERSION="8.30.1"
+          SHA256="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+          curl -sSL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
+            -o gitleaks.tar.gz
+          echo "${SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz
+          ./gitleaks detect --source . --config .gitleaks.toml --redact --verbose

@@ -52,7 +52,7 @@ const ATTRIBUTES = {
 
 const COOKIE: SessionCookie = {
   name: 'eduflow_session',
-  value: 'kZ7f2QwErTyUiOpAsDfGhJkL4zXcVbNm',
+  value: 'localdev-session-token',
   attributes: ATTRIBUTES,
 };
 

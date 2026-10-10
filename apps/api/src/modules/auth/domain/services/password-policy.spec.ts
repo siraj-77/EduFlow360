@@ -140,10 +140,10 @@ describe('the refusal carries no part of the password', () => {
   it('never echoes the candidate, so a log line cannot leak it', () => {
     // `AGENTS.md` 2.13. The refusal is a bare reason code precisely so that
     // whatever writes it has nothing sensitive to write.
-    const secret = 'hunter2-and-my-birthday';
+    const secret = 'localdev-weak-password';
     const verdict = decidePasswordAcceptance(secret, { ...policy, minimumLength: 64 });
 
     expect(JSON.stringify(verdict)).not.toContain(secret);
-    expect(JSON.stringify(verdict)).not.toContain('hunter2');
+    expect(JSON.stringify(verdict)).not.toContain('localdev');
   });
 });

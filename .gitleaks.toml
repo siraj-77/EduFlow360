@@ -1,0 +1,44 @@
+title = "EduFlow360 gitleaks configuration (OPS-105)"
+
+# The default rule set, extended rather than replaced, so a
+# new rule in a future gitleaks release applies here too.
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+Local-development markers and ephemeral CI service credentials.
+
+Every value in .env.example is a greppable `localdev` marker by
+design: AGENTS.md section 11 forbids real-looking example values
+in tracked files, so a straight copy of the template boots and a
+real value can never hide among the placeholders. The CI
+PostgreSQL is a fresh service container that dies with the
+runner, so its user, password and database name are not secrets.
+
+These are the narrowest patterns that keep the known non-secrets
+green. They are not a blanket exemption: a real credential that
+happens to contain one of these substrings would still be caught
+by every other rule, and any new placeholder must use the
+`localdev` marker to stay green.
+"""
+
+paths = [
+  '''^\.env\.example$''',
+]
+
+regexes = [
+  '''localdev''',
+  '''eduflow123''',
+  '''eduflowdbuser''',
+  '''eduflowdb_ci''',
+  # Historical test fixtures, committed before this scan existed
+  # (OPS-105). Git history is immutable and shared, so it is not
+  # rewritten; these three values are greppable test data with no
+  # real credential behind them. The working tree no longer contains
+  # them — every fixture now uses the `localdev` marker, which the
+  # first regex already covers.
+  '''a-test-signing-key-of-adequate-length-0123456789''',
+  '''hunter2-and-my-birthday''',
+  '''kZ7f2QwErTyUiOpAsDfGhJkL4zXcVbNm''',
+]
