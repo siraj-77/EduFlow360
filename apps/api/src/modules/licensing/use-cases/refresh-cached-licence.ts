@@ -39,6 +39,16 @@ export interface RefreshCachedLicenceDeps {
   /** The real validator; the port is structural so a test need not build a key. */
   readonly validator: ValidateLicenceCertificate;
   readonly clock: IClock;
+  /**
+   * How long a lapsed certificate keeps its entitlements (`PLT-305`).
+   *
+   * From `LICENCE_GRACE_WINDOW_MS`. Zero means no grace, which is how every
+   * pre-`PLT-305` caller behaves: a certificate whose time has passed is
+   * `expired` immediately. The window is the corpus's own "at least the
+   * configured grace window" — and the DEFAULT is a recorded gap (no number
+   * in the corpus), the same judgement style as the throttles.
+   */
+  readonly graceWindowMs?: number;
 }
 
 export class RefreshCachedLicence {
@@ -82,13 +92,45 @@ export class RefreshCachedLicence {
     };
 
     const verdict = this.deps.validator.validate(input);
+    const graceMs = this.deps.graceWindowMs ?? 0;
 
     switch (verdict.outcome) {
       case 'valid':
-        state = { outcome: 'valid', payload: verdict.payload, validatedAt: now };
+        state = { outcome: 'valid', payload: verdict.payload, validatedAt: now, graceUntil: null };
         break;
+
       case 'expired':
-        state = { outcome: 'expired', payload: verdict.payload, validatedAt: now };
+        // The grace window, and the reason it is bounded in both directions.
+        //
+        // INSIDE it, the school keeps its entitlements and the state carries
+        // the countdown — a renewal that lapses must not lock a school out
+        // mid-day (`PLT-305`'s AC). PAST it, the certificate is `expired` and
+        // the guard refuses: grace that never ends is an unlicensed school
+        // running a licensed product, which is the thing `ADR-009` wrote the
+        // whole scheme to prevent.
+        //
+        // The boundary is inclusive of its last instant: `expiry + window`
+        // still grants, one tick later does not. An off-by-one here is a
+        // school granted or refused for a millisecond of window.
+        if (graceMs > 0 && now.getTime() <= verdict.payload.expiryDate.getTime() + graceMs) {
+          state = {
+            outcome: 'valid',
+            payload: verdict.payload,
+            validatedAt: now,
+            // One scoped disable, with the same reasoning as the payload
+            // parse in `licence-payload.ts`: the domain ban on `new Date()`
+            // exists to stop a use-case DECIDING the time. This derives a
+            // timestamp from the CERTIFICATE's own expiry plus a configured
+            // window — no clock is consulted, and `now` above came from
+            // `IClock`. There is no `Date.fromEpoch` in the language, and the
+            // alternative (carrying epoch millis through the cache state)
+            // would put the arithmetic in every consumer.
+            // eslint-disable-next-line no-restricted-syntax
+            graceUntil: new Date(verdict.payload.expiryDate.getTime() + graceMs),
+          };
+        } else {
+          state = { outcome: 'expired', payload: verdict.payload, validatedAt: now };
+        }
         break;
       case 'schema-error':
         state = { outcome: 'schema-error', reason: verdict.reason, validatedAt: now };

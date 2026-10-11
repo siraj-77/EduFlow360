@@ -3,7 +3,6 @@ import type {
   ILicenceRepository,
   LicenceEnvelopeRecord,
 } from '../../domain/repositories/license-repository.js';
-
 /**
  * `PrismaLicenseRepository` — the deployment's certificate row (`PLT-301` T2).
  *
@@ -81,5 +80,45 @@ export class PrismaLicenseRepository implements ILicenceRepository {
       where: { schoolId: this.schoolId },
       data: { lastValidatedAt: params.now },
     });
+  }
+
+  async activate(
+    record: Parameters<ILicenceRepository['activate']>[0],
+  ): Promise<{ licenceId: string }> {
+    // An UPSERT on the school's single row (`ADR-003` + the `school_id`
+    // UNIQUE): a renewal replaces rather than accumulates. The previous
+    // certificate's history is the audit trail's job — this table holds the
+    // row the validator will re-check on the next boot.
+    const saved = await this.prisma.license.upsert({
+      where: { schoolId: this.schoolId },
+      create: {
+        schoolId: this.schoolId,
+        // The certificate's own school id doubles as the row's identifier:
+        // the payload has no separate serial in Master Plan §4.2, and one
+        // row per school makes anything beyond this decorative.
+        licenseId: record.schoolId,
+        edition: '',
+        certificate: record.certificate as object,
+        signature: record.signature,
+        keyId: record.keyId,
+        canonicalizationVersion: record.canonicalisationVersion,
+        status: record.status,
+        issuedAt: record.activatedAt,
+        activatedAt: record.activatedAt,
+        expiresAt: record.expiresAt,
+      },
+      update: {
+        certificate: record.certificate as object,
+        signature: record.signature,
+        keyId: record.keyId,
+        canonicalizationVersion: record.canonicalisationVersion,
+        status: record.status,
+        activatedAt: record.activatedAt,
+        expiresAt: record.expiresAt,
+      },
+      select: { licenseId: true },
+    });
+
+    return { licenceId: saved.licenseId };
   }
 }
