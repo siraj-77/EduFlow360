@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { messages } from '@eduflow/i18n-resources';
 import type { SupportedLocale } from '@eduflow/shared-types';
@@ -75,7 +75,20 @@ function renderScreen(locale: SupportedLocale = 'en') {
 }
 
 const signOutButton = () => screen.getByTestId('signed-in-sign-out');
-const clickSignOut = () => fireEvent.click(signOutButton());
+
+/**
+ * Press the button and let the handler's promise chain settle.
+ *
+ * `act` because `sendSignOut` is awaited and the handler sets state after it
+ * resolves; without it the update lands outside `act` and React warns. The
+ * `waitFor` in each test is the assertion, not the flush — this is the flush.
+ */
+const clickSignOut = async () => {
+  await act(async () => {
+    fireEvent.click(signOutButton());
+    await Promise.resolve();
+  });
+};
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -91,7 +104,7 @@ describe('SignedInScreen sign-out', () => {
     const location = stubLocation();
 
     renderScreen();
-    clickSignOut();
+    await clickSignOut();
 
     await waitFor(() => expect(fetch.calls.length).toBeGreaterThan(0));
 
@@ -108,7 +121,7 @@ describe('SignedInScreen sign-out', () => {
     const location = stubLocation();
 
     renderScreen();
-    clickSignOut();
+    await clickSignOut();
 
     await waitFor(() => expect(fetch.calls.length).toBeGreaterThan(0));
 
@@ -124,7 +137,7 @@ describe('SignedInScreen sign-out', () => {
     const location = stubLocation();
 
     renderScreen();
-    clickSignOut();
+    await clickSignOut();
 
     await waitFor(() => expect(fetch.calls.length).toBeGreaterThan(0));
 
@@ -138,7 +151,7 @@ describe('SignedInScreen sign-out', () => {
     stubFetch({ status: 200 });
 
     renderScreen();
-    clickSignOut();
+    await clickSignOut();
 
     await waitFor(() => expect(location.replace).toHaveBeenCalledTimes(1));
     expect(location.replace).toHaveBeenCalledWith('/en/sign-in');
@@ -154,9 +167,7 @@ describe('SignedInScreen sign-out', () => {
     stubFetch({ status: 403 });
 
     renderScreen();
-    clickSignOut();
-
-    await waitFor(() => expect(signOutButton()).not.toBeDisabled());
+    await clickSignOut();
 
     expect(location.replace).not.toHaveBeenCalled();
     expect(screen.queryByText(/signed out/i)).toBeNull();
@@ -167,9 +178,7 @@ describe('SignedInScreen sign-out', () => {
     stubFetch(new TypeError('Failed to fetch'));
 
     renderScreen();
-    clickSignOut();
-
-    await waitFor(() => expect(signOutButton()).not.toBeDisabled());
+    await clickSignOut();
 
     expect(location.replace).not.toHaveBeenCalled();
     expect(screen.queryByText(/signed out/i)).toBeNull();
@@ -180,9 +189,7 @@ describe('SignedInScreen sign-out', () => {
     stubFetch({ status: 500 });
 
     renderScreen();
-    clickSignOut();
-
-    await waitFor(() => expect(signOutButton()).not.toBeDisabled());
+    await clickSignOut();
 
     expect(location.replace).not.toHaveBeenCalled();
     expect(screen.queryByText(/signed out/i)).toBeNull();

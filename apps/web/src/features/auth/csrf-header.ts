@@ -54,19 +54,42 @@ export const CSRF_HEADER_NAME = 'x-eduflow-csrf';
 export const CSRF_HEADER_VALUE = 'eduflow-web';
 
 /**
- * The headers a sign-in POST carries.
+ * The headers every state-changing auth POST carries.
  *
  * `Accept` is not decoration: without it a server may answer `406`, and the
  * failure would look like an API problem rather than a request problem.
  * `Content-Type: application/json` is what makes this a request the browser
  * preflights, which is the mechanism the guard relies on.
  */
-export function signInHeaders(): Readonly<Record<string, string>> {
+function stateChangingHeaders(): Readonly<Record<string, string>> {
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
     [CSRF_HEADER_NAME]: CSRF_HEADER_VALUE,
   };
+}
+
+/**
+ * The headers a sign-in POST carries.
+ *
+ * Kept as a named export because the sign-in contract's spec asserts the header
+ * is present, and because the name tells a reader of `sign-in-request.ts` what
+ * the request is. Sign-out uses {@link signOutHeaders} for the same reason.
+ */
+export function signInHeaders(): Readonly<Record<string, string>> {
+  return stateChangingHeaders();
+}
+
+/**
+ * The headers a sign-out POST carries.
+ *
+ * The identical three headers as sign-in: the header is a channel test (see the
+ * file header), not a per-route credential, so there is nothing about sign-out
+ * that changes it. A separate name anyway, so a caller writing a new request
+ * never has to reach for something called "signIn".
+ */
+export function signOutHeaders(): Readonly<Record<string, string>> {
+  return stateChangingHeaders();
 }
 
 /**
