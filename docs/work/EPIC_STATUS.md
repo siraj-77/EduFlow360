@@ -11,7 +11,7 @@
 | `PLT-EPIC-01` | Authentication & Session Management | 34  | 풦 **~90%** | 5 routes live and tested over a real socket; `PLT-105` not started; `PLT-104`/`PLT-106` are mobile, milestone 2 |
 | `PLT-EPIC-02` | Dynamic RBAC & Policy Engine        | 42  | ~75%      | Catalogue, 5 system roles and seed built; ownership engine and permission cache built. **`SEC-110` closed 2026-10-05** — the shipped `PermissionGuard` now receives all four of its tokens, so `PLT-203` AC-2 holds in practice. T3-T6 of `PLT-205` open. Still uncommitted. |
 | `PLT-EPIC-03` | Licensing & Entitlement Enforcement | 29  | ❌ 0%       | no entitlement code; `ARC-10` capability keys outstanding                                                       |
-| `PLT-EPIC-04` | Immutable Audit Logging             | 21  | ❌ 0%       | `@Audited` writes **nothing**; `audit-immutability.sql` unwired                                                 |
+| `PLT-EPIC-04` | Immutable Audit Logging             | 21  | 🟡 67%      | `PLT-401` T1/T3 + `PLT-402` T1–T3 shipped 2026-10-11 (`@Audited` writes, append-only port, real-Postgres proof incl. ADR-013 rollback); remaining: `PLT-403` viewer (P1, needs shell), `PLT-404` retention (P2) |
 | `PLT-EPIC-05` | Error & Diagnostic Logging Engine   | 18  | ❌ 0%       | no DB error log; file logging not implemented                                                                   |
 | `PLT-EPIC-06` | Dynamic Module Registry & Settings  | 16  | 풦 partial  | `SchoolSettings` schema + 2 rules; no registry, no module gate                                                  |
 | `PLT-EPIC-07` | Multi-Channel Notification Router   | 13  | ❌ 0%       | **0 notification code in `apps/api`** — and `PLT-105` depends on it                                             |

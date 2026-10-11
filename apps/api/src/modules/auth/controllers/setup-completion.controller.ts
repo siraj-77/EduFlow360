@@ -17,6 +17,12 @@ import type { ZodError } from 'zod';
 import { Public } from '../../../common/guards/public.decorator.js';
 import { Audited } from '../../../common/guards/route-guards.decorator.js';
 import { sourceAddressOf, type RequestWithAddress } from '../../../common/http/request-context.js';
+import {
+  attachAuditActor,
+  attachAuditSubject,
+  auditSubjectFor,
+  type AuditCarrier,
+} from '../../../common/http/audit-actor.js';
 // A VALUE import for `FixedWindowThrottle`, because `@Inject(FixedWindowThrottle)`
 // below needs a runtime token. A VALUE import for nothing in this file would be a
 // lint error; an `import type` would typecheck perfectly, pass `tsc`, pass lint, and
@@ -79,17 +85,20 @@ const KNOWN_BODY_KEYS: ReadonlySet<string> = new Set(['token', 'password', 'emai
  *
  * ## What `@Audited` does and does not do HERE, stated plainly
  *
- * **Nothing yet.** `@Audited('SETUP_COMPLETE')` records a key in route metadata, and
- * `PLT-402` is the story that will write it to `audit_records`. There is no audit
- * writer in this repository, nothing reads the metadata, and `CsrfGuard` is the only
- * control that enforces anything. So no audit row is produced by this route today,
- * and no test in this repository can assert one — asserting that a mock was called
- * would be asserting a fiction.
+ * **It appends one row.** `@Audited('SETUP_COMPLETE')` records a key in route
+ * metadata, and since 2026-10-11 `AuditInterceptor` (`PLT-402`), registered
+ * globally in `app.module.ts`, reads it and writes one `audit_records` row
+ * after this handler succeeds — before the response is released, so the row
+ * exists by the time the caller has their answer. This handler declares the
+ * actor it created (`attachAuditActor`), because the route is `@Public` and
+ * `SessionGuard` attached no principal; see the attachment site below.
  *
  * The decorator is here because `AGENTS.md` 2.3 requires it on a sensitive action and
  * because the requirement is easier to honour at the moment the route is written than
- * to retrofit. `check-route-guards` proves the key is PRESENT; it cannot prove
- * anything was recorded, and this comment exists so no reader assumes otherwise.
+ * to retrofit. `check-route-guards` proved the key was PRESENT from the day this route
+ * shipped, while `PLT-402` was still ahead of it; today the interceptor is what makes
+ * the key mean something, and `audit-repository.spec.ts` is what keeps the records
+ * append-only.
  *
  * ## Why there is no `@RequireEntitlement`
  *
@@ -145,7 +154,10 @@ export class SetupCompletionController {
   @HttpCode(HttpStatus.OK)
   async complete(
     @Body() body: unknown,
-    @Req() request: RequestWithAddress,
+    // An `AuditCarrier` too: this handler declares the actor for the audit
+    // record on a `@Public` route (`PLT-402`), where `SessionGuard` attached
+    // no principal. See the attachment site below.
+    @Req() request: RequestWithAddress & AuditCarrier,
   ): Promise<{ readonly userId: string }> {
     // ── Throttle, FIRST, before the body is even parsed. ─────────────────────
     // Before parsing so a caller cannot spend server CPU on JSON validation and
@@ -171,7 +183,12 @@ export class SetupCompletionController {
     if (!parsed.success) throw toBadRequest(parsed.error);
 
     try {
-      return await this.completeSetup.complete({
+      // The completed account, held so the audit actor can be declared from
+      // it BEFORE the return (`PLT-402`): this route is `@Public`, so
+      // `SessionGuard` attached no principal and the one moment this codebase
+      // knows who was created is right here. A REFUSED setup throws before
+      // this line and records a failure carrying no identifier.
+      const completed = await this.completeSetup.complete({
         setupTokenPlaintext: parsed.data.token,
         password: parsed.data.password,
         // Conditional spread: `exactOptionalPropertyTypes` is on, and an absent
@@ -186,6 +203,11 @@ export class SetupCompletionController {
             }
           : {}),
       });
+
+      attachAuditActor(request, { userId: completed.userId });
+      attachAuditSubject(request, auditSubjectFor(completed.userId));
+
+      return completed;
     } catch (cause) {
       throw toHttpException(cause);
     }

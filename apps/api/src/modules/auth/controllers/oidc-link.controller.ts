@@ -41,20 +41,24 @@ interface RedirectingResponse extends CookieWritingResponse {
 type LinkRequest = RequestWithAddress & PrincipalCarrier;
 
 /**
- * ## `@RequirePermission` is here, and it enforces NOTHING yet
+ * ## `@RequirePermission` is here, and it enforces — today, for real
  *
- * Stated plainly, because a decorator reads like a control:
+ * Stated plainly, because a decorator reads like a control and this one was a
+ * vocabulary marker for months:
  *
  * - **It is not `@Public`.** That is the load-bearing decision. `@Public` is the
  *   exemption marker `SessionGuard` honours, so marking this route `@Public` would
  *   remove the authentication and leave a link endpoint anyone could call.
- * - **`SessionGuard` is what authenticates it, today.** It is registered globally
- *   with no per-route opt-in, and this route carries no exemption, so a request
- *   without a live session never reaches this handler.
- * - **The permission itself is unread.** No guard reads `@RequirePermission` in this
- *   repository — that is `PLT-2xx` and the RBAC engine. `check-route-guards` proves the
- *   key is PRESENT; it cannot prove anything is checked. `route-guards.decorator.ts`
- *   says so at the top of the file, and this paragraph exists so nobody reads the
+ * - **`SessionGuard` authenticates it.** Registered globally with no per-route
+ *   opt-in, and this route carries no exemption, so a request without a live
+ *   session never reaches this handler.
+ * - **`PermissionGuard` checks the key.** Since `PLT-201` it is registered
+ *   globally in `app.module.ts` and reads `@RequirePermission`; the caller's role
+ *   must grant `AUTH_LINK_EXTERNAL_IDENTITY` or the route answers 403.
+ *   `check-route-guards` proves the key is present, and
+ *   `route-permissions.json` plus `permission-matrix.spec.ts` keep the key and
+ *   this row reconciled. Originally deferred as a `PLT-2xx` item; the deferral
+ *   ended and this paragraph records that the marker became a control.
  *   decorator below as an implemented control.
  *
  * `AUTH_LINK_EXTERNAL_IDENTITY` is the `MODULE_ACTION` key `ADR-012` asks for. It

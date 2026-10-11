@@ -130,10 +130,22 @@
   body {
     background-color: var(--bg);
     color: var(--text);
-    /* Font stack must cover Tamil, Sinhala and Arabic. */
+    /*
+     * The approved stack (`DSN-04`, `ADR-022`).
+     *
+     * Latin first so an English label never falls through to a script face
+     * that happens to carry Latin; then a family for each of the four
+     * locales; then the system stack, because the delivery decision is
+     * system-first and a school machine with its own Noto install has no
+     * reason to download anything. Noto NASKH Arabic for `ar` is the
+     * deliberate choice — naskh is the readable style for extended Arabic
+     * text, where the kufic-leaning Noto Sans Arabic is a display face.
+     * The self-hosted-subset fallback is a named follow-up in ADR-022, not
+     * an omission.
+     */
     font-family:
-      'Noto Sans', 'Noto Sans Tamil', 'Noto Sans Sinhala', 'Noto Sans Arabic',
-      system-ui, -apple-system, 'Segoe UI', sans-serif;
+      'Noto Sans', 'Noto Sans Tamil', 'Noto Sans Sinhala', 'Noto Naskh Arabic',
+      'Noto Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif;
   }
 
   :focus-visible {

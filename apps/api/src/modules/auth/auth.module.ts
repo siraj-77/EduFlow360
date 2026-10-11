@@ -23,6 +23,20 @@ import {
   SetupCompletionController,
 } from './controllers/setup-completion.controller.js';
 import { I_ALLOWED_EMAIL_DOMAIN_STORE } from '../settings/domain/ports/allowed-email-domain-store.js';
+import { RequestPasswordReset } from './use-cases/request-password-reset.js';
+import { ConfirmPasswordReset } from './use-cases/confirm-password-reset.js';
+import {
+  PASSWORD_RESET_THROTTLE_POLICY,
+  PasswordResetController,
+} from './controllers/password-reset.controller.js';
+import { I_EMAIL_DELIVERY, type IEmailDelivery } from './domain/ports/email-delivery.js';
+import { RecordingEmailAdapter } from './infrastructure/adapters/recording-email-adapter.js';
+import { SmtpEmailAdapter } from './infrastructure/adapters/smtp-email-adapter.js';
+import {
+  I_PASSWORD_RESET_TOKEN_REPOSITORY,
+  type IPasswordResetTokenRepository,
+} from './domain/repositories/password-reset-token-repository.js';
+import { PrismaPasswordResetTokenRepository } from './infrastructure/postgres/prisma-password-reset-token-repository.js';
 import type { IAllowedEmailDomainStore } from '../settings/domain/ports/allowed-email-domain-store.js';
 import { PrismaAllowedEmailDomainStore } from '../settings/infrastructure/postgres/prisma-allowed-email-domain-store.js';
 import { CLOCK } from './domain/ports/clock.js';
@@ -342,7 +356,16 @@ export class AuthModule {
     } else {
       const { databaseUrl, schoolId } = persistence;
       providers.push(...credentialProviders(databaseUrl, schoolId, config));
-      controllers.push(SetupCompletionController, PasswordSignInController);
+      controllers.push(
+        SetupCompletionController,
+        PasswordSignInController,
+        // `PLT-105` — registered here, in the database branch, for the same reason
+        // sign-in is: both mint credentials from a real credential row, and the
+        // three-state shape (`ADR-019`) means a database-less deployment has
+        // neither sign-in nor password reset. The pages themselves (`T3`) wait
+        // for the app shell — see the controller header.
+        PasswordResetController,
+      );
     }
 
     // The callback needs BOTH halves: a provider to verify the assertion with, and a
@@ -647,6 +670,101 @@ function credentialProviders(databaseUrl: string, schoolId: string, config: AppC
         limit: config.LOGIN_MAX_FAILED_ATTEMPTS * 10,
         windowMs: config.LOGIN_LOCKOUT_MS,
       }) satisfies ThrottlePolicy,
+    },
+    {
+      provide: PASSWORD_RESET_THROTTLE_POLICY,
+      // The request route causes outbound mail, so this is the throttle that keeps
+      // one source from spending the school's SMTP quota and getting the domain
+      // blacklisted. Configuration, not constants (`AGENTS.md` 2.14).
+      useValue: Object.freeze({
+        limit: config.PASSWORD_RESET_MAX_ATTEMPTS,
+        windowMs: config.PASSWORD_RESET_WINDOW_MS,
+      }) satisfies ThrottlePolicy,
+    },
+
+    // ── password reset (`PLT-105`) ───────────────────────────────────────────
+    {
+      provide: I_PASSWORD_RESET_TOKEN_REPOSITORY,
+      useFactory: (client: PrismaClient): IPasswordResetTokenRepository =>
+        new PrismaPasswordResetTokenRepository(client, schoolId),
+      inject: [PrismaClient],
+    },
+    {
+      // `ADR-014`: email goes through a port from the first story that needs it.
+      // Which IMPLEMENTATION is a deployment fact — SMTP when configured, the
+      // recording adapter otherwise — decided here, once, at boot, and reported
+      // in the banner rather than at send time.
+      provide: I_EMAIL_DELIVERY,
+      useFactory: (): IEmailDelivery => {
+        if (config.SMTP_HOST === undefined || config.SMTP_HOST.trim().length === 0) {
+          console.warn(
+            'AuthModule: no SMTP_HOST is configured, so outbound mail is NOT delivered - ' +
+              'password-reset links are recorded in memory only (ADR-014). This is reported ' +
+              'rather than discovered from a support ticket.',
+          );
+          return new RecordingEmailAdapter();
+        }
+        return new SmtpEmailAdapter(config);
+      },
+    },
+    {
+      provide: RequestPasswordReset,
+      useFactory: (
+        users: IUserCredentialRepository,
+        tokens: IPasswordResetTokenRepository,
+        email: IEmailDelivery,
+        clock: SystemClock,
+      ): RequestPasswordReset =>
+        new RequestPasswordReset(
+          { users, tokens, email, clock },
+          {
+            // Configuration, per `AGENTS.md` 2.14: the window the story's own
+            // acceptance criterion names as configurable.
+            ttlMs: config.PASSWORD_RESET_TTL_MS,
+            webOrigin: config.WEB_ORIGIN,
+          },
+        ),
+      inject: [
+        I_USER_CREDENTIAL_REPOSITORY,
+        I_PASSWORD_RESET_TOKEN_REPOSITORY,
+        I_EMAIL_DELIVERY,
+        CLOCK,
+      ],
+    },
+    {
+      provide: ConfirmPasswordReset,
+      useFactory: (
+        users: IUserCredentialRepository,
+        tokens: IPasswordResetTokenRepository,
+        sessions: ISessionRepository,
+        hasher: IPasswordHasher,
+        clock: SystemClock,
+        parameters,
+      ): ConfirmPasswordReset =>
+        new ConfirmPasswordReset({
+          users,
+          tokens,
+          sessions,
+          hasher,
+          clock,
+          // The same PROVISIONAL policy as setup (`password-policy.ts`): reused
+          // rather than duplicated, because a school that accepts a twelve-character
+          // first password must not be sent an eight-character reset one.
+          policy: {
+            minimumLength: config.PASSWORD_MIN_LENGTH,
+            maximumLength: config.PASSWORD_MAX_LENGTH,
+            provisional: true,
+          },
+          hashParameters: parameters,
+        }),
+      inject: [
+        I_USER_CREDENTIAL_REPOSITORY,
+        I_PASSWORD_RESET_TOKEN_REPOSITORY,
+        I_SESSION_REPOSITORY,
+        I_PASSWORD_HASHER,
+        CLOCK,
+        PASSWORD_HASH_PARAMETERS,
+      ],
     },
   ];
 }

@@ -45,7 +45,7 @@ const SCHEMA = readFileSync(SCHEMA_PATH, 'utf8');
 const SCHEMA_CODE = SCHEMA.replace(/^\s*\/\/\/.*$/gm, '').replace(/^\s*\/\/[^/].*$/gm, '');
 
 /**
- * The requirement, not an implementation detail: exactly these fourteen
+ * The requirement, not an implementation detail: exactly these seventeen
  * entities, and no others. This list is the test's own copy on purpose — it is
  * `docs/work/TODO.md` item 3, and it is what makes "do not invent
  * Student/Class/Teacher" (`AGENTS.md` §13) a checkable rule rather than a
@@ -57,10 +57,9 @@ const PLATFORM_CORE_MODELS = [
   'ErrorLog',
   /**
    * `PLT-101`, owner decision 2026-09-30: Google sign-in, with more providers
-   * expected. This is the SIXTEENTH model, so like `UserRole` it moves THREE
-   * registration points in one commit: this list, `PLATFORM_CORE_ENTITIES` in
-   * `apps/api/erd/project-erd-source.mjs`, and `CLUSTER` in
-   * `apps/api/prisma/render-erd.mjs`.
+   * expected. This model moves THREE registration points in one commit: this
+   * list, `PLATFORM_CORE_ENTITIES` in `apps/api/erd/project-erd-source.mjs`,
+   * and `CLUSTER` in `apps/api/prisma/render-erd.mjs`.
    *
    * Position matters: `models()` returns the schema's names SORTED, and
    * `toEqual` compares element by element, so a model appended at the end of
@@ -72,6 +71,17 @@ const PLATFORM_CORE_MODELS = [
   'ModuleRegistry',
   'NotificationDelivery',
   'NotificationPreference',
+  /**
+   * `PLT-105` (2026-10-11): password reset. The reset credential's store —
+   * SHA-256 hash, single-use by guarded UPDATE, `expiresAt` from
+   * `PASSWORD_RESET_TTL_MS`. The same three registration points as every
+   * model before it: this list, `PLATFORM_CORE_ENTITIES` in
+   * `erd/project-erd-source.mjs`, and `CLUSTER` in `prisma/render-erd.mjs`.
+   *
+   * `D-4.1`'s note below applies to it unchanged: adding a model without
+   * updating all three fails `pnpm test`, which is the intended behaviour.
+   */
+  'PasswordResetToken',
   'Permission',
   'RefreshToken',
   'Role',

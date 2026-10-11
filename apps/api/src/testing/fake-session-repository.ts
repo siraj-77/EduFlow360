@@ -97,6 +97,27 @@ export class FakeSessionRepository implements ISessionRepository {
     throw new Error('FakeSessionRepository.revokeSession is not implemented.');
   }
 
+  /**
+   * `revokeAllForUser` — `PLT-105` AC-2.
+   *
+   * Records the call rather than throwing, because the reset use-case CALLS
+   * it on every success and the use-case spec asserts on exactly that: the
+   * user, the reason, and that it happened after the credential write.
+   * `revokeAllFailure` lets a use-case spec make it fail without mocking —
+   * the reset must still answer `reset` and log.
+   */
+  readonly revokedUsers: Array<{ userId: string; reason: string }> = [];
+  revokeAllFailure: Error | null = null;
+
+  async revokeAllForUser(params: {
+    userId: string;
+    reason: string;
+  }): Promise<{ sessionsRevoked: number }> {
+    if (this.revokeAllFailure !== null) throw this.revokeAllFailure;
+    this.revokedUsers.push({ userId: params.userId, reason: params.reason });
+    return { sessionsRevoked: 0 };
+  }
+
   async findByToken(): Promise<{ sessionId: string; userId: string } | null> {
     throw new Error('FakeSessionRepository.findByToken is not implemented.');
   }

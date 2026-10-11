@@ -309,3 +309,102 @@ describe('revoking a session', () => {
     expect(session.revokedReason).toBe('expired');
   });
 });
+
+/**
+ * `revokeAllForUser` — `PLT-105` AC-2.
+ *
+ * "Successful reset invalidates all prior sessions (security best
+ * practice)." The scenario it defends against is specific: a password reset
+ * performed because someone else has the account open must not leave that
+ * someone still signed in. A reset that invalidated only the CURRENT session
+ * would be a reset an attacker never notices.
+ */
+describe('revoking every session of one user', () => {
+  it('revokes every session of that user, and every refresh token under them', async () => {
+    const userId = await aUser();
+    const phone = await repo.issue({
+      actor: { userId, deviceLabel: 'phone' },
+      sessionTtlMs: 3_600_000,
+      refreshTtlMs: 604_800_000,
+    });
+    const laptop = await repo.issue({
+      actor: { userId, deviceLabel: 'laptop' },
+      sessionTtlMs: 3_600_000,
+      refreshTtlMs: 604_800_000,
+    });
+
+    const revoked = await repo.revokeAllForUser({
+      userId,
+      reason: 'password-reset',
+      now: new Date(),
+    });
+
+    expect(revoked.sessionsRevoked).toBe(2);
+    expect(await repo.findByToken(phone.sessionTokenPlaintext)).toBeNull();
+    expect(await repo.findByToken(laptop.sessionTokenPlaintext)).toBeNull();
+
+    const liveTokens = await prisma.refreshToken.count({
+      where: { session: { userId }, revokedAt: null },
+    });
+    expect(liveTokens).toBe(0);
+  });
+
+  it('leaves every other user signed in, because one school is many accounts', async () => {
+    const victim = await aUser();
+    const bystander = await aUser();
+    await repo.issue({
+      actor: { userId: victim },
+      sessionTtlMs: 3_600_000,
+      refreshTtlMs: 604_800_000,
+    });
+    const bystanderSession = await repo.issue({
+      actor: { userId: bystander },
+      sessionTtlMs: 3_600_000,
+      refreshTtlMs: 604_800_000,
+    });
+
+    await repo.revokeAllForUser({ userId: victim, reason: 'password-reset', now: new Date() });
+
+    expect(await repo.findByToken(bystanderSession.sessionTokenPlaintext)).not.toBeNull();
+  });
+
+  it('records the reason on every revoked row, so the trail says why', async () => {
+    const userId = await aUser();
+    const issued = await repo.issue({
+      actor: { userId },
+      sessionTtlMs: 3_600_000,
+      refreshTtlMs: 604_800_000,
+    });
+
+    await repo.revokeAllForUser({ userId, reason: 'password-reset', now: new Date() });
+
+    const session = await prisma.session.findUniqueOrThrow({
+      where: { id: issued.sessionId },
+      select: { revokedReason: true },
+    });
+    expect(session.revokedReason).toBe('password-reset');
+  });
+
+  it('is idempotent, so a retry after a partial failure is not an error', async () => {
+    const userId = await aUser();
+    await repo.issue({
+      actor: { userId },
+      sessionTtlMs: 3_600_000,
+      refreshTtlMs: 604_800_000,
+    });
+
+    const first = await repo.revokeAllForUser({
+      userId,
+      reason: 'password-reset',
+      now: new Date(),
+    });
+    const second = await repo.revokeAllForUser({
+      userId,
+      reason: 'password-reset',
+      now: new Date(),
+    });
+
+    expect(first.sessionsRevoked).toBe(1);
+    expect(second.sessionsRevoked).toBe(0);
+  });
+});

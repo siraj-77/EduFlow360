@@ -956,6 +956,75 @@ export const MODELS = [
   },
 
   {
+    name: 'PasswordResetToken',
+    table: 'password_reset_tokens',
+    comment: [
+      'One outstanding password-reset credential (`PLT-105`).',
+      '',
+      'The token is stored HASHED and only the hash — the same rule as',
+      '`session_tokens.token_hash` (`ADR-008`): a reader of the table (a backup,',
+      'a replication target, an operator with psql) cannot replay a reset. The',
+      'plaintext exists in exactly two places: the emailed link and the POST',
+      'body that redeems it.',
+      '',
+      'Single-use is a WRITE, not a read: `consumed_at` is stamped by an UPDATE',
+      'guarded on it still being null, and the row count of that update is what',
+      'decides the redemption. A check-then-write lets two simultaneous',
+      'redemptions both pass the check; the guarded update lets exactly one win.',
+      '',
+      "Rows are never deleted. Not by this table's own convention: `PC-404`’s",
+      'retention design owns cleanup, and an unconsumed token that expires stays',
+      'as evidence that a reset was requested — the append-only posture of',
+      '`audit_records` without its trigger (the retention rule is a GAP, not a',
+      'silence: `AGENTS.md` §6).',
+    ],
+    erd: { x: 1120, y: 2816 },
+    fields: [
+      ID,
+      {
+        name: 'userId',
+        type: 'String',
+        attrs: ['@map("user_id")', '@db.Uuid'],
+        kind: 'softref',
+        to: 'User',
+      },
+      {
+        name: 'tokenHash',
+        type: 'String',
+        attrs: ['@map("token_hash")', '@unique'],
+        kind: 'scalar',
+        comment: [
+          'SHA-256 of the plaintext token. Unique: a collision is a 500, not a',
+          'silent takeover of someone else’s reset.',
+        ],
+      },
+      {
+        name: 'expiresAt',
+        type: 'DateTime',
+        attrs: ['@map("expires_at")'],
+        kind: 'scalar',
+        comment:
+          'From configuration (`PASSWORD_RESET_TTL_MS`), never a constant (`AGENTS.md` §2.14).',
+      },
+      {
+        name: 'consumedAt',
+        type: 'DateTime',
+        attrs: ['?', '@map("consumed_at")'],
+        kind: 'scalar',
+      },
+      { name: 'requestedIp', type: 'String', attrs: ['?', '@map("requested_ip")'], kind: 'scalar' },
+      {
+        name: 'requestedDevice',
+        type: 'String',
+        attrs: ['?', '@map("requested_device")'],
+        kind: 'scalar',
+      },
+      { name: 'createdAt', type: 'DateTime', attrs: ['@default(now())'], kind: 'scalar' },
+    ],
+    indexes: ['@@index([userId])', '@@index([expiresAt])'],
+  },
+
+  {
     name: 'ErrorLog',
     table: 'error_logs',
     comment: [

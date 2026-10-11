@@ -119,6 +119,28 @@ export interface ISessionRepository {
     readonly now: Date;
   }): Promise<void>;
 
+  /**
+   * Revoke EVERY session the user holds, on every device, and every refresh
+   * token under them.
+   *
+   * `PLT-105` AC-2: a successful password reset invalidates all prior
+   * sessions. The scenario is an attacker with the account open — one session
+   * still alive is a reset nobody notices.
+   *
+   * Keyed on `userId`, not on an identifier: the caller here has a user id
+   * from a consumed reset token, and keying on the user is the only key that
+   * covers devices the caller never saw.
+   *
+   * Returns the count, and is IDEMPOTENT — a second call revokes nothing and
+   * reports zero, so a retry after a partial failure is not an error the
+   * caller must special-case.
+   */
+  revokeAllForUser(params: {
+    readonly userId: string;
+    readonly reason: string;
+    readonly now: Date;
+  }): Promise<{ readonly sessionsRevoked: number }>;
+
   /** Resolve a session from its plaintext cookie value, or `null`. */
   findByToken(sessionTokenPlaintext: string): Promise<{ sessionId: string; userId: string } | null>;
 

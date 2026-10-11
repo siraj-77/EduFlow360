@@ -245,20 +245,24 @@ describe('each row agrees with the route it describes', () => {
 // The claim this fixture is most likely to be misread for.
 // ═══════════════════════════════════════════════════════════════════════════
 describe('the columns that record intent rather than enforcement', () => {
-  it('says out loud that a populated `audited` column is not a written record', () => {
-    // `@Audited` is read by nothing in this repository. A fixture column headed `audited`
-    // is exactly the kind of artefact a reviewer reads as "so this IS audited" — so the
-    // header names `PLT-402` and the spec fails if that name is ever removed while the
-    // column remains.
+  it('says out loud WHO writes a populated `audited` column', () => {
+    // A fixture column headed `audited` is exactly the kind of artefact a
+    // reviewer reads as "so this IS audited" — so the header names the
+    // mechanism, and the spec fails if that sentence is ever removed while
+    // the column remains.
+    //
+    // It used to assert `/@Audited writes no row/` and `/PLT-402 is the story
+    // that will write/`, which was the honest statement until 2026-10-11.
+    // `PLT-402` shipped then, and the fixture's own header moved on; this
+    // test asserts the NEW truth — that the interceptor is what writes, and
+    // that `PLT-402` is still named, so the sentence cannot be dropped without
+    // a review of whether it is still true.
     const raw = readFileSync(join(REPO_ROOT, 'route-permissions.json'), 'utf8');
     const auditedColumnPopulated = rows().some((row) => row.audited !== null);
 
-    // Both true today. The assertion is the pairing: if the columns are ever emptied,
-    // the disclaimer becomes noise and should be revisited — and if the disclaimer is
-    // ever removed while the columns are full, THIS test fails.
     expect(auditedColumnPopulated).toBe(true);
-    expect(raw).toMatch(/@Audited writes no row/);
-    expect(raw).toMatch(/PLT-402 is the story that will write/);
+    expect(raw).toMatch(/AuditInterceptor \(PLT-402\)/);
+    expect(raw).toMatch(/audit_enforced_by/);
   });
 
   it('records no entitlement for any sign-in route, and explains why', () => {

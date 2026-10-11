@@ -61,6 +61,10 @@ const CLUSTER = {
   NotificationPreference: 'Messaging & files',
   NotificationDelivery: 'Messaging & files',
   StoredFile: 'Messaging & files',
+  // PLT-105: password reset. Clustered with Identity, like Session and
+  // RefreshToken — it is a credential for an account, not a grant between
+  // accounts. The third registration point; see the UserRole note above.
+  PasswordResetToken: 'Identity',
 };
 
 const CLUSTER_STYLE = {

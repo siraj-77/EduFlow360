@@ -47,7 +47,13 @@ const CHEAP: PasswordHashParameters = Object.freeze({
 });
 
 const THROTTLE_POLICY = { limit: 10, windowMs: 900_000 };
-const REQUEST = Object.freeze({ ip: '203.0.113.7' });
+/**
+ * A REQUEST the controller can attach to — see the same fixture in
+ * `password-sign-in.controller.spec.ts` for why it is not frozen: the handler
+ * declares the audit actor on this object (`PLT-402`), and a frozen request
+ * makes that throw on an object failure unrelated to any behaviour under test.
+ */
+const REQUEST = { ip: '203.0.113.7' };
 
 function build(options?: {
   deployment?: 'token-issued' | 'no-token-issued' | 'bootstrap-claimed';

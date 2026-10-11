@@ -22,7 +22,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { renderPrismaSchema } from './render-prisma.mjs';
 import { renderErdElements } from './render-erd.mjs';
 
@@ -36,6 +36,29 @@ function prismaCli() {
   return existsSync(cli) ? cli : null;
 }
 
+/**
+ * Prettier, in-process, for the JSON artefacts this generator writes.
+ *
+ * ## Why the generator formats its own output
+ *
+ * `JSON.stringify(x, null, 2)` and prettier disagree on arrays of numbers —
+ * the stringifier puts every element on its own line, prettier keeps
+ * `[0, 0]` inline — so the ERD elements file was committed unformatted and
+ * every commit touching it tripped the pre-commit hook while
+ * `pnpm format:check` stayed green (its globs did not cover `docs/**`).
+ * Two gates disagreeing is the failure; a generator whose output IS the
+ * gate's answer removes it. The globs are aligned too (`package.json`).
+ */
+let prettierPromise;
+async function prettierFormat(text, filePath) {
+  prettierPromise ??= import(
+    pathToFileURL(join(REPO_ROOT, 'node_modules', 'prettier', 'index.mjs')).href
+  );
+  const prettier = (await prettierPromise).default;
+  const options = (await prettier.resolveConfig(filePath)) ?? {};
+  return prettier.format(text, { ...options, filepath: filePath });
+}
+
 export function formatSchema(schemaPath) {
   const cli = prismaCli();
   if (!cli) return false;
@@ -46,7 +69,7 @@ export function formatSchema(schemaPath) {
   return true;
 }
 
-export function generate() {
+export async function generate() {
   const written = [];
 
   const schemaPath = join(PRISMA_DIR, 'schema.prisma');
@@ -56,7 +79,11 @@ export function generate() {
 
   mkdirSync(DIAGRAM_DIR, { recursive: true });
   const elementsPath = join(DIAGRAM_DIR, 'ERD_PLATFORM_CORE.elements.json');
-  writeFileSync(elementsPath, `${JSON.stringify(renderErdElements(), null, 2)}\n`, 'utf8');
+  // Formatted through prettier, so the committed artefact is what
+  // `pnpm format:check` accepts and a bare regenerate is a no-op for the
+  // formatting gate. See `prettierFormat`'s header.
+  const elementsText = `${JSON.stringify(renderErdElements(), null, 2)}\n`;
+  writeFileSync(elementsPath, await prettierFormat(elementsText, elementsPath), 'utf8');
   written.push(elementsPath);
 
   return written;
@@ -66,5 +93,5 @@ if (
   import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}` ||
   process.argv[1]?.endsWith('generate.mjs')
 ) {
-  for (const p of generate()) console.log(`written: ${p}`);
+  for (const p of await generate()) console.log(`written: ${p}`);
 }
