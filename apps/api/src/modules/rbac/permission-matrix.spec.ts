@@ -28,11 +28,13 @@ import { API_ROOT, REPO_ROOT } from '../../../../../scripts/paths.mjs';
  *
  * ## What it deliberately does NOT claim
  *
- * The `entitlement` and `audited` columns record what a route's decorators SAY. Neither
- * is enforced by anything in this repository: `@RequireEntitlement` is Epic 03 and
- * `@Audited` writes nothing until `PLT-402`. The fixture says so in its own header, and
- * this spec asserts the source agrees — so nobody later reads a populated `audited`
- * column as evidence that a record is being kept.
+ * The `entitlement` and `audited` columns record what a route's decorators SAY.
+ * Both columns now have an enforcer — `AuditInterceptor` (`PLT-402`) and
+ * `EntitlementGuard` (`PLT-302`), both landed 2026-10-11 — but no ROUTE has
+ * declared an entitlement yet, and the audit column is live. The fixture's own
+ * header names both mechanisms and this spec asserts the header and the source
+ * agree, so nobody later reads a populated column as more than it is, and
+ * nobody later reads the old "nothing enforces these" claim as current either.
  */
 
 /** One row of the checked-in fixture. */
@@ -85,15 +87,25 @@ describe('route-permissions.json', () => {
     expect(rows().length).toBeGreaterThan(0);
   });
 
-  it('states in its own header that entitlement and audit enforce nothing', () => {
+  it('states in its own header what enforces each column', () => {
     // The load-bearing honesty check. A fixture whose header claimed these were
     // enforced would be a lie in a file people cite, and `AGENTS.md` 6's failure mode
     // in its most quotable form.
+    //
+    // It used to assert "entitlement and audit enforce nothing", which was true
+    // until both shipped: `PLT-402` landed the audit interceptor on 2026-10-11
+    // and `PLT-302` landed the entitlement guard the same day. The assertion
+    // now pins the NEW truth — each column names its enforcer — so a future
+    // change to either fails here rather than leaving a stale claim.
     const raw = readFileSync(join(REPO_ROOT, 'route-permissions.json'), 'utf8');
 
-    expect(raw).toMatch(/PLT-402/);
-    expect(raw).toMatch(/Epic 03/);
-    expect(raw).toMatch(/NOTHING/);
+    // The two mechanisms the columns now name.
+    expect(raw).toMatch(/AuditInterceptor \(PLT-402\)/);
+    expect(raw).toMatch(/EntitlementGuard \(PLT-302\)/);
+
+    // And the honest gap both columns still carry: no ROUTE has declared an
+    // entitlement yet. The enforcer exists; the routes that would use it do not.
+    expect(rows().every((row) => row.entitlement === null)).toBe(true);
   });
 });
 

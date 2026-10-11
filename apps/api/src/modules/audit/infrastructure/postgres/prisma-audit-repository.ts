@@ -102,7 +102,16 @@ export class PrismaAuditRepository implements IAuditRepository {
       },
       // Newest first. An audit viewer opens on "what just happened", and a
       // reader that wants oldest-first reverses a page, not the query.
-      orderBy: { occurredAt: 'desc' },
+      //
+      // The `id` tiebreak is not decoration: two rows written inside the same
+      // clock tick carry the SAME `occurredAt` (it is the database's
+      // `now()`), and a tie with no secondary key leaves the order to the
+      // engine — which CI observed, and which made an ordering assertion
+      // fail on a fast runner. The tiebreak is `asc` on `id` (random UUIDs)
+      // because there is no monotonic column to fall back on; what it buys
+      // is DETERMINISM, which is what a trail needs even when it cannot buy
+      // meaning.
+      orderBy: [{ occurredAt: 'desc' }, { id: 'asc' }],
       take: criteria.limit,
       ...(criteria.offset !== undefined ? { skip: criteria.offset } : {}),
     });

@@ -186,6 +186,14 @@ describe('PLT-401: query() reads', () => {
 
   it('orders newest first, because that is the question an auditor opens with', async () => {
     await repo.create(draft({ action: 'OLDER' }));
+    // A real gap between the two rows. `occurredAt` is the DATABASE's clock,
+    // not this process's, and two rows written back-to-back can land in the
+    // same tick — CI's runner is fast enough to prove it, where the ordering
+    // assertion then failed on a tie. Five milliseconds is a deliberate,
+    // documented gap rather than a sleep to paper over flakiness: an ordering
+    // guarantee between two rows is only meaningful when the rows are
+    // genuinely at different instants.
+    await new Promise((resolve) => setTimeout(resolve, 5));
     await repo.create(draft({ action: 'NEWER' }));
 
     const rows = await repo.query({ correlationId: undefined, module: 'auth', limit: 2 });

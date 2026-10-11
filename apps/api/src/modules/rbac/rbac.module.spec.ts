@@ -42,10 +42,17 @@ const guardProviders = (): Provider[] =>
   );
 
 describe('AppModule.forRoot — the global guards', () => {
-  it('registers THREE of them, so PermissionGuard is not merely written', () => {
-    // The count is the assertion. A fourth control added later makes this fail and
+  it('registers FOUR of them, so PermissionGuard is not merely written', () => {
+    // The count is the assertion. A fifth control added later makes this fail and
     // forces whoever added it to say where it sits in the order below.
-    expect(guardProviders()).toHaveLength(3);
+    //
+    // It read THREE until 2026-10-11, when `PLT-302` shipped `EntitlementGuard` —
+    // the fourth of `AGENTS.md` §2.3's mandatory composition (CSRF → Session →
+    // Permission → Entitlement). The count is not the interesting part; the
+    // ORDER below is, which is why the fourth guard's position is asserted in
+    // `entitlement-guard-wiring.spec.ts` with the same "invoke the factory"
+    // standard used here.
+    expect(guardProviders()).toHaveLength(4);
   });
 
   it('runs CsrfGuard first, because its question needs only the request', () => {
