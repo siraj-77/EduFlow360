@@ -496,7 +496,12 @@ describe('success', () => {
         'Signed in. Taking you to your dashboard.',
       ),
     );
-    expect(replace).toHaveBeenCalledWith('/en');
+    // The interim authenticated landing, not the public landing page: a
+    // school that just signed in must not be bounced to a page that behaves
+    // as though nothing happened. Replaced by the app shell when it lands
+    // (`PLT-EPIC-10`), and `replace` keeps the sign-in page out of history
+    // with its submitted password still in the DOM.
+    expect(replace).toHaveBeenCalledWith('/en/signed-in');
   });
 
   it('leaves no trace of the password in the DOM, even as an attribute', async () => {

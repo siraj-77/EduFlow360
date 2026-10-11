@@ -24,13 +24,16 @@ import { focusTargetFor, useSignIn } from '../hooks/use-sign-in';
  * **No "Remember me".** `PasswordSignInBody` is `.strict()` and accepts exactly
  * `identifier` and `password`, so a third field is a 400 - and a 400 on a sign-in
  * form is indistinguishable from wrong credentials to the person in front of it.
- * `auth.rememberMe` exists in the dictionaries and is not rendered here; the
- * omission is recorded rather than worked around.
+ * The approved template (`docs/template/EduFlow360_Template_Landing_Auth.html`)
+ * carries a "Remember me" checkbox, and this screen does not reproduce it: the
+ * API has no persistent-session toggle for the checkbox to mean, and a control
+ * that does nothing is worse than a control that is absent. `auth.rememberMe`
+ * exists in the dictionaries and is not rendered here; the omission is
+ * recorded rather than worked around.
  *
- * **No "Forgot your password?".** There is no reset route. The landing page's own
- * header comment makes the argument: a link to a route that does not exist is a
- * 404 on the front door, a worse first impression than the sentence that is not
- * there. It appears when the reset story exists.
+ * **"Forgot your password?" is here now.** The route it links to shipped with
+ * `PLT-105` T1/T2, so the link is real rather than a 404 on the front door.
+ * The template's position (a link row beside the password field) is kept.
  *
  * **No `name` on the inputs.** See the header in `hooks/use-sign-in.ts`.
  *
@@ -57,9 +60,11 @@ export function SignInForm({ locale }: { readonly locale: string }) {
   const onSignedIn = () => {
     // `replace`, not `push`: the sign-in page must not survive in history with a
     // submitted password still in its DOM, and Back must not be able to resubmit
-    // it. There is no authenticated route yet, so the school's own landing page
-    // is the destination - see the report.
-    window.location.replace(`/${locale}`);
+    // it. The interim authenticated landing is the destination until the app
+    // shell exists; a school can see who they are and sign out, which is more
+    // honest than bouncing back to the public landing page as if nothing
+    // happened.
+    window.location.replace(`/${locale}/signed-in`);
   };
 
   const { state, submit: send, edit } = useSignIn({ onSignedIn });
@@ -220,6 +225,22 @@ export function SignInForm({ locale }: { readonly locale: string }) {
           </div>
         )}
       </CredentialField>
+
+      <div className="flex items-center justify-between gap-3">
+        {/*
+          The template's "row-between": only the forgot-password link is real
+          today (see the header for why remember-me is not). The row keeps the
+          template's structure so adding the toggle back is one element, not a
+          re-layout.
+        */}
+        <a
+          href={`/${locale}/sign-in/forgot`}
+          className="text-sm font-medium text-brand hover:underline"
+          data-testid="sign-in-forgot-link"
+        >
+          {t('auth.forgotPassword')}
+        </a>
+      </div>
 
       {/*
         The form-level message. `role="alert"` so it interrupts, and

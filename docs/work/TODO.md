@@ -43,7 +43,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-11 (third session — PR #1 opened, PLT-301 + PLT-302 shipped for PLT-EPIC-03; all gates green)
+**Last updated: 2026-10-11 (fifth session — auth screens rebuilt on the approved template, PLT-105 T3, sign-out; all gates green)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## âœ” DONE 2026-10-09 â€” Phase 0: uncommitted state adjudicated

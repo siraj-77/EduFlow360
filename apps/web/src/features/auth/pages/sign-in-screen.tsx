@@ -3,6 +3,8 @@ import { Card, CardContent, CardFooter, CardHeader } from '@eduflow/ui-kit';
 import { SignInForm } from '../components/sign-in-form';
 import { SignInFooter } from '../components/sign-in-footer';
 import { SignInMasthead } from '../components/sign-in-masthead';
+import { SignInSocialGrid } from '../components/sign-in-social-grid';
+import { getTranslations } from 'next-intl/server';
 
 /**
  * The sign-in screen.
@@ -47,9 +49,28 @@ import { SignInMasthead } from '../components/sign-in-masthead';
  * screen: a burst of motion behind a form somebody is reading in a corridor.
  */
 export async function SignInScreen({ locale }: { readonly locale: string }) {
+  // A server component: the divider's label comes from the bundle through
+  // getTranslations, not the client hook.
+  const t = await getTranslations();
+
   return (
     <main className="flex min-h-dvh items-center justify-center px-5 py-10">
       <div className="w-full max-w-sm">
+        {/*
+          The approved template's login card
+          (`docs/template/EduFlow360_Template_Landing_Auth.html`): a heading,
+          a sub-line, an alert slot, the form, the divider, the social grid
+          and the footer — in that order. The visual language is the
+          register's (spine, hairlines) the previous revision established,
+          which is what this screen's tokens already are; the STRUCTURE is
+          now the approved markup, so the screen stops drifting from the
+          template the owner signed off.
+
+          The "Remember me" checkbox is the one template element not
+          reproduced: the API accepts no third field (`.strict()`) and has no
+          persistent-session toggle, so the control would be a lie. Recorded
+          in the form's header.
+        */}
         <Card className="relative overflow-hidden">
           {/*
             The spine. `start-0` and `inset-y-0` are logical, so it sits on the
@@ -69,6 +90,23 @@ export async function SignInScreen({ locale }: { readonly locale: string }) {
 
           <CardContent className="border-t border-border p-6">
             <SignInForm locale={locale} />
+
+            {/*
+              The template's divider and social grid, below the form. The
+              divider is a real separator, not a visual one: it marks where
+              credential sign-in ends and federated sign-in begins.
+            */}
+            <div className="mt-5 flex items-center gap-3">
+              <span className="h-px flex-1 bg-border" aria-hidden="true" />
+              <span className="text-xs uppercase tracking-wide text-muted">
+                {t('auth.socialDivider')}
+              </span>
+              <span className="h-px flex-1 bg-border" aria-hidden="true" />
+            </div>
+
+            <div className="mt-4">
+              <SignInSocialGrid />
+            </div>
           </CardContent>
 
           <CardFooter className="border-t border-border p-6 pt-4">
