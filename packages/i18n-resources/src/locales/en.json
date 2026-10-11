@@ -132,6 +132,7 @@
     "signingOut": "Signing out…",
     "signedOut": "You have been signed out.",
     "backToSignIn": "Back to sign in",
+    "signOutFailed": "Sign-out could not be completed. Your session is still active — close this browser window to end it.",
     "backToHome": "Back to the home page"
   }
 }
