@@ -196,6 +196,32 @@ describe('the SMTP group (ADR-014)', () => {
   });
 });
 
+describe('LICENCE_GRACE_WINDOW_MS — how long a lapsed licence keeps working', () => {
+  it('defaults to three days — a RECORDED gap, not a corpus number', () => {
+    // `PLT-305` says "at least the configured grace window" and names no
+    // duration, so this default is a documented judgement in the style of the
+    // throttles: visible in the env spec, overridable by deployment, never
+    // presented as chosen (`AGENTS.md` 6).
+    expect(loadConfig(base).config.LICENCE_GRACE_WINDOW_MS).toBe(259_200_000);
+  });
+
+  it('accepts zero, which disables grace entirely', () => {
+    // A school that wants an exact expiry gets one: the conservative answer
+    // is available, not merely documented.
+    expect(
+      loadConfig({ ...base, LICENCE_GRACE_WINDOW_MS: '0' }).config.LICENCE_GRACE_WINDOW_MS,
+    ).toBe(0);
+  });
+
+  it('refuses a negative or fractional window', () => {
+    for (const value of ['-1', '1.5', 'abc']) {
+      expect(() => loadConfig({ ...base, LICENCE_GRACE_WINDOW_MS: value })).toThrow(
+        /LICENCE_GRACE_WINDOW_MS/,
+      );
+    }
+  });
+});
+
 describe('bootBanner', () => {
   it('states loudly that persistence is disabled, rather than staying silent', () => {
     const banner = bootBanner(loadConfig(base)).join('\n');

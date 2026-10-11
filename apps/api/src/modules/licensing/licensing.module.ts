@@ -14,6 +14,8 @@ import { InMemoryLicencePayloadCache } from './infrastructure/adapters/in-memory
 import { PrismaLicenseRepository } from './infrastructure/postgres/prisma-license-repository.js';
 import { ValidateLicenceCertificate } from './use-cases/validate-licence-certificate.js';
 import { RefreshCachedLicence } from './use-cases/refresh-cached-licence.js';
+import { ActivateOfflineLicence } from './use-cases/activate-offline-licence.js';
+import { LicensingController } from './controllers/licensing.controller.js';
 import { I_LICENCE_REPOSITORY } from './domain/repositories/license-repository.js';
 import { I_LICENCE_PAYLOAD_CACHE } from './domain/ports/licence-payload-cache.js';
 import { I_LICENCE_SIGNATURE_VERIFIER } from './domain/ports/licence-signature-verifier.js';
@@ -84,8 +86,44 @@ export class LicensingModule {
                   licenses,
                   validator,
                   clock: new SystemClock(),
+                  // `PLT-305`'s window, from configuration. Zero keeps every
+                  // pre-`PLT-305` behaviour: a lapsed certificate is `expired`
+                  // immediately.
+                  graceWindowMs: config.LICENCE_GRACE_WINDOW_MS,
                 }),
               inject: [I_LICENCE_REPOSITORY, ValidateLicenceCertificate],
+            },
+            {
+              // `PLT-304`: the offline activation path. Registered in the same
+              // chain as the refresh, because they share every dependency —
+              // and the activation writes the cache the refresh reads.
+              provide: ActivateOfflineLicence,
+              useFactory: (licenses, validator, cache): ActivateOfflineLicence =>
+                new ActivateOfflineLicence({
+                  licenses,
+                  validator,
+                  cache,
+                  clock: new SystemClock(),
+                  schoolId,
+                }),
+              inject: [I_LICENCE_REPOSITORY, ValidateLicenceCertificate, I_LICENCE_PAYLOAD_CACHE],
+            },
+            {
+              // `POST /licensing/activate`. Registered in the persistence
+              // branch like `PasswordResetController`, because it writes the
+              // row the validator re-reads on the next boot; a database-less
+              // deployment has nothing to activate into.
+              //
+              // Inside the `chain`, NOT beside it: a deployment with a
+              // database but no `LICENSE_PUBLIC_KEY_PATH` has no verifier, so
+              // it has no validator, no activation use-case, and no route —
+              // a route registered without its use-case is a boot failure
+              // (`Nest can't resolve ActivateOfflineLicence`), which the OIDC
+              // suite caught.
+              provide: LicensingController,
+              useFactory: (activate: ActivateOfflineLicence): LicensingController =>
+                new LicensingController(activate),
+              inject: [ActivateOfflineLicence],
             },
             {
               // The boot refresh, and the ONLY writer of the cache in
@@ -144,6 +182,13 @@ export class LicensingModule {
 
     return {
       module: LicensingModule,
+      // `POST /licensing/activate` — registered with the module that owns its
+      // dependencies, which is what makes `AuthModule`'s "controllers pushed
+      // in the persistence branch" pattern unnecessary here: this module IS
+      // the persistence branch. Empty when the verification chain is absent
+      // (no key): no verifier means no route, not a route whose dependency
+      // cannot be resolved.
+      controllers: publicKeyPem === null ? [] : [LicensingController],
       providers,
       // Exported so the globally-registered `EntitlementGuard` can inject the
       // cache — the same arrangement `AuditInterceptor` uses with the audit

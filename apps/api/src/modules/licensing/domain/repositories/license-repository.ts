@@ -41,4 +41,29 @@ export interface ILicenceRepository {
    * "the system confirmed this", not "somebody parsed it".
    */
   stampValidatedAt(params: { readonly licenceId: string; readonly now: Date }): Promise<void>;
+
+  /**
+   * Store a certificate the offline-activation path just validated, and make
+   * it the deployment's live one (`PLT-304`).
+   *
+   * An UPSERT, because one database per school (`ADR-003`) and one licence
+   * row per school (the `school_id` UNIQUE) mean a renewal REPLACES rather
+   * than accumulates: two live certificates would leave
+   * `findEnvelopeForValidation` choosing between them, and a choice nobody
+   * specified is a licence nobody can reason about. The replaced row's
+   * history is the audit trail's job (`@Audited('LICENCE_ACTIVATION')`).
+   *
+   * The record arrives whole — envelope fields included — because the boot
+   * refresh re-validates from the stored row, and a row that kept only the
+   * payload could not be verified.
+   */
+  activate(
+    record: Omit<LicenceEnvelopeRecord, 'licenceId'> & {
+      /** The payload's own identifier; the store stamps what the row is keyed by. */
+      readonly schoolId: string;
+      readonly status: 'ACTIVE';
+      readonly activatedAt: Date;
+      readonly expiresAt: Date;
+    },
+  ): Promise<{ readonly licenceId: string }>;
 }
