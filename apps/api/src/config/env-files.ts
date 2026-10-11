@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 /**
@@ -87,14 +87,23 @@ export function loadEnvFiles(options: LoadEnvFilesOptions): LoadEnvFilesResult {
       continue;
     }
 
-    // The loader will not overwrite, so a key set by `.env` would otherwise
-    // survive and `.env.local` could never win.
-    for (const key of introduced) delete process.env[key];
+    // Which keys THIS file declares. The delete is scoped to them, and that
+    // scope is the whole fix: the earlier version deleted every key the
+    // previous file introduced, so a partial `.env.local` — secrets only, the
+    // common case — silently discarded everything else `.env` had supplied.
+    // Found 2026-10-11 when `npm run dev` could not boot: the root
+    // `.env.local` declared DATABASE_URL and the Google secrets but not
+    // SCHOOL_ID, and SCHOOL_ID was wiped on the floor.
+    const declared = declaredKeys(path);
+
+    for (const key of introduced) {
+      if (declared.has(key)) delete process.env[key];
+    }
     introduced.clear();
 
     process.loadEnvFile(path);
 
-    for (const key of Object.keys(process.env)) {
+    for (const key of declared) {
       if (!preset.has(key)) introduced.add(key);
     }
 
@@ -102,6 +111,36 @@ export function loadEnvFiles(options: LoadEnvFilesOptions): LoadEnvFilesResult {
   }
 
   return { loaded, missing };
+}
+
+/**
+ * The keys a `.env` file declares, read without loading it.
+ *
+ * A minimal parse on purpose: `export KEY=`, `KEY=value`, quoted values and
+ * `#` comments are the shapes `process.loadEnvFile` itself accepts, and the
+ * only thing needed here is the NAME. Lines without `=` are not assignments
+ * and are skipped. There is no `peek` API on `loadEnvFile`, so the
+ * alternative to this parse is the wholesale delete this file exists to
+ * remove.
+ */
+function declaredKeys(path: string): ReadonlySet<string> {
+  const keys = new Set<string>();
+
+  for (const rawLine of readFileSync(path, 'utf8').split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line.length === 0 || line.startsWith('#')) continue;
+
+    const assignment = line.indexOf('=');
+    if (assignment === -1) continue;
+
+    const name = line
+      .slice(0, assignment)
+      .trim()
+      .replace(/^export\s+/, '');
+    if (name.length > 0) keys.add(name);
+  }
+
+  return keys;
 }
 
 /**
