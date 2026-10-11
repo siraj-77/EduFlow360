@@ -366,6 +366,84 @@ const schema = z
       .int('OIDC_CALLBACK_WINDOW_MS must be a whole number of milliseconds')
       .positive('OIDC_CALLBACK_WINDOW_MS must be greater than zero')
       .default(600_000),
+
+    /**
+     * How long a password-reset link lives (`PLT-105` AC-1).
+     *
+     * One hour — the window the story's own acceptance criterion names
+     * ("expires after configurable window (e.g., 1 hour)"), which makes this
+     * the rare threshold here with a corpus source. The `OIDC_STATE_MS`
+     * precedent applies: a documented default rather than a required value,
+     * because a never-written configuration should produce the conservative
+     * answer.
+     *
+     * Longer than the OIDC state window on purpose: this one sits in a
+     * MAILBOX, which is read on the recipient's schedule and not on the
+     * sender's, and a user who requests a reset at 16:55 and reads it after
+     * dinner is the normal case rather than the edge one.
+     */
+    PASSWORD_RESET_TTL_MS: z.coerce
+      .number()
+      .int('PASSWORD_RESET_TTL_MS must be a whole number of milliseconds')
+      .positive('PASSWORD_RESET_TTL_MS must be greater than zero')
+      .default(3_600_000),
+
+    /**
+     * The throttle on `POST /auth/password-reset/request`.
+     *
+     * Five requests per source per fifteen minutes, no corpus source — the
+     * same judgement as `SETUP_MAX_ATTEMPTS` and recorded the same way
+     * (`AGENTS.md` 6: a gap is visible, not presented as chosen).
+     *
+     * **Why this route needs one at all.** It is unauthenticated and it
+     * causes outbound mail. An attacker who can call it at will can make the
+     * school's own mail server deliver unbounded mail to an arbitrary
+     * address — which gets the school's domain blacklisted and breaks
+     * password reset for everyone. The throttle is per source address, the
+     * same reasoning as the setup throttle: an attacker holds no account to
+     * key on.
+     */
+    PASSWORD_RESET_MAX_ATTEMPTS: z.coerce
+      .number()
+      .int('PASSWORD_RESET_MAX_ATTEMPTS must be a whole number of requests')
+      .positive('PASSWORD_RESET_MAX_ATTEMPTS must be greater than zero')
+      .default(5),
+
+    PASSWORD_RESET_WINDOW_MS: z.coerce
+      .number()
+      .int('PASSWORD_RESET_WINDOW_MS must be a whole number of milliseconds')
+      .positive('PASSWORD_RESET_WINDOW_MS must be greater than zero')
+      .default(900_000),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Email delivery (`ADR-014`).
+    //
+    // Optional as a GROUP. Absent means "no SMTP configured", which the
+    // adapter layer answers with a recording adapter and a loud boot line —
+    // the same explicit-third-state pattern as persistence-disabled. A
+    // half-configured group is refused at boot for the `OIDC_*` reason: it
+    // would otherwise fail at send time as a provider error.
+    //
+    // The group is `SMTP_HOST` plus its credentials; `SMTP_PORT` and
+    // `EMAIL_FROM` are deployment conveniences and take defaults.
+    // ═══════════════════════════════════════════════════════════════════════
+    SMTP_HOST: optionalSecret('SMTP_HOST'),
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    /**
+     * STARTTLS versus implicit TLS. `false` (STARTTLS on 587) is the default
+     * because it is what Mailpit and every hosted relay speak on the
+     * submission port; implicit TLS on 465 sets this to `true`.
+     */
+    SMTP_SECURE: z.coerce.boolean().default(false),
+    SMTP_USER: optionalSecret('SMTP_USER'),
+    SMTP_PASSWORD: optionalSecret('SMTP_PASSWORD'),
+    /**
+     * The envelope sender. A plain address-shaped string, not an RFC 5322
+     * display name — the display name is the school's to configure through
+     * settings once the Settings engine lands, and this default names the
+     * product rather than the deployment.
+     */
+    EMAIL_FROM: z.string().min(3).default('EduFlow360 <no-reply@localhost>'),
   })
   /**
    * Cross-field check, applied only when at least one provider variable is
@@ -387,6 +465,26 @@ const schema = z
       path: ['GOOGLE_CLIENT_ID'],
     },
   )
+  /**
+   * `SMTP_USER` and `SMTP_PASSWORD` are a PAIR, and `SMTP_HOST` stands alone.
+   *
+   * That asymmetry is the point. Credentials without a host is nonsense, but
+   * a host WITHOUT credentials is a real configuration — Mailpit in
+   * development and tests, and plenty of authenticated-by-network relays in
+   * production, neither of which authenticates. Requiring a username where
+   * none is needed is how a development environment ends up with a fake
+   * credential in a tracked `.env.example`.
+   *
+   * What IS refused is half a PAIR, which fails at send time as a provider
+   * error rather than as the local validation error boot owes the operator.
+   */
+  .refine((v) => (v.SMTP_USER === undefined) === (v.SMTP_PASSWORD === undefined), {
+    message:
+      'SMTP_USER and SMTP_PASSWORD must be set together. A half pair fails later at send ' +
+      'time as an SMTP error, which is far harder to diagnose than a local validation error at ' +
+      'boot (AGENTS.md 11). Set both, or neither.',
+    path: ['SMTP_PASSWORD'],
+  })
   /**
    * A refresh token that dies before its session it renews is a product failure
    * wearing a security control's clothes, so it is refused at boot rather than

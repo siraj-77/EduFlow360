@@ -164,7 +164,18 @@ describe('the ERD is drawn from the schema, not maintained beside it', () => {
       'UserRole->Role',
       'UserRole->User',
     ]);
-    expect(soft.sort()).toEqual(['AuditRecord->User', 'ErrorLog->User']);
+    expect(soft.sort()).toEqual([
+      'AuditRecord->User',
+      'ErrorLog->User',
+      /**
+       * `PLT-105`: the reset credential is issued FOR a user and records no
+       * foreign key — the same value-not-reference rule `AuditRecord` states.
+       * Softref, so the edge is drawn and the constraint is not, for the same
+       * reason there: deleting a user must not silently strand or cascade an
+       * outstanding reset credential.
+       */
+      'PasswordResetToken->User',
+    ]);
     expect(elements.filter((e) => e.type === 'arrow').length).toBe(declared.length + soft.length);
   });
 });

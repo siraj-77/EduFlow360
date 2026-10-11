@@ -227,6 +227,43 @@ export class PrismaSessionRepository implements ISessionRepository {
     ]);
   }
 
+  /**
+   * `PLT-105` AC-2 — the reset that invalidates everything else.
+   *
+   * Both statements are guarded on `revokedAt: null`, which is what makes the
+   * call idempotent (a second run matches nothing and reports zero) AND what
+   * makes the count meaningful: sessions already revoked are not counted
+   * again, so a caller retrying after a partial failure reads the true
+   * remaining work.
+   *
+   * The refresh tokens are keyed through the SESSION's user rather than
+   * listed by id, so tokens belonging to sessions this call has just revoked
+   * in the same transaction are caught — a relation-shaped where, not a
+   * snapshot of ids taken before the update.
+   *
+   * `schoolId` is on the session statement as metadata (`AGENTS.md` 2.1),
+   * and the token statement scopes through the relation, which already
+   * belongs to this school's database.
+   */
+  async revokeAllForUser(params: {
+    userId: string;
+    reason: string;
+    now: Date;
+  }): Promise<{ sessionsRevoked: number }> {
+    const [sessions, _tokens] = await this.prisma.$transaction([
+      this.prisma.session.updateMany({
+        where: { schoolId: this.schoolId, userId: params.userId, revokedAt: null },
+        data: { revokedAt: params.now, revokedReason: params.reason },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { session: { userId: params.userId }, revokedAt: null },
+        data: { revokedAt: params.now, revokedReason: params.reason },
+      }),
+    ]);
+
+    return { sessionsRevoked: sessions.count };
+  }
+
   async findByToken(
     sessionTokenPlaintext: string,
   ): Promise<{ sessionId: string; userId: string } | null> {

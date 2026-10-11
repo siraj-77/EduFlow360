@@ -122,6 +122,80 @@ describe('WEB_ORIGIN — the origin allowed to call the API', () => {
   });
 });
 
+/**
+ * `PLT-105`'s two variables: how long a reset link lives, and how the mail
+ * reaches a mailbox.
+ *
+ * The TTL follows the `OIDC_STATE_TTL_MS` precedent exactly — a positive
+ * whole number of milliseconds with a documented default — because the same
+ * reasoning applies: a never-written configuration should produce the
+ * conservative answer (a short window), not a boot failure.
+ *
+ * The SMTP group is the opposite shape, and deliberately so. The email
+ * adapter per `ADR-014` is production SMTP with a mail catcher in
+ * development and tests, so the variables are optional as a GROUP: absent
+ * means "no SMTP configured", which the adapter layer answers with the
+ * recording adapter rather than with a crash. A half-configured SMTP group
+ * is refused at boot for the same reason a half-configured OIDC group is —
+ * it fails far later as a provider error instead of a local validation one.
+ */
+describe('PASSWORD_RESET_TTL_MS — how long a reset link lives', () => {
+  it('defaults to one hour, the window the story names', () => {
+    expect(loadConfig(base).config.PASSWORD_RESET_TTL_MS).toBe(3_600_000);
+  });
+
+  it('is configurable, because the acceptance criterion says configurable', () => {
+    expect(
+      loadConfig({ ...base, PASSWORD_RESET_TTL_MS: '1800000' }).config.PASSWORD_RESET_TTL_MS,
+    ).toBe(1_800_000);
+  });
+
+  it('refuses a non-positive or fractional window, which would produce an Expires either boundary', () => {
+    for (const value of ['0', '-1', '1.5', 'abc']) {
+      expect(() => loadConfig({ ...base, PASSWORD_RESET_TTL_MS: value })).toThrow(
+        /PASSWORD_RESET_TTL_MS/,
+      );
+    }
+  });
+});
+
+describe('the SMTP group (ADR-014)', () => {
+  it('loads with no SMTP at all, which selects the recording adapter', () => {
+    const loaded = loadConfig(base);
+
+    expect(loaded.config.SMTP_HOST).toBeUndefined();
+  });
+
+  it('loads a complete group', () => {
+    const loaded = loadConfig({
+      ...base,
+      SMTP_HOST: 'mailpit',
+      SMTP_PORT: '1025',
+      EMAIL_FROM: 'EduFlow360 <no-reply@school.lk>',
+    });
+
+    expect(loaded.config.SMTP_HOST).toBe('mailpit');
+    expect(loaded.config.SMTP_PORT).toBe(1025);
+    expect(loaded.config.EMAIL_FROM).toBe('EduFlow360 <no-reply@school.lk>');
+  });
+
+  it('refuses half a credential pair, the same rule as the OIDC group', () => {
+    // One variable alone is the state that fails at send time with a provider
+    // error; boot is where it is cheap to catch. A host WITHOUT credentials is
+    // NOT that state — Mailpit and network-authenticated relays need none —
+    // so the pairing rule covers the pair, not the host.
+    expect(() => loadConfig({ ...base, SMTP_USER: 'smtp-user' })).toThrow(/SMTP_PASSWORD/);
+    expect(() => loadConfig({ ...base, SMTP_PASSWORD: 'smtp-pass' })).toThrow(/SMTP_PASSWORD/);
+  });
+
+  it('defaults the port and the from-address, which are deployment conveniences', () => {
+    const loaded = loadConfig({ ...base, SMTP_HOST: 'mailpit' });
+
+    expect(loaded.config.SMTP_PORT).toBe(587);
+    expect(loaded.config.EMAIL_FROM).toBe('EduFlow360 <no-reply@localhost>');
+  });
+});
+
 describe('bootBanner', () => {
   it('states loudly that persistence is disabled, rather than staying silent', () => {
     const banner = bootBanner(loadConfig(base)).join('\n');

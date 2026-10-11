@@ -45,9 +45,9 @@
  * ------------------------------------------------------------------ */
 
 /**
- * The fourteen tables of `ARC-01`, verbatim. This list is not a summary of the
+ * The seventeen tables of `ARC-01`, verbatim. This list is not a summary of the
  * platform; it is the generated model list, and `prisma-schema.spec.ts` fails
- * the build if a fifteenth appears. Duplicating the names here rather than
+ * the build if an eighteenth appears. Duplicating the names here rather than
  * importing them would let the two diagrams disagree, so the gate checks this
  * array against the schema source.
  */
@@ -76,6 +76,13 @@ export const PLATFORM_CORE_ENTITIES = [
   'NotificationPreference',
   'NotificationDelivery',
   'StoredFile',
+  /**
+   * `PLT-105`: password reset. The seventeenth model — the same three
+   * registration points as every model before it: here,
+   * `PLATFORM_CORE_MODELS` in `prisma-schema.spec.ts`, and `CLUSTER` in
+   * `prisma/render-erd.mjs`.
+   */
+  'PasswordResetToken',
 ];
 
 /* ------------------------------------------------------------------ *

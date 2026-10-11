@@ -568,6 +568,66 @@
     "backgroundColor": "transparent"
   },
   {
+    "id": "box_PasswordResetToken",
+    "type": "rectangle",
+    "x": 1120,
+    "y": 2946,
+    "width": 400,
+    "height": 212,
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "#e8ebff",
+    "strokeWidth": 2,
+    "strokeStyle": "solid",
+    "roughness": 0,
+    "roundness": {
+      "type": 3
+    },
+    "fillStyle": "solid",
+    "_name": "PasswordResetToken"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2954,
+    "width": 372,
+    "height": 16,
+    "text": "PasswordResetToken",
+    "fontSize": 15,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#4f46e5",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2974,
+    "width": 372,
+    "height": 16,
+    "text": "password_reset_tokens",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#5b6270",
+    "backgroundColor": "transparent"
+  },
+  {
+    "type": "text",
+    "x": 1134,
+    "y": 2990,
+    "width": 372,
+    "height": 144,
+    "text": "schoolId  String\nPK  id\n▶  userId → User  (no FK)\ntokenHash  String\nexpiresAt  DateTime\nconsumedAt  DateTime\nrequestedIp  String\nrequestedDevice  String\ncreatedAt  DateTime",
+    "fontSize": 11,
+    "fontFamily": 3,
+    "textAlign": "left",
+    "verticalAlign": "top",
+    "strokeColor": "#161a23",
+    "backgroundColor": "transparent"
+  },
+  {
     "id": "box_ErrorLog",
     "type": "rectangle",
     "x": 1120,
@@ -995,22 +1055,10 @@
     "width": 0,
     "height": 254,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        26,
-        0
-      ],
-      [
-        26,
-        254
-      ],
-      [
-        0,
-        254
-      ]
+      [0, 0],
+      [26, 0],
+      [26, 254],
+      [0, 254]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1029,22 +1077,10 @@
     "width": 0,
     "height": -298,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        44,
-        0
-      ],
-      [
-        44,
-        -298
-      ],
-      [
-        0,
-        -298
-      ]
+      [0, 0],
+      [44, 0],
+      [44, -298],
+      [0, -298]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1063,22 +1099,10 @@
     "width": 120,
     "height": 34,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        60,
-        0
-      ],
-      [
-        60,
-        34
-      ],
-      [
-        120,
-        34
-      ]
+      [0, 0],
+      [60, 0],
+      [60, 34],
+      [120, 34]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1097,22 +1121,10 @@
     "width": 0,
     "height": 514,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        26,
-        0
-      ],
-      [
-        26,
-        514
-      ],
-      [
-        0,
-        514
-      ]
+      [0, 0],
+      [26, 0],
+      [26, 514],
+      [0, 514]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1131,22 +1143,10 @@
     "width": 0,
     "height": -356,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        44,
-        0
-      ],
-      [
-        44,
-        -356
-      ],
-      [
-        0,
-        -356
-      ]
+      [0, 0],
+      [44, 0],
+      [44, -356],
+      [0, -356]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1165,22 +1165,10 @@
     "width": -200,
     "height": 40,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -126,
-        0
-      ],
-      [
-        -126,
-        40
-      ],
-      [
-        -200,
-        40
-      ]
+      [0, 0],
+      [-126, 0],
+      [-126, 40],
+      [-200, 40]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1199,22 +1187,10 @@
     "width": 0,
     "height": -290,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        26,
-        0
-      ],
-      [
-        26,
-        -290
-      ],
-      [
-        0,
-        -290
-      ]
+      [0, 0],
+      [26, 0],
+      [26, -290],
+      [0, -290]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1233,22 +1209,10 @@
     "width": -200,
     "height": -250,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -100,
-        0
-      ],
-      [
-        -100,
-        -250
-      ],
-      [
-        -200,
-        -250
-      ]
+      [0, 0],
+      [-100, 0],
+      [-100, -250],
+      [-200, -250]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1267,22 +1231,10 @@
     "width": -200,
     "height": -2028,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -87,
-        0
-      ],
-      [
-        -87,
-        -2028
-      ],
-      [
-        -200,
-        -2028
-      ]
+      [0, 0],
+      [-87, 0],
+      [-87, -2028],
+      [-200, -2028]
     ],
     "strokeColor": "#8a8f98",
     "backgroundColor": "transparent",
@@ -1294,6 +1246,28 @@
     "_name": "AuditRecord->User"
   },
   {
+    "id": "edge_PasswordResetToken_userId",
+    "type": "arrow",
+    "x": 1120,
+    "y": 3052,
+    "width": -200,
+    "height": -2612,
+    "points": [
+      [0, 0],
+      [-74, 0],
+      [-74, -2612],
+      [-200, -2612]
+    ],
+    "strokeColor": "#8a8f98",
+    "backgroundColor": "transparent",
+    "strokeWidth": 1,
+    "strokeStyle": "dashed",
+    "roughness": 0,
+    "startArrowhead": null,
+    "endArrowhead": "arrow",
+    "_name": "PasswordResetToken->User"
+  },
+  {
     "id": "edge_ErrorLog_userId",
     "type": "arrow",
     "x": 1120,
@@ -1301,22 +1275,10 @@
     "width": -200,
     "height": -2328,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -74,
-        0
-      ],
-      [
-        -74,
-        -2328
-      ],
-      [
-        -200,
-        -2328
-      ]
+      [0, 0],
+      [-126, 0],
+      [-126, -2328],
+      [-200, -2328]
     ],
     "strokeColor": "#8a8f98",
     "backgroundColor": "transparent",
@@ -1335,22 +1297,10 @@
     "width": -200,
     "height": -1714,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -126,
-        0
-      ],
-      [
-        -126,
-        -1714
-      ],
-      [
-        -200,
-        -1714
-      ]
+      [0, 0],
+      [-113, 0],
+      [-113, -1714],
+      [-200, -1714]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1369,22 +1319,10 @@
     "width": -200,
     "height": -564,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -113,
-        0
-      ],
-      [
-        -113,
-        -564
-      ],
-      [
-        -200,
-        -564
-      ]
+      [0, 0],
+      [-100, 0],
+      [-100, -564],
+      [-200, -564]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1403,22 +1341,10 @@
     "width": -200,
     "height": -966,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -100,
-        0
-      ],
-      [
-        -100,
-        -966
-      ],
-      [
-        -200,
-        -966
-      ]
+      [0, 0],
+      [-87, 0],
+      [-87, -966],
+      [-200, -966]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1437,22 +1363,10 @@
     "width": 0,
     "height": -402,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        44,
-        0
-      ],
-      [
-        44,
-        -402
-      ],
-      [
-        0,
-        -402
-      ]
+      [0, 0],
+      [62, 0],
+      [62, -402],
+      [0, -402]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1471,22 +1385,10 @@
     "width": -200,
     "height": -1376,
     "points": [
-      [
-        0,
-        0
-      ],
-      [
-        -74,
-        0
-      ],
-      [
-        -74,
-        -1376
-      ],
-      [
-        -200,
-        -1376
-      ]
+      [0, 0],
+      [-126, 0],
+      [-126, -1376],
+      [-200, -1376]
     ],
     "strokeColor": "#4f46e5",
     "backgroundColor": "transparent",
@@ -1500,7 +1402,7 @@
   {
     "type": "rectangle",
     "x": 0,
-    "y": 2966,
+    "y": 3218,
     "width": 1560,
     "height": 160,
     "strokeColor": "#c9ced8",
@@ -1516,7 +1418,7 @@
   {
     "type": "text",
     "x": 18,
-    "y": 2978,
+    "y": 3230,
     "width": 1524,
     "height": 16,
     "text": "Edge vocabulary — how to read the arrows",
@@ -1530,7 +1432,7 @@
   {
     "type": "text",
     "x": 18,
-    "y": 3004,
+    "y": 3256,
     "width": 1524,
     "height": 16,
     "text": "solid arrow  —  declared foreign key, with a constraint behind it",
@@ -1544,7 +1446,7 @@
   {
     "type": "text",
     "x": 18,
-    "y": 3024,
+    "y": 3276,
     "width": 1524,
     "height": 16,
     "text": "dashed arrow  —  reference by value — no foreign key, on purpose",
@@ -1558,7 +1460,7 @@
   {
     "type": "text",
     "x": 18,
-    "y": 3044,
+    "y": 3296,
     "width": 1524,
     "height": 16,
     "text": "no arrow at all  —  License, ModuleRegistry, AuditRecord — no foreign key to declare",
@@ -1572,7 +1474,7 @@
   {
     "type": "text",
     "x": 18,
-    "y": 3064,
+    "y": 3316,
     "width": 1524,
     "height": 16,
     "text": "replacedByTokenId  —  self-pointer, not a Prisma relation: a rotation chain is a DAG",
@@ -1586,7 +1488,7 @@
   {
     "type": "text",
     "x": 18,
-    "y": 3084,
+    "y": 3336,
     "width": 1524,
     "height": 16,
     "text": "▶ / PK  —  foreign key column / primary key",

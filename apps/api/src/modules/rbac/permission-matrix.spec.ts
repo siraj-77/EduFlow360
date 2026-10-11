@@ -28,11 +28,13 @@ import { API_ROOT, REPO_ROOT } from '../../../../../scripts/paths.mjs';
  *
  * ## What it deliberately does NOT claim
  *
- * The `entitlement` and `audited` columns record what a route's decorators SAY. Neither
- * is enforced by anything in this repository: `@RequireEntitlement` is Epic 03 and
- * `@Audited` writes nothing until `PLT-402`. The fixture says so in its own header, and
- * this spec asserts the source agrees — so nobody later reads a populated `audited`
- * column as evidence that a record is being kept.
+ * The `entitlement` and `audited` columns record what a route's decorators SAY.
+ * Both columns now have an enforcer — `AuditInterceptor` (`PLT-402`) and
+ * `EntitlementGuard` (`PLT-302`), both landed 2026-10-11 — but no ROUTE has
+ * declared an entitlement yet, and the audit column is live. The fixture's own
+ * header names both mechanisms and this spec asserts the header and the source
+ * agree, so nobody later reads a populated column as more than it is, and
+ * nobody later reads the old "nothing enforces these" claim as current either.
  */
 
 /** One row of the checked-in fixture. */
@@ -85,15 +87,25 @@ describe('route-permissions.json', () => {
     expect(rows().length).toBeGreaterThan(0);
   });
 
-  it('states in its own header that entitlement and audit enforce nothing', () => {
+  it('states in its own header what enforces each column', () => {
     // The load-bearing honesty check. A fixture whose header claimed these were
     // enforced would be a lie in a file people cite, and `AGENTS.md` 6's failure mode
     // in its most quotable form.
+    //
+    // It used to assert "entitlement and audit enforce nothing", which was true
+    // until both shipped: `PLT-402` landed the audit interceptor on 2026-10-11
+    // and `PLT-302` landed the entitlement guard the same day. The assertion
+    // now pins the NEW truth — each column names its enforcer — so a future
+    // change to either fails here rather than leaving a stale claim.
     const raw = readFileSync(join(REPO_ROOT, 'route-permissions.json'), 'utf8');
 
-    expect(raw).toMatch(/PLT-402/);
-    expect(raw).toMatch(/Epic 03/);
-    expect(raw).toMatch(/NOTHING/);
+    // The two mechanisms the columns now name.
+    expect(raw).toMatch(/AuditInterceptor \(PLT-402\)/);
+    expect(raw).toMatch(/EntitlementGuard \(PLT-302\)/);
+
+    // And the honest gap both columns still carry: no ROUTE has declared an
+    // entitlement yet. The enforcer exists; the routes that would use it do not.
+    expect(rows().every((row) => row.entitlement === null)).toBe(true);
   });
 });
 
@@ -245,20 +257,24 @@ describe('each row agrees with the route it describes', () => {
 // The claim this fixture is most likely to be misread for.
 // ═══════════════════════════════════════════════════════════════════════════
 describe('the columns that record intent rather than enforcement', () => {
-  it('says out loud that a populated `audited` column is not a written record', () => {
-    // `@Audited` is read by nothing in this repository. A fixture column headed `audited`
-    // is exactly the kind of artefact a reviewer reads as "so this IS audited" — so the
-    // header names `PLT-402` and the spec fails if that name is ever removed while the
-    // column remains.
+  it('says out loud WHO writes a populated `audited` column', () => {
+    // A fixture column headed `audited` is exactly the kind of artefact a
+    // reviewer reads as "so this IS audited" — so the header names the
+    // mechanism, and the spec fails if that sentence is ever removed while
+    // the column remains.
+    //
+    // It used to assert `/@Audited writes no row/` and `/PLT-402 is the story
+    // that will write/`, which was the honest statement until 2026-10-11.
+    // `PLT-402` shipped then, and the fixture's own header moved on; this
+    // test asserts the NEW truth — that the interceptor is what writes, and
+    // that `PLT-402` is still named, so the sentence cannot be dropped without
+    // a review of whether it is still true.
     const raw = readFileSync(join(REPO_ROOT, 'route-permissions.json'), 'utf8');
     const auditedColumnPopulated = rows().some((row) => row.audited !== null);
 
-    // Both true today. The assertion is the pairing: if the columns are ever emptied,
-    // the disclaimer becomes noise and should be revisited — and if the disclaimer is
-    // ever removed while the columns are full, THIS test fails.
     expect(auditedColumnPopulated).toBe(true);
-    expect(raw).toMatch(/@Audited writes no row/);
-    expect(raw).toMatch(/PLT-402 is the story that will write/);
+    expect(raw).toMatch(/AuditInterceptor \(PLT-402\)/);
+    expect(raw).toMatch(/audit_enforced_by/);
   });
 
   it('records no entitlement for any sign-in route, and explains why', () => {

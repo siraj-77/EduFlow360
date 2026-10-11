@@ -18,6 +18,12 @@ import {
   toDeviceContext,
   type RequestWithAddress,
 } from '../../../common/http/request-context.js';
+import {
+  attachAuditActor,
+  attachAuditSubject,
+  auditSubjectFor,
+  type AuditCarrier,
+} from '../../../common/http/audit-actor.js';
 import { FixedWindowThrottle } from '../../../common/throttle/fixed-window-throttle.js';
 import type { ThrottlePolicy } from '../../../common/throttle/fixed-window-throttle.js';
 import { readCookieHeader } from '../../../common/guards/session.guard.js';
@@ -92,10 +98,20 @@ const REFUSED_BODY = Object.freeze({
  *
  * ## What `@Audited` does and does not do HERE, stated plainly
  *
- * **Nothing yet.** `@Audited('OIDC_CALLBACK')` records a key in route metadata and
- * `PLT-402` is the story that will write it to `audit_records`. Nothing reads the
- * metadata in this repository, so this route produces no audit row today and no test
- * here asserts one — asserting that a mock was called would be asserting a fiction.
+ * **It appends one row.** `@Audited('OIDC_CALLBACK')` records a key in route
+ * metadata, and since 2026-10-11 `AuditInterceptor` (`PLT-402`), registered
+ * globally in `app.module.ts`, reads it and writes one `audit_records` row
+ * after this handler succeeds — before the response is released, so the row
+ * exists by the time the caller has their answer. A refused outcome writes a
+ * FAILURE record carrying the fact, the source and the timestamp, and **no
+ * identity** — `password-sign-in.controller.ts` states the rule, and the
+ * over-HTTP proof is `audited-routes-over-http.integration.spec.ts`.
+ *
+ * The actor recorded on success is the one this handler declares for its
+ * `@Public` route (`attachAuditActor`, the same arrangement sign-in uses) —
+ * and `linked` / `already-linked` outcomes record `actorId: null`, because the
+ * use-case's outcome does not carry the account they bound to. Recorded gap,
+ * not an oversight.
  *
  * The decorator is on **this** route rather than on `GET /auth/oidc/redirect` because
  * this is where a stranger's assertion becomes a local account. The redirect mints
@@ -142,7 +158,10 @@ export class OidcCallbackController {
     // of it is `readCookieHeader`'s tested job, and the header is a string Node has
     // already joined.
     @Headers('cookie') cookieHeader: string | undefined,
-    @Req() request: RequestWithAddress,
+    // Typed as an `AuditCarrier` too: this handler declares the actor for the
+    // audit record on a `@Public` route (`PLT-402`), where `SessionGuard`
+    // attached no principal. See the attachment site below.
+    @Req() request: RequestWithAddress & AuditCarrier,
     // `passthrough`, because the state cookie is cleared on EVERY outcome including a
     // refusal, and a `@Res()` without it would take the response away from Nest's
     // exception filter.
@@ -199,7 +218,24 @@ export class OidcCallbackController {
       carrier.setCookie(this.stateStore.expired());
     }
 
-    return this.deliver(outcome, carrier);
+    const body = this.deliver(outcome, carrier);
+
+    // The audit actor, declared where the handler knows it (`PLT-402`).
+    //
+    // `signed-in` only, and that is a recorded gap rather than an oversight:
+    // the `linked` / `already-linked` outcomes do not carry the account they
+    // bound to — it lives in the sealed state payload the use-case consumed —
+    // so attaching one would mean inventing an identity or reshaping a
+    // tested use-case outcome to surface it. Those records therefore carry
+    // `actorId: null` until the outcome carries the user. A `refused` outcome
+    // throws before this line and records a failure with no identifier, which
+    // is the documented rule.
+    if (outcome.outcome === 'signed-in') {
+      attachAuditActor(request, { userId: outcome.session.userId });
+      attachAuditSubject(request, auditSubjectFor(outcome.session.userId));
+    }
+
+    return body;
   }
 
   /**

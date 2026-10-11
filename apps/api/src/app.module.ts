@@ -1,11 +1,21 @@
 import { Module, type DynamicModule } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { CsrfGuard } from './common/guards/csrf.guard.js';
 import { SessionGuard } from './common/guards/session.guard.js';
 import { PermissionGuard } from './common/guards/permission.guard.js';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
+import { EntitlementGuard } from './common/guards/entitlement.guard.js';
 import type { AppConfig } from './config/env.js';
 import { AuthModule, I_SESSION_REPOSITORY } from './modules/auth/auth.module.js';
 import type { ISessionRepository } from './modules/auth/domain/ports/session-repository.js';
+import { AuditModule } from './modules/audit/audit.module.js';
+import { IAUDIT_REPOSITORY } from './modules/audit/domain/repositories/audit-repository.js';
+import type { IAuditRepository } from './modules/audit/domain/repositories/audit-repository.js';
+import { IREASON_POLICY } from './modules/audit/domain/ports/reason-policy.js';
+import type { IReasonPolicy } from './modules/audit/domain/ports/reason-policy.js';
+import { LicensingModule } from './modules/licensing/licensing.module.js';
+import { I_LICENCE_PAYLOAD_CACHE } from './modules/licensing/domain/ports/licence-payload-cache.js';
+import type { ILicencePayloadCache } from './modules/licensing/domain/ports/licence-payload-cache.js';
 import { IPERMISSION_GRANT_READER } from './modules/rbac/domain/ports/permission-grant-reader.js';
 import type { IPermissionGrantReader } from './modules/rbac/domain/ports/permission-grant-reader.js';
 import { IPERMISSION_CACHE } from './modules/rbac/domain/ports/permission-cache.js';
@@ -67,13 +77,47 @@ import { RbacModule } from './modules/rbac/rbac.module.js';
  * rather than read from a closure evaluated while this decorator is applied —
  * which would run at import time, before the env files exist. `auth.module.ts`
  * states that hazard in full; this is the other half of the same decision.
+ *
+ * ## `AuditInterceptor` is the FIRST registered interceptor, and it is
+ * registered globally
+ *
+ * `@Audited('<ACTION>')` was vocabulary until this existed — the decorator
+ * recorded an intention and nothing read it, which `route-guards.decorator.ts`
+ * says in its own header. The interceptor is what makes the decorator a
+ * control: a developer adding a sensitive action writes the decorator and
+ * nothing else, which is `PLT-402`'s acceptance criterion, and which
+ * per-controller opt-in registration would quietly not deliver.
+ *
+ * It is registered LAST among the interceptors because it is the only one,
+ * and it runs AFTER all three guards — Nest runs guards before interceptors —
+ * which is what lets it read the principal `SessionGuard` attached and the
+ * permission `PermissionGuard` checked. A route refused by a guard never
+ * reaches it, so a refused request produces no record of an action that did
+ * not happen.
+ *
+ * A factory with an explicit `inject`, for the same reason `SessionGuard`
+ * and `PermissionGuard` use one: BOTH dependencies are optional, and a
+ * `useFactory` arrow carries no `design:paramtypes`, so an omitted `inject`
+ * hands Nest an empty argument list. That is the `AuthModule` bug this
+ * repository already shipped once at `IOIDC_STATE_STORE` — a 500 on the first
+ * request with a green build — and `audit-interceptor-wiring.spec.ts` is what
+ * proves it cannot happen here.
  */
 @Module({})
 export class AppModule {
   static forRoot(config: AppConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [AuthModule.forRoot(config), RbacModule.forRoot(config)],
+      imports: [
+        AuthModule.forRoot(config),
+        RbacModule.forRoot(config),
+        AuditModule.forRoot(config),
+        // `PLT-301`/`PLT-302`: the certificate chain and the cache
+        // `EntitlementGuard` reads. Nest resolves the graph rather than the
+        // array's order, but the reading order matches the dependency
+        // direction (this module borrows Auth's `CLOCK` port).
+        LicensingModule.forRoot(config),
+      ],
       providers: [
         { provide: APP_GUARD, useClass: CsrfGuard },
         // `APP_GUARD` with an explicit factory rather than `useClass`, because
@@ -159,6 +203,46 @@ export class AppModule {
             { token: IPERMISSION_GRANT_READER, optional: true },
             { token: IPERMISSION_CACHE, optional: true },
             { token: IOWNERSHIP_POLICY_REGISTRY, optional: true },
+          ],
+        },
+        // `EntitlementGuard` — FOURTH, and the last of the four global
+        // controls (`AGENTS.md` §2.3's composition: CSRF → Session →
+        // Permission → Entitlement).
+        //
+        // After `PermissionGuard` for the same reason it is after
+        // `SessionGuard`: an authenticated caller who lacks the ROLE is
+        // refused with `NO_PERMISSION`, and a caller who holds the role but
+        // whose LICENCE lacks the capability is refused with `NOT_ENTITLED`.
+        // The two refusals are distinguishable in the log for exactly the
+        // reason the ownership refusals are (`AGENTS.md` §2.3), and swapping
+        // the order would make every feature-gated route answer about
+        // entitlements to callers who were never allowed near it.
+        //
+        // The cache dependency is optional so a database-less deployment
+        // still boots; with no cache there is no validated certificate, and
+        // every `@RequireEntitlement` route is refused by name. The wiring
+        // spec (`entitlement-guard-wiring.spec.ts`) asserts the token names,
+        // following `permission-guard-production-wiring.spec.ts`'s `SEC-110`
+        // reasoning.
+        {
+          provide: APP_GUARD,
+          useFactory: (cache?: ILicencePayloadCache) =>
+            new EntitlementGuard(new Reflector(), cache),
+          inject: [{ token: I_LICENCE_PAYLOAD_CACHE, optional: true }],
+        },
+        // `AuditInterceptor` — the first APP_INTERCEPTOR in this application,
+        // and the reader for the `@Audited('<ACTION>')` decorator. See the
+        // header for why it is a factory and why the inject list is spelled
+        // out. Both dependencies are optional so a database-less deployment
+        // (ADR-019) still boots; an @Audited route reached without them is
+        // refused by name, never silently unrecorded.
+        {
+          provide: APP_INTERCEPTOR,
+          useFactory: (repository?: IAuditRepository, reasonPolicy?: IReasonPolicy) =>
+            new AuditInterceptor(new Reflector(), repository, reasonPolicy),
+          inject: [
+            { token: IAUDIT_REPOSITORY, optional: true },
+            { token: IREASON_POLICY, optional: true },
           ],
         },
       ],

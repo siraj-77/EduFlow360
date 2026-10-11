@@ -21,6 +21,12 @@ import {
   toDeviceContext,
   type RequestWithAddress,
 } from '../../../common/http/request-context.js';
+import {
+  attachAuditActor,
+  attachAuditSubject,
+  auditSubjectFor,
+  type AuditCarrier,
+} from '../../../common/http/audit-actor.js';
 import { FixedWindowThrottle } from '../../../common/throttle/fixed-window-throttle.js';
 import type { ThrottlePolicy } from '../../../common/throttle/fixed-window-throttle.js';
 import { PasswordSignInBody } from '../dto/password-sign-in.dto.js';
@@ -103,10 +109,11 @@ interface CredentialWritingResponse {
  *
  * ## What `@Audited` does and does not do HERE, stated plainly
  *
- * **Nothing yet.** The decorator records a key in route metadata; `PLT-402` is the
- * story that will write it to `audit_records`. There is no audit writer in this
- * repository and nothing reads the metadata, so this route produces no audit row
- * today and no test here can assert one.
+ * **It appends one row.** The decorator records a key in route metadata, and
+ * `AuditInterceptor` (`PLT-402`, since 2026-10-11) reads it and writes one
+ * `audit_records` row per outcome — after the handler, before the response is
+ * released. The over-HTTP proof that both a success and a failure produce a
+ * real row is `audited-routes-over-http.integration.spec.ts`.
  *
  * ## `@Audited` covers success AND failure, and that has a cost worth naming
  *
@@ -117,10 +124,12 @@ interface CredentialWritingResponse {
  *
  * **The cost:** an audit implementation that recorded the IDENTIFIER of every failed
  * sign-in would itself become an enumeration oracle — in the log rather than on the
- * wire. So the requirement this places on `PLT-402` is that a failure record carries no
- * identifier and no credential: only the fact that an attempt failed, the source, and
- * the timestamp. Written here because that constraint is invisible from the decorator
- * and expensive to retrofit.
+ * wire. So the requirement the implementation carries is that a failure record
+ * carries no identifier and no credential: only the fact that an attempt failed, the
+ * source, and the timestamp. Enforced by `AuditInterceptor` (it reads the principal on
+ * the failure path and never the handler's declared actor), asserted by
+ * `audit-interceptor.spec.ts` and over HTTP by
+ * `audited-routes-over-http.integration.spec.ts`.
  *
  * ## The one place two outcomes are allowed to differ
  *
@@ -155,7 +164,13 @@ export class PasswordSignInController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() body: unknown,
-    @Req() request: RequestWithAddress,
+    // The request is typed as an `AuditCarrier` too because this handler
+    // DECLARES the actor for the audit record (`PLT-402`): the route is
+    // `@Public`, so `SessionGuard` attached no principal, and the one moment
+    // this codebase knows who just signed in is right here. Without the
+    // declaration every successful sign-in would be an audit row nobody
+    // performed.
+    @Req() request: RequestWithAddress & AuditCarrier,
     @Res({ passthrough: true }) response: CredentialWritingResponse,
   ): Promise<{ readonly signedIn: true }> {
     // ── Throttle first, keyed on the SOURCE address. ─────────────────────────
@@ -211,6 +226,14 @@ export class PasswordSignInController {
     // The body says only that it worked. The credential is in the cookie, where
     // `HttpOnly` keeps it away from script — a body value would be readable by any
     // XSS on the web app, and the stolen token works from anywhere, indefinitely.
+    //
+    // Declared for `@Audited('LOGIN')` AFTER the session exists, so a failed
+    // sign-in throws before this line and never attaches a claimed identity.
+    // `AuditInterceptor` reads it on the success path only — see
+    // `password-sign-in.controller.ts`'s header for the failure-record rule.
+    attachAuditActor(request, { userId: outcome.session.userId });
+    attachAuditSubject(request, auditSubjectFor(outcome.session.userId));
+
     return { signedIn: true };
   }
 }

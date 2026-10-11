@@ -49,7 +49,17 @@ const CHEAP: PasswordHashParameters = Object.freeze({
 });
 
 const THROTTLE_POLICY = { limit: 10, windowMs: 60_000 };
-const REQUEST = Object.freeze({ ip: '203.0.113.7', headers: { 'user-agent': 'vitest' } });
+/**
+ * A REQUEST the controller can attach to.
+ *
+ * Deliberately NOT frozen. It was, until `PLT-402` taught the fixture a
+ * lesson: the handler declares the audit actor on this object
+ * (`attachAuditActor`), and a frozen request makes that throw
+ * "Cannot add property auditActor, object is not extensible" — a failure that
+ * has nothing to do with the behaviour under test. An Express request is a
+ * plain extensible object, so a fixture that models one must be too.
+ */
+const REQUEST = { ip: '203.0.113.7', headers: { 'user-agent': 'vitest' } };
 
 /**
  * A response that records cookies and headers.

@@ -41,7 +41,7 @@ beforeAll(async () => {
 });
 
 describe('the schema applies to a real PostgreSQL', () => {
-  it('creates all 16 tables with the ADR-003 names', async () => {
+  it('creates all 17 tables with the ADR-003 names', async () => {
     const rows = await prisma.$queryRawUnsafe<{ table_name: string }[]>(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_name NOT LIKE '_prisma%'
@@ -57,6 +57,13 @@ describe('the schema applies to a real PostgreSQL', () => {
       'module_registry',
       'notification_deliveries',
       'notification_preferences',
+      /**
+       * `PLT-105`: password reset. The reset credential's store, with the
+       * same university of the seventeen registration points every model
+       * moves (schema-source, both schema lists, the renderer cluster, this
+       * list).
+       */
+      'password_reset_tokens',
       'permissions',
       'refresh_tokens',
       'role_permissions',
