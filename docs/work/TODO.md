@@ -1,4 +1,4 @@
-# TODO â€” Next Actions
+ï»¿# TODO â€” Next Actions
 
 > ## ðŸ†• UPDATED 2026-10-09 (later session) â€” tree restored, all 14 gates measured green
 >
@@ -43,14 +43,14 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-11 (sixth session — sign-out defect fixed TDD-first, PRs #2/#3/#4 merged, `main` at `7fcfd01`)
+**Last updated: 2026-10-11 (session 2 â€” PR #5 (sign-out fix) merged, browser E2E + template comparison, handover written; `main` at `89dbff1`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
-> ## ?? FIXED 2026-10-11 — sign-out was a no-op that lied to the user (session-security defect)
+> ## ?? FIXED 2026-10-11 ï¿½ sign-out was a no-op that lied to the user (session-security defect)
 >
 > Found in the browser E2E pass that preceded `PLT-EPIC-10`. `signed-in-screen.tsx`
-> called `fetch('/auth/sign-out')` — a root-relative URL resolved against the **web**
-> app's origin (`:3500`) rather than the API's (`:3001`) — so the request 404'd on
+> called `fetch('/auth/sign-out')` ï¿½ a root-relative URL resolved against the **web**
+> app's origin (`:3500`) rather than the API's (`:3001`) ï¿½ so the request 404'd on
 > Next.js, the handler ignored the response, and it redirected to sign-in while
 > displaying "You have been signed out." The session row stayed live and
 > `GET /permissions/me` answered **200 with the full permission list**. Every auth
@@ -59,7 +59,7 @@
 >
 > Fixed on branch `fix/sign-out-relative-url`, TDD RED?GREEN (`b89551e` ?
 > `bc2af0a`): the URL now comes from `signOutEndpoint` ? `apiUrl`, and only a 200
-> leaves the authenticated area — a 403, a network failure or any unexpected
+> leaves the authenticated area ï¿½ a 403, a network failure or any unexpected
 > status keeps the user on a screen that says the sign-out failed and the session
 > is still active. Verified in a real browser: after clicking sign out,
 > `/permissions/me` answers **401** and the session row carries `revokedAt`.
