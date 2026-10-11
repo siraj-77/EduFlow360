@@ -10,8 +10,12 @@
 
 ## State of the tree (2026-10-11 21:30)
 
-- **`main` is `89dbff1`, clean, pushed.** Everything this session and the
-  previous one produced is merged. **No open PRs.**
+- **`main` is clean and pushed, and carries this handover.** Everything this
+  session and the previous one produced is merged; there are no open PRs.
+  When this file was written `main` was `89dbff1` (PR #5 merged); this
+  handover's own PR then landed as `94028ad`. **Read `git log --oneline -5`
+  for the current head rather than trusting a SHA recorded in a document**
+  — the version-control answer is always the live one.
 - Merged in this session, in order, per the ordering rule the previous
   handover recorded:
 
