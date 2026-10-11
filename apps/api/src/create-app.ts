@@ -68,7 +68,24 @@ export function configureApp(app: INestApplication, options: CreateAppOptions): 
   // The API is a separate service. It serves JSON only; the web app is UI
   // (AGENTS.md 3.1). One origin, never a list — a wildcard here would undo the
   // CSRF guard's assumption that only one origin can make a credentialed request.
-  app.enableCors({ origin: options.webOrigin });
+  //
+  // `credentials: true` is not optional and is the whole reason a browser can
+  // sign in at all. The session credential is a COOKIE, so the request is
+  // credentialed; a credentialed cross-origin request requires BOTH
+  // `allow-origin` (a specific origin, never `*`) AND
+  // `allow-credentials: true` on the preflight response. Without the second
+  // header the browser refuses to send the POST at all — the request fails
+  // with `net::ERR_FAILED` before it reaches a single guard, and the web app
+  // reports it as "could not reach the server", which looks like a network
+  // outage rather than a CORS policy.
+  //
+  // That failure is what a real browser login showed on 2026-10-11:
+  // `OPTIONS /auth/login` answered 204 with the origin and headers allow-
+  // listed but no credentials header, and the sign-in form reported a network
+  // error for a password that was correct. Found by driving Chrome through
+  // `npm run dev` — every mock-level test had passed, because a test that
+  // calls the API directly never exercises the browser's CORS decision.
+  app.enableCors({ origin: options.webOrigin, credentials: true });
 
   app.enableShutdownHooks();
 
