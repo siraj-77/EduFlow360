@@ -89,11 +89,44 @@ describe('loadEnvFiles', () => {
     );
   });
 
-  it('skips a file that does not exist instead of throwing', () => {
-    const result = loadEnvFiles({ paths: [join(dir, '.env')] });
+  it('keeps what .env supplied when .env.local does not mention it', async () => {
+    // The everyday local dev case, and the documented precedence: `.env.local`
+    // OVERRIDES `.env` — it wins on the keys it declares, and `.env` still
+    // supplies everything else. Found 2026-10-11 when `npm run dev` refused to
+    // boot: the root `.env.local` declared DATABASE_URL (and the Google
+    // secrets) but not SCHOOL_ID, and the loader deleted every key `.env`
+    // introduced before `.env.local` loaded — so SCHOOL_ID, which the
+    // developer's `.env` plainly contained, was wiped and the API failed with
+    // "DATABASE_URL is set but SCHOOL_ID is not". A developer who followed the
+    // repo's own setup instructions could not start the application.
+    const { rm } = await import('node:fs/promises');
+    await rm(join(dir, '.env.local'), { force: true });
 
-    expect(result.loaded).toEqual([]);
-    expect(result.missing).toEqual([join(dir, '.env')]);
+    write('.env', 'EDUFLOW_TEST_ALPHA=from-env\nEDUFLOW_TEST_BETA=also-from-env\n');
+
+    const result = loadEnvFiles({ paths: [join(dir, '.env'), join(dir, '.env.local')] });
+
+    expect(process.env.EDUFLOW_TEST_ALPHA).toBe('from-env');
+    expect(process.env.EDUFLOW_TEST_BETA).toBe('also-from-env');
+    expect(result.loaded).toEqual([join(dir, '.env')]);
+    expect(result.missing).toEqual([join(dir, '.env.local')]);
+  });
+
+  it('lets .env.local override .env key by key, not wholesale', async () => {
+    // The precedence this file's header promises: the local file WINS on what
+    // it declares and loses on nothing else. The previous behaviour deleted
+    // every key `.env` introduced before loading `.env.local`, which made a
+    // partial `.env.local` (secrets only — the common case) silently discard
+    // the rest of the developer's configuration.
+    write('.env', 'EDUFLOW_TEST_ALPHA=from-env\nEDUFLOW_TEST_BETA=from-env\n');
+    write('.env.local', 'EDUFLOW_TEST_ALPHA=from-local\n');
+
+    loadEnvFiles({ paths: [join(dir, '.env'), join(dir, '.env.local')] });
+
+    expect(process.env.EDUFLOW_TEST_ALPHA).toBe('from-local');
+    expect(process.env.EDUFLOW_TEST_BETA, '.env still supplies the keys .env.local omits').toBe(
+      'from-env',
+    );
   });
 
   it('reports which files it loaded, for the boot banner', () => {
