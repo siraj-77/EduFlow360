@@ -1,10 +1,25 @@
-# WORKLOG
+﻿# WORKLOG
 
 **Purpose:** `AGENTS.md` §9 — _"If work is not in the worklog, it did not happen."_
 **Entry fields (mandatory):** Date · Phase · Task · Agent · Status · Activity · Files Changed · Decisions Made (with rationale) · Next Steps · Quality (tests, lint/build, issues)
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 ---
 
+
+## 2026-10-11 (session 2) — git updated to `89dbff1`, browser E2E pass, template comparison, handover written
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-11 |
+| **Phase** | Milestone 1 · session close. Merged the three open PRs, ran the pre-`PLT-EPIC-10` browser verification, and wrote the next handover. |
+| **Task** | Owner: "update the git first, before we start the Admin Dashboard code; do an e2e test using chrome dev tools; match with the Landing_Auth template." Then: "update the git and create the next session handover." |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. `main` at `89dbff1`, clean, pushed, **no open PRs**. |
+| **Activity** | **Git.** Merged **#4 → #2 → #3** in the order the previous handover recorded. PRs #2 and #3 both conflicted, in `TODO.md` (`docs/work/TODO.md`) and in two `WORKLOG.md` hunks — **docs-only and mechanical**, resolved newest-first. Both branches were then brought up to date with the new `main` and re-pushed before their CI would pass `strict` branch protection. Then merged **#5** (the sign-out fix, previous entry). `branch:main` protection enforces `CI` + `Secret scan` with `enforce_admins`, so `gh pr merge` is the only path — a direct push is refused. **Browser E2E.** Drove headless Chrome through the running stack: landing renders in light AND dark (the `prefers-color-scheme: dark` branch **actually executes** — a gap `AUD-30-04` recorded, because Playwright never hit it); `/ar` gives `dir=rtl` + `lang=ar` with the correct `Noto Naskh Arabic` stack; the sign-in card matches the **approved** `Template_Landing_Auth.html` structure element-for-element; the full login cycle works; **sign-out did not** — which became previous entry's defect. Only console noise was a `favicon.ico` 404. **Template comparison** (the `PLT-EPIC-10` findings, all recorded in the handover): `--brand2` is `null` at runtime because the kit ships `--brand-2` — the dashboard template's gradients render as nothing if its CSS is copied verbatim; `--warn` is absent; `Template_Landing_Auth.html` contains a superseded second dashboard; it also has **zero `@media` queries** while the app is e2e-verified responsive at 6 viewports, so the app already correctly deviates from a "reproduce as-is" template. |
+| **Files Changed** | `docs/work/RESUME_2026-10-11-session-2.md` (new) · `docs/work/EPIC_STATUS.md` (EPIC-01 row to ~95% and the sign-out defect recorded; the stale "Still uncommitted" claim on EPIC-02 corrected; header and total re-measured) · `docs/work/TODO.md` (head + the fixed-defect callout) |
+| **Decisions Made** | **(1) The handover is a NEW file, `RESUME_2026-10-11-session-2.md`,** following the repo's `-session-N` convention for multiple sessions in a day, rather than overwriting the fifth session's handover — the two describe different tree states. **(2) The new docs are not Prettier-reformatted.** `npx prettier --check` flags them, but it flags every pre-existing `RESUME_*.md`, `WORKLOG.md` and `TODO.md` too, and the repo's actual gate `pnpm format:check` globs no `docs/**/*.md` at all. Reformatting would rewrap hand-justified prose into a huge diff for zero gate benefit; the files match the convention they join. **(3) `EPIC_STATUS.md` is corrected rather than bumped** — it carried three stale claims (EPIC-01 "`PLT-105` not started", EPIC-02 "Still uncommitted", and a total re-measured 2026-10-05), and a status block that overstates completion is the failure mode this repo has recorded six times. |
+| **Next Steps** | **`PLT-EPIC-10` (the app shell), but apply the `--brand2` token fix in `packages/ui-kit` first** — it is one line and it prevents a silent visual null in the copied dashboard CSS. Then `PLT-403`'s audit viewer, then `PC-000`…`PC-006`. |
+| **Quality** | `docs:verify` 263 refs, exit 0, after every doc edit. **Tree clean and every gate green on `main` at `89dbff1`: typecheck 8/8 · lint 8/8 · format:check · route-guards · coverage-tiers · build 9/9 · unit (`--force`, 0 cached) API 91 files / 1,474 + web 21 files / 212 · CI + Secret scan green on all four PRs.** No source code changed in this entry — it is a merge-and-document session. |
 ## 2026-10-11 (sixth) — sign-out defect fixed: a root-relative URL that signed nobody out (PLT-105)
 
 | Field | Entry |
