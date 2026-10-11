@@ -45,7 +45,28 @@
     "submit": "Sign in",
     "invalidCredentials": "Email or password is incorrect.",
     "accountLocked": "This account is temporarily locked. Try again later.",
-    "resetRequestSent": "If that email is registered, a reset link is on its way."
+    "resetRequestSent": "If that email is registered, a reset link is on its way.",
+    "sendResetLink": "Send reset link",
+    "sending": "Sending…",
+    "backToSignIn": "Back to sign in",
+    "socialDivider": "or continue with",
+    "socialGoogle": "Google",
+    "socialMicrosoft": "Microsoft",
+    "socialFacebook": "Facebook",
+    "socialApple": "Apple",
+    "socialNotConfigured": "not configured for this deployment",
+    "resetTitle": "Choose a new password",
+    "resetSub": "Enter the new password for your account",
+    "resetTokenMissing": "This page needs the token from your reset email. Open the link from the email again.",
+    "resetSubmit": "Save new password",
+    "resetSaving": "Saving…",
+    "resetSuccess": "Your password has been changed. Sign in with your new password.",
+    "resetRefused": "That reset link is not valid, or the password does not meet this deployment’s policy. You can try again with the same link.",
+    "newPassword": "New password",
+    "confirmPassword": "Repeat the new password",
+    "passwordMismatch": "The two passwords do not match.",
+    "contactAdmin": "No account? Contact your school admin.",
+    "signOut": "Sign out"
   },
   "signIn": {
     "title": "Sign in",
@@ -101,5 +122,16 @@
     "ta": "தமிழ்",
     "si": "සිංහල",
     "ar": "العربية"
+  },
+  "signedIn": {
+    "title": "You are signed in",
+    "subtitle": "This is the EduFlow360 workspace.",
+    "body": "You are signed in. The full workspace (classes, attendance, fees) is being built module by module; this screen confirms your session works and lets you end it.",
+    "account": "Signed in as",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…",
+    "signedOut": "You have been signed out.",
+    "backToSignIn": "Back to sign in",
+    "backToHome": "Back to the home page"
   }
 }

@@ -29,6 +29,7 @@ import {
   PASSWORD_RESET_THROTTLE_POLICY,
   PasswordResetController,
 } from './controllers/password-reset.controller.js';
+import { SignOutController } from './controllers/sign-out.controller.js';
 import { I_EMAIL_DELIVERY, type IEmailDelivery } from './domain/ports/email-delivery.js';
 import { RecordingEmailAdapter } from './infrastructure/adapters/recording-email-adapter.js';
 import { SmtpEmailAdapter } from './infrastructure/adapters/smtp-email-adapter.js';
@@ -365,6 +366,10 @@ export class AuthModule {
         // neither sign-in nor password reset. The pages themselves (`T3`) wait
         // for the app shell — see the controller header.
         PasswordResetController,
+        // The way out. Registered beside sign-in because the two are only
+        // meaningful together: a session you can start and cannot end is a
+        // trap. Same branch, for the same reason — revoking needs the row.
+        SignOutController,
       );
     }
 

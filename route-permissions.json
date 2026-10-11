@@ -24,6 +24,15 @@
       "notes": "@Public. A permission check here would require the permission the route exists to obtain. Grants nothing, reads no row, consults no role. Justified in route-guards.allowlist.json."
     },
     {
+      "file": "src/modules/auth/controllers/sign-out.controller.ts",
+      "route": "POST /auth/sign-out",
+      "permission": null,
+      "entitlement": null,
+      "audited": "SIGN_OUT",
+      "owner": "auth",
+      "notes": "@Public (the way out). Revokes only the session the request's own cookie names, by token, idempotently: no cookie or a dead one answers the same 200 and revokes nothing. Server-side revoke before the cookie clear. Justified in route-guards.allowlist.json."
+    },
+    {
       "file": "src/modules/auth/controllers/oidc-callback.controller.ts",
       "route": "GET /auth/oidc/callback",
       "permission": null,
