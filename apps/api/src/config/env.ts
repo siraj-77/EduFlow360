@@ -77,6 +77,25 @@ const schema = z
     LICENSE_PUBLIC_KEY_PATH: optionalSecret('LICENSE_PUBLIC_KEY_PATH'),
 
     /**
+     * How long a lapsed certificate keeps its entitlements (`PLT-305`).
+     *
+     * Three days. NO CORPUS SOURCE for the number — `PLT-305` says only "at
+     * least the configured grace window" — so this is a recorded gap in the
+     * same style as the throttles: a deployment can set its own, and the
+     * default is documented rather than presented as chosen.
+     *
+     * The window is bounded in BOTH directions. Zero disables grace, which
+     * is the conservative answer for a school that wants an exact expiry;
+     * and grace that never ended would be an unlicensed school running a
+     * licensed product, which is what `ADR-009` wrote the scheme to prevent.
+     */
+    LICENCE_GRACE_WINDOW_MS: z.coerce
+      .number()
+      .int('LICENCE_GRACE_WINDOW_MS must be a whole number of milliseconds')
+      .nonnegative('LICENCE_GRACE_WINDOW_MS must be zero or greater (zero disables grace)')
+      .default(259_200_000),
+
+    /**
      * Google OIDC (`PLT-101`), authorization-code flow.
      *
      * Optional as a GROUP, not individually: a half-configured provider is

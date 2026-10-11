@@ -42,6 +42,15 @@
       "notes": "@Public; @Audited writes its row (PLT-402, the AuditInterceptor). The authorisation on this route is the HMAC-signed state bundle plus the ExternalIdentity lookup, not a role — no account, session or role exists before a verified identity is resolved. Justified in route-guards.allowlist.json."
     },
     {
+      "file": "src/modules/licensing/controllers/licensing.controller.ts",
+      "route": "POST /licensing/activate",
+      "permission": null,
+      "entitlement": null,
+      "audited": "LICENCE_ACTIVATION",
+      "owner": "licensing",
+      "notes": "@Public (PLT-304, and the local half of PLT-303). The signed certificate is the credential; a deployment has no session or roles to authorise with. Bounded by the ECDSA P-256 signature (ADR-009), a binding to this school, one licence row per school, and one frozen 400 for every refusal. On success it stores the certificate and refreshes the cache, so PLT-303's immediate-unlock AC holds without a restart. Justified in route-guards.allowlist.json."
+    },
+    {
       "file": "src/modules/auth/controllers/password-reset.controller.ts",
       "route": "POST /auth/password-reset/request",
       "permission": null,

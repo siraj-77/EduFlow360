@@ -98,10 +98,13 @@ const decide = async (state: LicenceCacheState | null, handler: (...args: never[
 const VALID = (
   features: Record<string, boolean | string> = {},
   modules: readonly string[] = ['academics', 'finance'],
+  /** `PLT-305`'s countdown on a lapsed-but-graced certificate, or `null`. */
+  graceUntil: Date | null = null,
 ): LicenceCacheState => ({
   outcome: 'valid',
   payload: payload(features, modules),
-  validatedAt: new Date('2026-10-11T09:00:00.000Z'),
+  validatedAt: instant('2026-10-11T09:00:00.000Z'),
+  graceUntil,
 });
 
 /** The thrown error's status, or a marker if nothing was thrown. */
@@ -148,6 +151,16 @@ describe('EntitlementGuard — a valid certificate and a FEATURE key', () => {
     // No key in `features` and none in `allowed_modules`: the certificate is
     // genuine and silent about this capability.
     expect(statusOf(await decide(VALID({}), controller.chatbot))).toBe(403);
+  });
+
+  it('GRANTS inside a grace window, countdown and all', async () => {
+    // `PLT-305`: a lapsed certificate inside its grace still entitles the
+    // school, and the guard cannot tell the difference — the cache says
+    // `valid`. The countdown is the BANNER's business, not the gate's; a
+    // gate that read it would be a gate with a clock in it.
+    expect(
+      await decide(VALID({ ai_chatbot: true }, undefined, new Date()), controller.chatbot),
+    ).toBe(true);
   });
 });
 

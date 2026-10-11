@@ -26,8 +26,23 @@ export const I_LICENCE_PAYLOAD_CACHE = Symbol('ILicencePayloadCache');
 
 /** What the cache holds about the certificate it last validated. */
 export type LicenceCacheState =
-  | { readonly outcome: 'valid'; readonly payload: LicencePayload; readonly validatedAt: Date }
-  | { readonly outcome: 'expired'; readonly payload: LicencePayload; readonly validatedAt: Date }
+  | {
+      readonly outcome: 'valid';
+      readonly payload: LicencePayload;
+      readonly validatedAt: Date;
+      /**
+       * When a LAPSED certificate's grace ends, or `null` when it has not
+       * lapsed (`PLT-305`). Carried on the valid state because the state is
+       * what grants: a school inside its grace window is still entitled, and
+       * this is the countdown the admin banner renders.
+       */
+      readonly graceUntil: Date | null;
+    }
+  | {
+      readonly outcome: 'expired';
+      readonly payload: LicencePayload;
+      readonly validatedAt: Date;
+    }
   | { readonly outcome: 'schema-error'; readonly reason: string; readonly validatedAt: Date }
   | { readonly outcome: 'invalid-signature'; readonly validatedAt: Date }
   | { readonly outcome: 'unsupported-scheme'; readonly version: number; readonly validatedAt: Date }
