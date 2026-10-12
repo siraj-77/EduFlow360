@@ -43,7 +43,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-12 (`PLT-1002` shipped on `feat/plt-1002-console-guard` — both console gates, `ADMIN_CONSOLE_ACCESS` registered and enforced on `GET /admin`, open-redirect rule + two doc drifts recorded, two real defects fixed (seed reader comments, unmounted provider); `PLT-1003` (template fidelity baseline) next; `main` at `c917dc2`, no open PRs)
+**Last updated: 2026-10-12 (`PLT-1003` T2 shipped on `feat/plt-1003-template-checksums` — the approved-template checksum gate + the restored `PLT-1002` e2e cases lost at staging; T1 owner confirmation of `template-checksums.json` requested; T3/T4 next; `main` at `278bedc`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ?? FIXED 2026-10-11 � sign-out was a no-op that lied to the user (session-security defect)

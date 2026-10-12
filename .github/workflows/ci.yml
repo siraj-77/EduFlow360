@@ -167,6 +167,15 @@ jobs:
       - name: Route guards
         run: pnpm check:route-guards
 
+      # PLT-1003 T2: the approved templates are the visual source the
+      # product is ported from, so an edit is a design change. This
+      # fails when a template under docs/template/ deviates from the
+      # approved baseline without an owner authorisation recorded in
+      # docs/work/WORKLOG.md. Beside its siblings — it costs a
+      # checksum, and a broken one should cost seconds of runner time.
+      - name: Approved templates
+        run: pnpm check:templates
+
   # OPS-105: secret scanning.
   #
   # A secret that was committed and later removed is still in the

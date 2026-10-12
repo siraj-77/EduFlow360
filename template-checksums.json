@@ -1,0 +1,8 @@
+{
+  "note": "The approved baseline for docs/template/ — scripts/check-templates.mjs compares the tree against this list and fails on any deviation. WHY A LIST AND NOT A HARD BLOCK: a checksum gate with no exit turns every legitimate change into a broken build, and a gate that is routinely wrong teaches people to bypass it. The exit is one line in docs/work/WORKLOG.md — template-authorised: <file> <sha256-of-approved-content> — a human-written record in the log of record, and the check accepts nothing less (see that script's header). The three entries below are the CURRENT checksums as of 2026-10-12, which are the approved state by construction: all three files are the owner-approved templates (AGENTS.md 2.8 names the donor; the 2026-10-11 template comparison confirmed both EduFlow360_ files are approved and reproduced as-is). PLT-1003 T1 asks the owner to confirm this list; the failure message prints the exact line to add when one changes.",
+  "files": {
+    "EduFlow — Frontend Template.html": "5b46a1acd18d616eb60aeb715e9a32d037b1c545612f422a7db46aef7041f071",
+    "EduFlow360_Template_Admin_Dashboard.html": "198c2d2dca7798f082025d9d71d0c010dc66b9060a52cae2189f924cc55e98c2",
+    "EduFlow360_Template_Landing_Auth.html": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  }
+}
