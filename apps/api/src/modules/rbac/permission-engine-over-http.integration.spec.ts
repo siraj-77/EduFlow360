@@ -162,10 +162,10 @@ afterAll(async () => {
   await prisma?.$disconnect();
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝
 // The positive case. Without this, every other test could pass with the guard
 // absent, since they all assert refusals.
-// ═══════════════════════════════════════════════════════════════════════════
+// ╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝
 describe('a caller whose role grants the key', () => {
   it('is allowed, and gets the signed link bundle for its OWN account', async () => {
     const userId = await aUser('granted');
@@ -193,9 +193,9 @@ describe('a caller whose role grants the key', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝
 // The refusals, each a way the answer could have been "allowed".
-// ═══════════════════════════════════════════════════════════════════════════
+// ╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝
 describe('a caller whose roles do not grant the key', () => {
   it('is refused, even with a perfectly valid session', async () => {
     // The claim in one row: authentication and authorisation are different things, and
@@ -286,9 +286,9 @@ describe('a caller whose roles do not grant the key', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝
 // The composition, over the wire.
-// ═══════════════════════════════════════════════════════════════════════════
+// ╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝╝
 describe('the three guards together', () => {
   it('answers 401 with no session, and 403 with one — the order, observably', async () => {
     // The single assertion that `PermissionGuard` is registered AFTER `SessionGuard`.
@@ -332,5 +332,62 @@ describe('the three guards together', () => {
 
     expect((await link(harness, await aSessionCookie(granted))).status).toBe(302);
     expect((await link(harness, await aSessionCookie(denied))).status).toBe(403);
+  });
+});
+
+// ===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===
+// The console route (`PLT-1002` AC-4).
+//
+// The web side of the console guard is two UX gates � a middleware that notices a
+// missing session cookie and a client wrapper that screens the permission � and
+// `AGENTS.md` 2.3 is explicit that neither is the boundary. These four rows are
+// the boundary's proof, on the route whose only job is to carry the key.
+// ===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===�===
+
+/** `GET /admin` as a browser that has just passed the web guard sends it. */
+const consoleAccess = (h: HttpHarness, cookie?: string) =>
+  h.request('/admin', cookie === undefined ? {} : { cookies: { [SESSION_COOKIE_NAME]: cookie } });
+
+describe('the console route, GET /admin', () => {
+  it('opens for a session holding ADMIN_CONSOLE_ACCESS � and the proof is the STATUS', async () => {
+    // 204 is the only evidence the handler ran: a guard that refused would answer
+    // 403, and a route that answered 200 for everyone would pass a "the route
+    // exists" check while gating nothing.
+    const userId = await aUser('console-granted');
+    await aRoleGranted(userId, [await aPermission('ADMIN_CONSOLE_ACCESS')]);
+
+    const response = await consoleAccess(harness, await aSessionCookie(userId));
+
+    expect(response.status).toBe(204);
+  });
+
+  it('refuses 403 for a valid session WITHOUT the key � AC-2, negative case', async () => {
+    // The teacher, student and parent roles hold only PERMISSION_READ_OWN, so this
+    // is the request a signed-in teacher's browser makes after the web guard has
+    // already sent it to /forbidden � and the API refuses it anyway. The Jira story
+    // phrases AC-2 as "superadmin passes"; under ADR-003 there is no cross-tenant
+    // super admin, and SCHOOL_ADMIN is that story's superadmin.
+    const userId = await aUser('console-denied');
+    await aRoleGranted(userId, [await aPermission('PERMISSION_READ_OWN')]);
+
+    const response = await consoleAccess(harness, await aSessionCookie(userId));
+
+    expect(response.status).toBe(403);
+  });
+
+  it('refuses 401 without a session, before the permission is consulted', async () => {
+    // The same ordering the OIDC link route proves: 401 says "authenticate", 403
+    // would say "authenticated and may not", which is false here.
+    const response = await consoleAccess(harness);
+
+    expect(response.status).toBe(401);
+  });
+
+  it('refuses 401 for a forged cookie carrying the key name in its value', async () => {
+    // The permission is read from the role grant, never from the request: a cookie
+    // value that merely MENTIONS the key must not open the door.
+    const response = await consoleAccess(harness, 'ADMIN_CONSOLE_ACCESS');
+
+    expect(response.status).toBe(401);
   });
 });

@@ -1,8 +1,11 @@
+import { NextResponse, type NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
+import { adminRedirect } from './lib/admin-route-guard';
+import { SESSION_COOKIE_NAME } from './lib/session-cookie-name';
 
 /**
- * Locale negotiation.
+ * Locale negotiation, then the console's first gate.
  *
  * `i18n/routing.ts` sets `localePrefix: 'always'`, so every real route is
  * locale-prefixed: `/en`, `/ta`, `/si`, `/ar`. That makes the bare root `/`
@@ -33,7 +36,33 @@ import { routing } from './i18n/routing';
  * UI only (AGENTS.md 3.1): this negotiates a locale and sets a cookie. It
  * proxies nothing, fetches nothing, and is not a stand-in for the API.
  */
-export default createMiddleware(routing);
+const negotiateLocale = createMiddleware(routing);
+
+/**
+ * `PLT-1002` T1 — the console's server-side gate.
+ *
+ * Order matters: locale negotiation runs FIRST, because the admin check needs
+ * the locale-prefixed path (`/en/admin`, not `/admin`), and a bare `/admin` is
+ * rewritten by the line below before this one sees it.
+ *
+ * The check itself is a COOKIE-PRESENCE test, and it is not the boundary
+ * (`AGENTS.md` 2.3): a forged, expired or revoked session passes it and is
+ * refused by the API. What it buys is that an anonymous caller is redirected
+ * before any rendering, instead of watching a skeleton appear and disappear —
+ * which reads as a broken page rather than as a guard. The permission question
+ * itself is answered by `RequirePermission` on the client and
+ * `@RequirePermission` on the API, both of which are the real gates.
+ */
+export function middleware(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+
+  const redirect = adminRedirect(pathname, request.cookies.has(SESSION_COOKIE_NAME));
+  if (redirect !== null) {
+    return NextResponse.redirect(new URL(redirect, request.url));
+  }
+
+  return negotiateLocale(request);
+}
 
 export const config = {
   /**

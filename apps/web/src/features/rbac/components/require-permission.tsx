@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@eduflow/ui-kit';
 
 import { usePermissions } from '../hooks/use-permissions';
@@ -30,10 +30,16 @@ import { usePermissions } from '../hooks/use-permissions';
  * do not grant - the browser's own cache would show it
  * even though the API would refuse the data behind it.
  *
- * **Unauthenticated** redirects to sign in. A route
- * wrapper is the one place that knows the caller is
- * looking at something that needs a session, so it is
- * the right place to send them.
+ * **Unauthenticated** redirects to sign in, CARRYING THE DESTINATION.
+ * `next` is the path the caller was on, so the password check can return
+ * them to it (`PLT-1002` AC-1) instead of to the generic signed-in
+ * screen. It is encoded, because it becomes a query parameter, and it is
+ * the middleware's own redirect shape — the two halves fail the same
+ * way, whether the session cookie was absent or merely invalid.
+ *
+ * A route wrapper is the one place that knows the caller is looking at
+ * something that needs a session, so it is the right place to send
+ * them.
  *
  * **Error** - the set could not be read, because the
  * API refused the read (403) or never answered - renders
@@ -65,6 +71,7 @@ export function RequirePermission({
 }) {
   const { phase, has } = usePermissions();
   const router = useRouter();
+  const pathname = usePathname();
   const locale = useLocale();
 
   // `has` is already fail-closed: it answers false
@@ -80,9 +87,15 @@ export function RequirePermission({
     }
 
     if (phase === 'unauthenticated') {
-      router.replace(`/${locale}/sign-in`);
+      // The destination is this route's own path — the caller was
+      // trying to reach it. Encoded because it becomes a query
+      // parameter; the sign-in screen validates it with
+      // `safeNextPath` before honouring it, so a tampered value is
+      // dropped there rather than trusted here.
+      const next = pathname === null ? '' : `?next=${encodeURIComponent(pathname)}`;
+      router.replace(`/${locale}/sign-in${next}`);
     }
-  }, [phase, permitted, router, locale]);
+  }, [phase, permitted, router, locale, pathname]);
 
   if (phase === 'loading') {
     return <Skeleton data-testid="permission-loading" className="h-48 w-full" />;

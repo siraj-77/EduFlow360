@@ -134,5 +134,11 @@
     "backToSignIn": "Back to sign in",
     "signOutFailed": "Sign-out could not be completed. Your session is still active — close this browser window to end it.",
     "backToHome": "Back to the home page"
+  },
+  "admin": {
+    "console": {
+      "title": "Admin console",
+      "description": "The console shell is being ported from the approved template. This page proves the guard: only signed-in staff with console access can see it."
+    }
   }
 }

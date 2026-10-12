@@ -6,6 +6,7 @@ import { PermissionGuard } from './common/guards/permission.guard.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { EntitlementGuard } from './common/guards/entitlement.guard.js';
 import type { AppConfig } from './config/env.js';
+import { AdminModule } from './modules/admin/admin.module.js';
 import { AuthModule, I_SESSION_REPOSITORY } from './modules/auth/auth.module.js';
 import type { ISessionRepository } from './modules/auth/domain/ports/session-repository.js';
 import { AuditModule } from './modules/audit/audit.module.js';
@@ -117,6 +118,10 @@ export class AppModule {
         // array's order, but the reading order matches the dependency
         // direction (this module borrows Auth's `CLOCK` port).
         LicensingModule.forRoot(config),
+        // `PLT-1002`: the console's own routes. Registered plainly, with no
+        // `forRoot`, because nothing in it is selected from configuration —
+        // the guards it relies on are global.
+        AdminModule,
       ],
       providers: [
         { provide: APP_GUARD, useClass: CsrfGuard },

@@ -120,6 +120,12 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = Object.freeze([
       'LICENCE_APPLY',
       'LICENCE_UPGRADE',
       'AUDIT_READ',
+      // Opens the admin console (PLT-1002). The in-school administrator is the console's
+      // only intended user, so the key is granted here and withheld from the other four
+      // roles — which is what makes AC-2's negative case (a signed-in teacher is refused
+      // with 403) true. `PLT-1002` AC-2 says "superadmin passes"; under `ADR-003` there is
+      // no cross-tenant super admin, and this role is that story's superadmin.
+      'ADMIN_CONSOLE_ACCESS',
       // The one gated route in the repository. **This is the key the seed was missing**, which
       // is why `GET /auth/oidc/link` returned 403 for the bootstrap administrator until
       // `PLT-205` T1. Named here so removing it is visibly deliberate.
