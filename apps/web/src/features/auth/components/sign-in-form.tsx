@@ -6,6 +6,7 @@ import { Button, EyeIcon, EyeOffIcon, Input, Spinner } from '@eduflow/ui-kit';
 
 import { CredentialField } from './credential-field';
 import { focusTargetFor, useSignIn } from '../hooks/use-sign-in';
+import { safeNextPath } from '@/lib/safe-next-path';
 
 /**
  * The sign-in form.
@@ -60,11 +61,21 @@ export function SignInForm({ locale }: { readonly locale: string }) {
   const onSignedIn = () => {
     // `replace`, not `push`: the sign-in page must not survive in history with a
     // submitted password still in its DOM, and Back must not be able to resubmit
-    // it. The interim authenticated landing is the destination until the app
-    // shell exists; a school can see who they are and sign out, which is more
-    // honest than bouncing back to the public landing page as if nothing
-    // happened.
-    window.location.replace(`/${locale}/signed-in`);
+    // it.
+    //
+    // The destination is the `next` parameter when there is one (`PLT-1002`:
+    // the console's guard redirects an anonymous caller here carrying the
+    // route they asked for), and the interim authenticated landing otherwise.
+    // `safeNextPath` is the whole open-redirect answer: the parameter is
+    // attacker-controllable, so an absolute or protocol-relative value is
+    // dropped rather than honoured.
+    const requested =
+      typeof window === 'undefined'
+        ? null
+        : new URLSearchParams(window.location.search).get('next');
+    const destination = safeNextPath(requested, `/${locale}/signed-in`);
+
+    window.location.replace(destination);
   };
 
   const { state, submit: send, edit } = useSignIn({ onSignedIn });

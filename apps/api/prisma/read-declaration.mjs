@@ -73,6 +73,34 @@ export function readConstArray(fileName, exportName) {
       continue;
     }
 
+    // COMMENTS ARE SKIPPED, and that is a defect fix rather than a nicety.
+    //
+    // The first version of this scan counted only brackets and strings, so an
+    // apostrophe inside a comment — "AC-2's negative case", one character — opened a
+    // "string" that swallowed the rest of the array and consumed the closing
+    // bracket as text. The symptom was `readConstArray: 'SYSTEM_ROLES' is not
+    // bracket-balanced`, from a declaration that was perfectly well-formed, and
+    // the temptation is to rewrite the comment. The scanner is what is wrong:
+    // a comment is not code, and this loop already knew that about strings.
+    //
+    // Outside a string, `//` starts a line comment and `/*` a block one. There
+    // is no division operator in a declaration literal, so the two-character
+    // forms cannot be anything else. (A regex strip would be the second parser
+    // the header warns about; this is one pass that understands both.)
+    if (char === '/' && source[index + 1] === '/') {
+      const newline = source.indexOf('\n', index + 2);
+      if (newline === -1) break;
+      index = newline;
+      continue;
+    }
+
+    if (char === '/' && source[index + 1] === '*') {
+      const close = source.indexOf('*/', index + 2);
+      if (close === -1) break;
+      index = close + 1;
+      continue;
+    }
+
     if (char === "'" || char === '"' || char === '`') {
       inString = char;
       continue;

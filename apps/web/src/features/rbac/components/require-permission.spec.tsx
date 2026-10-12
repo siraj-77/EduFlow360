@@ -26,6 +26,14 @@ import { PermissionsProvider } from '../hooks/use-permissions';
  *    provider was given - `/ar/forbidden`, not
  *    `/en/forbidden` for an Arabic visitor.
  *
+ * 2b. **The sign-in redirect carries the destination.**
+ *     `next` is how the caller gets back to the
+ *     route they asked for after the password check
+ *     (`PLT-1002` AC-1). The path comes from
+ *     `usePathname`, so it is this route's own path,
+ *     and it is encoded because it is a query
+ *     parameter.
+ *
  * 3. **Error renders nothing and redirects nowhere.**
  *    There is no safe destination when the set could
  *    not be read, so the wrapper stays put. This is
@@ -39,9 +47,11 @@ import { PermissionsProvider } from '../hooks/use-permissions';
  */
 
 const routerMock = vi.hoisted(() => ({ replace: vi.fn() }));
+const pathnameMock = vi.hoisted(() => ({ current: '/en/admin' as string | null }));
 
 vi.mock('next/navigation', () => ({
   useRouter: () => routerMock,
+  usePathname: () => pathnameMock.current,
 }));
 
 /** `fetch` answering with one canned response. */
@@ -102,6 +112,7 @@ function renderRequired({
 
 beforeEach(() => {
   routerMock.replace.mockClear();
+  pathnameMock.current = '/en/admin';
 });
 
 afterEach(() => {
@@ -143,7 +154,7 @@ describe('RequirePermission', () => {
     expect(screen.queryByTestId('protected')).not.toBeInTheDocument();
   });
 
-  it('redirects to sign in when there is no session', async () => {
+  it('redirects to sign in when there is no session, carrying the destination', async () => {
     // 401 means no session at all, which is a
     // different problem from a refusal and is
     // answered by signing in, not by a forbidden page.
@@ -151,8 +162,24 @@ describe('RequirePermission', () => {
 
     renderRequired();
 
-    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledWith('/en/sign-in'));
+    // `next` is this route's own path, encoded for the query string, so
+    // the password check can return the caller here.
+    await waitFor(() =>
+      expect(routerMock.replace).toHaveBeenCalledWith('/en/sign-in?next=%2Fen%2Fadmin'),
+    );
     expect(screen.queryByTestId('protected')).not.toBeInTheDocument();
+  });
+
+  it('omits `next` rather than sending an empty one, when there is no path', async () => {
+    // `usePathname` answers null during a transition on some routes.
+    // `?next=` would be an empty destination the sign-in screen has to
+    // special-case; omitting it lets the default apply.
+    pathnameMock.current = null;
+    stubFetch(new Response(null, { status: 401 }));
+
+    renderRequired();
+
+    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledWith('/en/sign-in'));
   });
 
   it('renders nothing and redirects nowhere when the read was refused', async () => {

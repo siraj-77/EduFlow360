@@ -85,6 +85,14 @@ interface PermissionDefinitionShape {
  */
 export const PERMISSION_CATALOGUE = [
   {
+    key: 'ADMIN_CONSOLE_ACCESS',
+    module: 'ADMIN',
+    action: 'CONSOLE_ACCESS',
+    description: 'Open the admin console (PLT-1002).',
+    // Gated today: `GET /admin`, the API-side mirror of the web guard. Recorded as
+    // `undefined` on purpose — its ABSENCE is the signal, and the usage test reads it.
+  },
+  {
     key: 'AUDIT_READ',
     module: 'AUDIT',
     action: 'READ',

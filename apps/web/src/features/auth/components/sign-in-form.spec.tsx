@@ -504,6 +504,71 @@ describe('success', () => {
     expect(replace).toHaveBeenCalledWith('/en/signed-in');
   });
 
+  it('returns the caller to the route the console guard carried in `next`', async () => {
+    // `PLT-1002` AC-1, the half that makes the redirect a round trip: an
+    // anonymous caller to /en/admin is sent to sign-in with
+    // `?next=%2Fen%2Fadmin`, and the password check must land them THERE.
+    // Landing on the interim screen instead would strand them one click
+    // short of the console they asked for.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: {
+        ...window.location,
+        replace,
+        href: 'http://localhost:3500/en/sign-in?next=%2Fen%2Fadmin',
+        search: '?next=%2Fen%2Fadmin',
+      },
+    });
+
+    stubFetch(new Response(JSON.stringify({ signedIn: true }), { status: 200 }));
+    renderForm();
+
+    fillAndSubmit();
+
+    // The status region, not the form message: a successful sign-in
+    // renders no form message by design, and this is the announcement the
+    // screen makes instead.
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Signed in. Taking you to your dashboard.',
+      ),
+    );
+
+    expect(replace).toHaveBeenCalledWith('/en/admin');
+  });
+
+  it('ignores a `next` pointing at another origin, and lands on the default', async () => {
+    // The parameter is attacker-controllable — the guard echoes it into the
+    // URL, and anyone can type the URL by hand. `safeNextPath` is the whole
+    // answer, and this is its proof from the form's side: an absolute URL is
+    // dropped rather than honoured, and the caller lands somewhere this app
+    // actually serves.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: {
+        ...window.location,
+        replace,
+        href: 'http://localhost:3500/en/sign-in?next=https%3A%2F%2Fevil.example',
+        search: '?next=https%3A%2F%2Fevil.example',
+      },
+    });
+
+    stubFetch(new Response(JSON.stringify({ signedIn: true }), { status: 200 }));
+    renderForm();
+
+    fillAndSubmit();
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Signed in. Taking you to your dashboard.',
+      ),
+    );
+
+    expect(replace).toHaveBeenCalledWith('/en/signed-in');
+    expect(replace).not.toHaveBeenCalledWith('https://evil.example');
+  });
+
   it('leaves no trace of the password in the DOM, even as an attribute', async () => {
     // `AGENTS.md` 2.13. The field masks the value on screen, and `type="password"`
     // keeps it out of anything a person reads - but React writes a CONTROLLED
