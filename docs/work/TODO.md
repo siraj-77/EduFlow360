@@ -18,6 +18,7 @@
 >   are in **`docs/superpowers/plans/2026-10-09-strategic-roadmap-v2.md`**.
 >
 > **Read before starting work — two things the setup docs did not say:**
+>
 > 1. `pnpm install` does not generate the Prisma client. Run
 >    `pnpm --filter @eduflow/api exec prisma generate` or `pnpm typecheck` fails with
 >    `no exported member 'PrismaClient'`. This is deliberate (`ci.yml:35-38`) but was
@@ -29,6 +30,7 @@
 > first time. The next task is still **`SEC-115`** (env reconciliation), and the highest-value
 > thing before any new feature is to read **`docs/core/SSOT.md`** (157 KB) — it may already
 > settle the doc-generation conflicts that the debt register lists as open.
+
 ---
 
 > **Resume note is in `docs/work/RESUME_2026-10-10-session-3.md`**
@@ -43,7 +45,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-12 (`PLT-1003` T2 shipped on `feat/plt-1003-template-checksums` — the approved-template checksum gate + the restored `PLT-1002` e2e cases lost at staging; T1 owner confirmation of `template-checksums.json` requested; T3/T4 next; `main` at `278bedc`, no open PRs)
+**Last updated: 2026-10-12 (`PLT-1003` T3 merged, PR #14 squash `87bdbb9` — token-value and dictionary equality oracles; `PLT-1003` T4 (visual-regression harness) next, then `PLT-1004`; T1 owner confirmation of `template-checksums.json` still requested; `main` at `87bdbb9`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ?? FIXED 2026-10-11 � sign-out was a no-op that lied to the user (session-security defect)
@@ -64,7 +66,6 @@
 > is still active. Verified in a real browser: after clicking sign out,
 > `/permissions/me` answers **401** and the session row carries `revokedAt`.
 > Full record: **`docs/work/WORKLOG.md`** (2026-10-11, sixth session).
-
 
 > ## ✔ DONE 2026-10-09 — Phase 0: uncommitted state adjudicated
 >
@@ -157,7 +158,7 @@
 > `testTimeout` headroom; Playwright: the `.next` wipe is chained
 > before `dev` as the named `dev:e2e` script). **The next task is
 > `SEC-115`** (env reconciliation) — plus one owner decision: repo
-> public or GitHub Pro so `CI` can be an enforceable *required* check
+> public or GitHub Pro so `CI` can be an enforceable _required_ check
 > (`F-15`).
 
 > ## ✔ DONE 2026-09-30 — `D-4.1`, multi-role (`UserRole` join)
@@ -359,20 +360,20 @@ bypassed; the numbers in `RESUME_2026-10-05.md` come from those runs.
 
 - [x] **SEC-101** · P0 · **DONE 2026-10-08** (`9bb3e96`). Baseline migration `0000_baseline` (497 lines: 8 enums, 16 tables, 36 indexes, 13 FKs) + `deploy:db` + `verify:baseline` (shadow-DB diff empty) + DB-level `PLT-401` append-only proof (5 tests; integration 235→240). Caught the `CRRITICAL` enum typo no prior gate saw.
 - [x] **OPS-101** · P0 · **DONE 2026-10-08** (`f1511d5` + `f514cbe` F-14 fix + `fab6489` + `2712f74`). `.github/workflows/ci.yml` — all ten gates on every push to any branch. AC 1 proven (run `37830464218` green on main); AC 2 proven (broken branch commit failed run `37831524370`). **T3 blocked — `F-15`:** required status checks need GitHub Pro on a private repo (`gh api` → 403); owner decision pending.
-- [x] **OPS-103** · P0 · **DONE 2026-10-09** (`53ad6b0`). `turbo.json` `build.dependsOn` gains `typecheck` and `lint` beside `^build` — `pnpm build` now runs both for every package before any build (9 tasks, 49.4s, vs 5 tasks / 17.75s ungated). TDD: RED A observed (build exited 0 while eslint exited 1 on the same tree — a *used* explicit `any`, an eslint error that is legal TS); GREEN A (build fails at `@eduflow/api#lint`). The typecheck RED was structurally impossible — every build in this repo already typechecks (`nest build` runs tsc, `next build` type-checks, leaf packages' `build === tsc --noEmit`): finding `F-16`, the plan's premise that build succeeds on type errors is false here; the ungated gate was lint. Tests still do not gate `build` (the plan's scope; CI runs them before build in fail-fast order).
+- [x] **OPS-103** · P0 · **DONE 2026-10-09** (`53ad6b0`). `turbo.json` `build.dependsOn` gains `typecheck` and `lint` beside `^build` — `pnpm build` now runs both for every package before any build (9 tasks, 49.4s, vs 5 tasks / 17.75s ungated). TDD: RED A observed (build exited 0 while eslint exited 1 on the same tree — a _used_ explicit `any`, an eslint error that is legal TS); GREEN A (build fails at `@eduflow/api#lint`). The typecheck RED was structurally impossible — every build in this repo already typechecks (`nest build` runs tsc, `next build` type-checks, leaf packages' `build === tsc --noEmit`): finding `F-16`, the plan's premise that build succeeds on type errors is false here; the ungated gate was lint. Tests still do not gate `build` (the plan's scope; CI runs them before build in fail-fast order).
 - [x] **OPS-112** · P1 · **DONE 2026-10-09** (`5b4b466`). Three flakes, two fixes, two plan corrections. (a) The two guard specs: the plan's cache-warmup polling (`readCacheKeys`/`cacheKeyFor`) does not map to the code — the specs inject synchronous in-memory doubles with no warmup state, and the cold `pool exhausted` at `permission-cache-over-http.spec.ts:383` is a deliberate fixture (a DB failure must surface as 500, never 403). The claimed ~1-in-5 cold rate did not reproduce (20/20 isolated, 10/10 cold full-suite; 1 unexplained failure in 11 cold runs). The only cold-sensitive resource is wall-clock under parallel vitest workers → `testTimeout: 30_000` in `apps/api/vitest.config.ts` (same headroom reasoning as the Playwright 90s budgets). (b) `playwright.config.ts`: the `.next` wipe is chained into the `webServer` command before `dev`, extracted to the named `apps/web/scripts/clean-next.mjs` via the new `dev:e2e` script. A `globalSetup` wipe was tried first and **failed 27/37** — Playwright starts the webServer plugin BEFORE `globalSetup` (runner task order, `@playwright/test@1.63.0`), so the wipe deleted `.next` out from under the running dev server (`ENOENT routes-manifest.json`, webpack pack-cache ENOENTs); the chained form passes 37/37. e2e verified 3/3 after the fix. The plan's Step 1 was a no-op against the real code and its Step 2 comment misdescribed Playwright's execution order — both corrections are recorded in the WORKLOG entry.
 - [x] **SEC-112** · P1 · **DONE 2026-10-10**. `vitest.integration.config.ts` now implements the controls that exist: `fileParallelism: false` (the 14 spec files run sequentially against the one CI database — the owner of the setup-token concurrency flake noted above) and `connection_limit=15` appended to the pooled `DATABASE_URL` (14 per-file `PrismaClient`s share one bounded pool). The doc comment was corrected to describe what is implemented; per-schema isolation was **not** invented — `AGENTS.md` §4's "isolated schema" wording is a documentation gap in `ARCHITECTURE.md` §17, recorded in this session's WORKLOG entry, not a control to fake. Integration verified green: 240/240, 14 files, 36.5s.
 - [x] **OPS-105** · P1 · **DONE 2026-10-10**. `.gitleaks.toml` (new) extends the default rule set; allowlists `.env.example` (all-`localdev` markers per `AGENTS.md` §11) and the ephemeral CI Postgres service credentials. The 8 secret-shaped test fixtures migrated to `localdev` markers; the 3 pre-scan historical values are allowlisted by regex (history is immutable and shared — not rewritten). CI `secrets` job: full-history checkout (`fetch-depth: 0`) + gitleaks CLI v8.30.1 pinned by version and archive SHA256 (the Action needs a licence on private repos; the CLI does not). Verified: 97 commits scanned, no leaks found, exit 0 (was 7 findings before the migration).
 - [x] **OPS-106** · P1 · **DONE 2026-10-10**. `"prepare": "husky"` in the root `package.json`; `husky@^9` + `lint-staged@^15` at the workspace root. `.husky/pre-commit` → lint-staged (`lint-staged.config.mjs`: `prettier --check` on every staged file + ESLint **per package** with `--max-warnings=0` — each package owns its `eslint.config.mjs`, and ESLint from the repo root fails, so staged files are grouped by package and linted with the package as CWD). `.husky/commit-msg` → `scripts/check-commit-message.mjs` (new): Conventional Commits, eleven types, subject ≤ 72 chars, mandatory requirement ID (`AGENTS.md` §9). `.husky/_` gitignored. Verified: `core.hooksPath` → `.husky/_`; lint-staged end-to-end on 19 staged files, exit 0; commit-msg validator 4/4 cases.
-- [ ] **DOC-101** · P0 · **`scripts/report-status.mjs`.** Still the highest-leverage single item. **Eight documents already cite it as though it exists.** Today's session added a *fourth* wrong number to the record (`1,401` unit tests, when the measured figure is `1,431`) — which is the point: hand-maintained numbers decay faster than they can be corrected.
+- [ ] **DOC-101** · P0 · **`scripts/report-status.mjs`.** Still the highest-leverage single item. **Eight documents already cite it as though it exists.** Today's session added a _fourth_ wrong number to the record (`1,401` unit tests, when the measured figure is `1,431`) — which is the point: hand-maintained numbers decay faster than they can be corrected.
 - [x] **RBAC-01** · P0 · **DONE 2026-10-08** — the 40-path WIP tree landed as three commits (`fdfcda2` `feat(rbac)` 27 files · `0b2021d` `feat(web)` 24 files · `6b6e5ad` `docs` 4 files); every gate verified green before committing.
 - [ ] **WEB-105** · P1 · **`tests/e2e/sign-in.spec.ts` does not exist**, though `sign-in-form.spec.tsx:23` names it as the place keyboard, focus-order and click-on-submit are asserted. Nothing exercises the sign-in form or the new theme toggle over HTTP.
 - [ ] **WEB-106** · P1 · **`data-table` archetype.** Every list screen in the ERP needs it; `AGENTS.md` §3.2.2 requires horizontal scroll or a card layout on mobile and the bare `Table` does neither.
 
 ### The ID collision, recorded because it already bit once
 
-`DSN-05` **is already taken** in this file — it reads *"prefers-reduced-motion, 44px touch targets — done
-2026-09-29"*. The theme toggle was planned as `DSN-05` in the 2026-10-05 action plan and was
+`DSN-05` **is already taken** in this file — it reads _"prefers-reduced-motion, 44px touch targets — done
+2026-09-29"_. The theme toggle was planned as `DSN-05` in the 2026-10-05 action plan and was
 renumbered **`WEB-05`** on landing, because `docs/work/TODO.md` and the handoff note were using
 the same ID for two different things within one session.
 
@@ -741,7 +742,7 @@ Blocking the items marked ⚑.
   relationships do not exist yet and names `PLT-203`. Not stubbed: a method returning `true`
   is worse than an absent one. ✅ **Superseded 2026-10-04: the `PLT-203` ENGINE now exists**
   (port, fail-closed rule, `@OwnsResource`, `PermissionGuard` pipeline, 3 negative security
-  tests). What is still unbuilt is the three concrete *policies* — teacher→class,
+  tests). What is still unbuilt is the three concrete _policies_ — teacher→class,
   parent→child, vendor→outlet — because no class table, guardian link or outlet table exists.
   `ownershipPoliciesFor()` returns `[]` and the boot warning says so in full. An empty
   registry **refuses** any `@OwnsResource` route (`NO_POLICY_FOR_ENTITY`, a wiring fault),
@@ -755,7 +756,7 @@ Blocking the items marked ⚑.
   **Fixed 2026-10-04 by `PLT-205` T1.** `AUTH_LINK_EXTERNAL_IDENTITY` is now in
   `PERMISSION_CATALOGUE` (`src/modules/rbac/domain/permission-catalogue.ts`), and `seed.mjs`
   reads that catalogue rather than carrying its own array — so it **cannot drift again**.
-  `PermissionKey` is now a union, so the same omission as a *typo* is a compile error, and
+  `PermissionKey` is now a union, so the same omission as a _typo_ is a compile error, and
   `permission-catalogue.spec.ts` reconciles routes → catalogue → usage in both directions.
   Verified against the live database: the route's key is granted and the seed is idempotent.
 - **`PLT-205`'s Role × Module × Action matrix is not built.** T1 and T2 are done — the
