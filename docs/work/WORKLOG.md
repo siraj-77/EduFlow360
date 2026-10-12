@@ -6,6 +6,22 @@
 ---
 
 
+## 2026-10-12 — `PLT-1003` T3: the equality oracles for tokens and dictionary, and the vacuous test the teeth-proof caught
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-12 |
+| **Phase** | Milestone 1 · `PLT-EPIC-10` · story `PLT-1003` T3 (template fidelity), on branch `feat/plt-1003-equality`. |
+| **Task** | AC-2: token VALUES and dictionary keys/values in the packages equal the template's exactly, with a unit test comparing them. |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. Two oracles shipped, both teeth-proven. The teeth-proof caught a vacuous test of my own — recorded below. |
+| **Activity** | **Tokens** (`packages/ui-kit/src/index.spec.ts`): the parity oracle shipped earlier proved every template token EXISTS; this proves the VALUES are equal, across `:root` and `[data-theme='dark']`, with three documented normalisations — short hex expanded (`#fff` = `#ffffff`), `rgba` whitespace and alpha collapsed (`rgba(20,20,40,.08)` = `rgba(20, 20, 40, 0.08)`), and the kit's alias form resolved through the canonical token (`--brand2` → `--brand-2`) so the one-value-two-spellings decision compares as a spelling difference. **Dictionary** (`packages/i18n-resources/src/template-dictionary.spec.ts`): the auth screens' copy is compared against the template's TEXT (tags stripped, whitespace collapsed, because the template splits copy across anchors), in two halves — verbatim rows asserted character-for-character, and a divergence table pinning each deliberately-rewritten string against BOTH sides with its reason. |
+| **Files Changed** | `packages/ui-kit/src/index.spec.ts` (value oracle) · `packages/i18n-resources/src/template-dictionary.spec.ts` (new) · `docs/work/WORKLOG.md` |
+| **Decisions Made** | **(1) A divergence table, not strict equality, for the dictionary.** The ported auth screens are NOT the template's copy — "Email address or username" where the template says "Email" (the API accepts either), "Access your school's dashboard." where it says "school workspace" (ADR-003 has no tenancy), and AGENTS.md 2.8 forbids taking the marketing copy verbatim. Strict equality would fail on documented decisions and be "fixed" by un-making them. What the table prevents is a SILENT new divergence: a future copy edit fails until a row with a reason is added, so the divergences stay a decision rather than becoming drift. **(2) `auth.rememberMe` is a verbatim row that is deliberately not rendered** — kept in the dictionary so the omission reads as a choice (the sign-in form's header records it) rather than an untranslated gap. **(3) `auth.backToSignIn` was REMOVED from the verbatim table** after the oracle proved it is app-authored copy the template never carried — the test corrected my assumption rather than confirming it. |
+| **Next Steps** | `PLT-1003` T4 (the Playwright visual-regression harness: baseline screenshots from the template HTML itself, × light/dark × LTR/RTL). Owner gates still open: T1's confirmation of `template-checksums.json`, the AGENTS.md §3.2.5 `--brand-2` spelling, and the `@theme inline` radius discrepancy. |
+| **Quality** | **The teeth-proof caught a vacuous test of mine.** The first version of the value oracle checked `Object.keys(declared).length === 0` on a **Map** — always 0 — so every iteration `continue`d and all three template tests passed against NOTHING. It was caught the only way it could be: the deliberate value break (`--warn: #d97706` → `#d97707`) did not fail the suite. Fixed to `declared.size`. The same mechanism then revealed two REAL findings the vacuous version had hidden: a genuine formatting drift on `--shadow` (the template's compressed `rgba` vs the kit's spaced form — the normalisation I had documented but not implemented), and a recurrence of today's earlier comment bug — the kit's `--warn` comment contains the literal `--warn: #d97706`, so a `--name: value;` scan starting inside it swallowed the comment body; `declarations()` now strips comments first. **Teeth re-proven after the fix:** the `--warn` break fails EXACTLY the dashboard row (only that template declares it); the `socialDivider` edit fails exactly the one verbatim dictionary row. **GREEN:** typecheck 8/8 · lint 8/8 · format clean · unit 8/8 tasks (i18n 19, ui-kit 16) · build 9/9 · e2e 41/41 · integration 22/23 (documented local-only D42) · check:templates OK. |
+
+
 ## 2026-10-12 — `PLT-1003` T2: the approved-template checksum gate, and the recovery of four e2e tests lost at staging
 
 | Field | Entry |
