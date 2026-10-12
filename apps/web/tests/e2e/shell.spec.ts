@@ -649,6 +649,18 @@ test.describe('theme shell', () => {
     // The token test reads the source stylesheet, which a build-time minifier
     // could rewrite (it turns #ffffff into #fff). Only a rendered document
     // proves the shipped bundle carries them.
+    //
+    // `--brand2`, `--warn` and `--radius` are the TEMPLATE spellings
+    // (PLT-EPIC-10 pre-work): every approved template under `docs/template/`
+    // defines them, and the admin-dashboard CSS that ports into the app shell
+    // will call them verbatim. They resolve THROUGH the kit's canonical
+    // `--brand-2` / `--radius-card` (AGENTS.md 3.2.5 spells the brand token
+    // `--brand-2`; the templates spell it `--brand2` — one value, two
+    // spellings, pinned equal by `packages/ui-kit/src/index.spec.ts`).
+    // Asserting them on the RENDERED document is the only proof that the
+    // `var()` chain actually resolves: a source-text check would pass on a
+    // declaration whose reference is broken, and a broken reference renders
+    // as nothing — no gradient, no radius, no console error.
     const tokens = await page.evaluate(() => {
       const style = getComputedStyle(document.documentElement);
       const names = [
@@ -662,6 +674,9 @@ test.describe('theme shell', () => {
         '--accent',
         '--danger',
         '--ok',
+        '--brand2',
+        '--warn',
+        '--radius',
       ];
       return Object.fromEntries(names.map((n) => [n, style.getPropertyValue(n).trim()]));
     });
