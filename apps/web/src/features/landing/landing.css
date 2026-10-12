@@ -40,6 +40,10 @@
  * hex ban in `eslint/next.js` watches `.ts`/`.tsx` and so would never have
  * caught them here, which is why they are gone by review rather than by gate.
  * `--brand2` is renamed `--brand-2` to match the harvested token name.
+ * (Since 2026-10-12 the kit ALSO defines `--brand2` itself, as an alias
+ * through `--brand-2`, so dashboard CSS ported verbatim from the
+ * approved templates resolves too. This file keeps the canonical
+ * spelling; see `packages/ui-kit/src/styles.css`.)
  */
 
 /* ------------------------------------------------------------------ *
