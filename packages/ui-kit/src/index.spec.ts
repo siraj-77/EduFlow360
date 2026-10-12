@@ -185,6 +185,143 @@ describe('approved template parity (PLT-EPIC-10 pre-work)', () => {
 });
 
 /**
+ * Approved template VALUES (`PLT-1003` T3 / AC-2).
+ *
+ * The parity oracle above proves every template token EXISTS in the
+ * kit. This one proves the VALUES are the same, because a kit that
+ * defines `--brand2: #7c3aed` while the template says `#6d28d9` passes
+ * the existence test and ships a different design.
+ *
+ * ## The two normalisations, and why each is a formatting choice
+ *
+ *   - **Short hex is expanded** (`#fff` = `#ffffff`), because the
+ *     dashboard template spells the short form and the kit the long
+ *     one. They are the same colour; a test that failed on the
+ *     spelling would be testing spelling.
+ *   - **Whitespace and `rgba` alpha are normalised**
+ *     (`rgba(20,20,40,.08)` = `rgba(20, 20, 40, 0.08)`), for the same
+ *     reason: minifiers rewrite one into the other, and the kit's
+ *     hand-written form is not a design decision.
+ *
+ * ## The alias rule
+ *
+ * `--brand2` and `--radius` are ALIASES in the kit
+ * (`var(--brand-2)`, `var(--radius-card)`), because AGENTS.md 3.2.5
+ * spells the brand token `--brand-2` while every template spells it
+ * `--brand2` — one value, two spellings, and the owner has been asked
+ * to normalise the contract. An alias resolves to the canonical
+ * token's value before comparison, so the alias form is a spellings
+ * difference and not a value difference. The value is compared AFTER
+ * resolution, which is the only comparison that can be right: the
+ * browser resolves the chain too.
+ */
+describe('approved template values (PLT-1003 T3 / AC-2)', () => {
+  const TEMPLATES = [
+    'EduFlow — Frontend Template.html',
+    'EduFlow360_Template_Landing_Auth.html',
+    'EduFlow360_Template_Admin_Dashboard.html',
+  ] as const;
+
+  /**
+   * The block with its comments removed.
+   *
+   * NOT optional, and this is the second time today a comment has
+   * broken a parser that scanned for strings: `read-declaration.mjs`
+   * counted brackets and strings but not comments, so an apostrophe in
+   * a comment swallowed the seed's array. Here the kit's `--warn`
+   * declaration is preceded by a comment that itself contains the
+   * literal `--warn: #d97706`, and a `--name: value;` scan that starts
+   * inside that comment captures the whole comment body as the value.
+   * Comments are prose ABOUT the CSS; they are never part of it.
+   */
+  function withoutComments(css: string): string {
+    return css.replace(/\/\*[\s\S]*?\*\//g, '');
+  }
+
+  /** `--name: value;` pairs from a block, trimmed. */
+  function declarations(css: string): Map<string, string> {
+    const found = new Map<string, string>();
+    for (const [, name, value] of withoutComments(css).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+      if (name !== undefined) found.set(name, value.trim());
+    }
+    return found;
+  }
+
+  /**
+   * The formatting-insensitive form of a token value.
+   *
+   * Deliberately conservative: it normalises SPELLING, never MEANING.
+   * A case difference in a hex digit, a space inside `rgba(...)`, or a
+   * `.5` alpha written `0.5` are the same value; any other difference
+   * is a real one and survives.
+   */
+  function normaliseValue(value: string): string {
+    return (
+      value
+        // A minifier writes `rgba(20,20,40,.08)` where a hand-written
+        // sheet writes `rgba(20, 20, 40, 0.08)` — the same colour, so
+        // each component is trimmed and a leading-dot alpha gains its
+        // zero. Same colour, different spelling, must not be a failure.
+        .replace(/rgba\(([^)]*)\)/g, (_match, components: string) => {
+          const parts = components.split(',').map((part) => {
+            const trimmed = part.trim();
+            return trimmed.startsWith('.') ? `0${trimmed}` : trimmed;
+          });
+          return `rgba(${parts.join(', ')})`;
+        })
+        .replace(/\s+/g, ' ')
+        // `#fff` is `#ffffff`; the dashboard spells the short form and
+        // the kit the long one.
+        .replace(/#([0-9a-f])([0-9a-f])([0-9a-f])\b/gi, '#$1$1$2$2$3$3')
+        .toLowerCase()
+    );
+  }
+
+  /** The kit's value for `name`, resolving one level of alias. */
+  function kitValue(kit: Map<string, string>, name: string): string {
+    const declared = kit.get(name);
+    if (declared === undefined) return '<<not defined>>';
+
+    const alias = /^var\((--[a-z0-9-]+)\)$/.exec(declared)?.[1];
+    if (alias === undefined) return declared;
+
+    const canonical = kit.get(alias);
+    return canonical === undefined ? declared : canonical;
+  }
+
+  it.each(TEMPLATES)('matches every value %s declares, light and dark', async (name) => {
+    const { readFileSync } = await import('node:fs');
+    const template = readFileSync(
+      new URL(`../../../docs/template/${name}`, import.meta.url),
+      'utf8',
+    );
+
+    const styles = await readStyles();
+    const kit = declarations(block(styles, ':root'));
+    const kitDark = declarations(block(styles, `[data-theme='dark']`));
+
+    for (const [selector, templateBlock, kitBlock] of [
+      [':root', block(template, ':root'), kit],
+      ['[data-theme="dark"]', block(template, `[data-theme='dark']`), kitDark],
+    ] as const) {
+      const declared = declarations(templateBlock);
+
+      // A template with no dark block declares no dark values, and an
+      // assertion per missing token would be noise. The brand tokens are
+      // theme-independent (AGENTS.md 3.2.5), so light-only is normal.
+      if (declared.size === 0) continue;
+
+      for (const [token, value] of declared) {
+        expect(
+          normaliseValue(kitValue(kitBlock, token)),
+          `${name} ${selector} declares ${token}: ${value}, but the kit declares a different value`,
+        ).toBe(normaliseValue(value));
+      }
+    }
+  });
+});
+
+/**
  * The approved font stack (`DSN-04`, decided by `ADR-022`).
  *
  * `AGENTS.md` 3.2.7: "Fonts must cover Tamil, Sinhala and Arabic, on screen
