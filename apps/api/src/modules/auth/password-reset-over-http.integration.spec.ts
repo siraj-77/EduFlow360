@@ -76,6 +76,23 @@ const trail = () =>
 
 const tokens = () => prisma.passwordResetToken.findMany({ where: { schoolId } });
 
+/**
+ * The harness environment, shared by `beforeEach` and the `PLT-1001` AC-2
+ * test so a second harness can differ in exactly ONE variable.
+ */
+const harnessEnv = (extra: Record<string, string> = {}) => ({
+  ...TEST_ENVIRONMENT,
+  DATABASE_URL: process.env.DATABASE_URL ?? '',
+  SCHOOL_ID: schoolId,
+  JWT_ACCESS_SECRET: TEST_JWT_ACCESS_SECRET,
+  PASSWORD_RESET_TTL_MS: '3600000',
+  PASSWORD_RESET_MAX_ATTEMPTS: '5',
+  PASSWORD_RESET_WINDOW_MS: '900000',
+  LOGIN_MAX_FAILED_ATTEMPTS: '5',
+  LOGIN_LOCKOUT_MS: '600000',
+  ...extra,
+});
+
 /** Request a reset and recover the plaintext token from the recorded mail. */
 async function requestReset(): Promise<string> {
   const response = await post(`${RESET_PATH}/request`, { email: PRINCIPAL });
@@ -117,17 +134,7 @@ beforeEach(async () => {
   });
 
   harness = await startHttpHarness({
-    env: {
-      ...TEST_ENVIRONMENT,
-      DATABASE_URL: process.env.DATABASE_URL,
-      SCHOOL_ID: schoolId,
-      JWT_ACCESS_SECRET: TEST_JWT_ACCESS_SECRET,
-      PASSWORD_RESET_TTL_MS: '3600000',
-      PASSWORD_RESET_MAX_ATTEMPTS: '5',
-      PASSWORD_RESET_WINDOW_MS: '900000',
-      LOGIN_MAX_FAILED_ATTEMPTS: '5',
-      LOGIN_LOCKOUT_MS: '600000',
-    },
+    env: harnessEnv(),
     overrides: [{ token: I_EMAIL_DELIVERY, useValue: mail }],
   });
 });
@@ -312,6 +319,45 @@ describe('the recovery, end to end', () => {
     expect(serialized).not.toContain(NEW_PASSWORD);
     expect(serialized).not.toContain(token);
     expect(serialized).not.toContain(PRINCIPAL);
+  });
+
+  /**
+   * `PLT-1001` AC-2 — the e-mail half.
+   *
+   * The suite above proves the link carries the minted token. None of it
+   * proves the link's ORIGIN is the configured one: every harness boots with
+   * the default `WEB_ORIGIN`, so a module that hard-coded
+   * `http://localhost:3500` into its `RequestPasswordReset` wiring would pass
+   * all of them and mail every parent a link to a developer's machine. This
+   * boots a SECOND harness whose `WEB_ORIGIN` differs and requires the mail to
+   * follow it — the same derivation `main.ts` performs for CORS, proven from
+   * the other end of the wire.
+   */
+  it('mails the reset link at the origin WEB_ORIGIN names — the config, not the module', async () => {
+    const configured = 'https://staging.school.example';
+    await anAccount();
+
+    const custom = await startHttpHarness({
+      env: harnessEnv({ WEB_ORIGIN: configured }),
+      overrides: [{ token: I_EMAIL_DELIVERY, useValue: mail }],
+    });
+
+    try {
+      const response = await custom.request(`${RESET_PATH}/request`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', [CSRF_HEADER_NAME]: 'test' },
+        body: JSON.stringify({ email: PRINCIPAL }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(mail.sent).toHaveLength(1);
+      expect(mail.sent[0]?.textBody).toContain(`${configured}/en/sign-in/reset?token=`);
+      // And the default is not present anywhere: the link moved, it did not
+      // gain a second origin.
+      expect(mail.sent[0]?.textBody).not.toContain('http://localhost:3500');
+    } finally {
+      await custom.close();
+    }
   });
 });
 

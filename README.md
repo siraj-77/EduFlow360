@@ -62,6 +62,15 @@ pnpm dev
 `web-port.spec.ts` asserts the value, so it cannot drift silently. Some planning documents
 still say 3030/3031 — **those are stale; the code and its test are the authority.**
 
+**Changing a port changes everything derived from it, and that is now tested rather than
+assumed** (`PLT-1001` AC-2). `WEB_ORIGIN` drives the API's CORS allow-list
+(`cors-preflight.integration.spec.ts` boots a second origin and requires the header to
+follow) and the origin in password-reset links (`password-reset-over-http.integration.spec.ts`
+does the same for the mailed URL); Playwright's `baseURL` derives from `WEB_PORT`. An ESLint
+rule (`PLT-1001` AC-4) rejects a hard-coded `localhost` URL in application source, so the
+origin cannot be re-introduced in code — the three sanctioned dev values carry justified
+exemptions at their sites.
+
 ---
 
 ## Running without Docker
