@@ -1,4 +1,4 @@
-import { base } from './base.js';
+import { base, LOCALHOST_URL_PATTERN } from './base.js';
 
 /**
  * EduFlow — API (Node / NestJS) ESLint configuration.
@@ -96,9 +96,32 @@ const AMBIENT_TIME_PATTERN = [
 const DOMAIN_LAYER = '**/domain/**/*.ts';
 const USE_CASES_LAYER = '**/use-cases/**/*.ts';
 
+// The spec and harness paths, named once so the exemption block and the
+// two layer blocks cannot drift apart. `PLT-1001`'s ban and the
+// ambient-time ban are production rules; a spec names its fixtures.
+const SPEC_AND_HARNESS_GLOBS = ['**/*.spec.ts', '**/*.test.ts', '**/testing/**/*.ts'];
+
 /** @type {import('eslint').Linter.Config[]} */
 export const node = [
   ...base,
+  // PLT-1001 AC-4: the localhost-URL ban, for every .ts file. It sits
+  // FIRST so the layer-scoped block below can re-declare the rule with
+  // its own patterns merged in — flat config takes the LAST matching
+  // block's options for a rule, so a general block placed after the
+  // layer block would silently strip the ambient-time ban from domain
+  // files. That clobber footgun is documented in next.js.
+  {
+    files: ['**/*.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...LOCALHOST_URL_PATTERN],
+    },
+  },
+  {
+    files: SPEC_AND_HARNESS_GLOBS,
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
   {
     files: [DOMAIN_LAYER, USE_CASES_LAYER],
     rules: {
@@ -106,9 +129,18 @@ export const node = [
     },
   },
   {
+    // The same `ignores` pair, so the layer rules apply to production
+    // files only. Without it these blocks would be the LAST matching
+    // config for a layer-nested spec and would re-enable the URL ban the
+    // block above just turned off.
     files: [DOMAIN_LAYER, USE_CASES_LAYER],
+    ignores: SPEC_AND_HARNESS_GLOBS,
     rules: {
-      'no-restricted-syntax': ['error', ...AMBIENT_TIME_PATTERN],
+      // LOCALHOST_URL_PATTERN is repeated here because this block is
+      // later than the general one and would otherwise replace its
+      // options for domain/use-case files. Repetition in a config array
+      // is cheap; a domain file that escapes the ban is not.
+      'no-restricted-syntax': ['error', ...AMBIENT_TIME_PATTERN, ...LOCALHOST_URL_PATTERN],
     },
   },
 ];

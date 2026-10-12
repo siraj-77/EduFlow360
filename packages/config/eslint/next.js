@@ -1,4 +1,4 @@
-import { base } from './base.js';
+import { base, LOCALHOST_URL_PATTERN } from './base.js';
 
 /**
  * EduFlow — web (Next.js) ESLint configuration.
@@ -83,13 +83,18 @@ export const next = [
     // rule - so neither can clobber the other. `B-1`.
     files: ['**/*.tsx'],
     rules: {
-      'no-restricted-syntax': ['error', ...RAW_ELEMENT_PATTERN, ...HARDCODED_COLOUR_PATTERN],
+      'no-restricted-syntax': [
+        'error',
+        ...RAW_ELEMENT_PATTERN,
+        ...HARDCODED_COLOUR_PATTERN,
+        ...LOCALHOST_URL_PATTERN,
+      ],
     },
   },
   {
     files: ['**/*.ts'],
     rules: {
-      'no-restricted-syntax': ['error', ...HARDCODED_COLOUR_PATTERN],
+      'no-restricted-syntax': ['error', ...HARDCODED_COLOUR_PATTERN, ...LOCALHOST_URL_PATTERN],
     },
   },
   {

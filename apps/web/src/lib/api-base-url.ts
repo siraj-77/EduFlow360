@@ -39,7 +39,18 @@
 /** The API's own default `PORT`, from `apps/api/src/config/env.ts`. */
 export const LOCAL_API_PORT = 3001;
 
-/** The origin the API serves on unless configured otherwise. */
+/**
+ * The origin the API serves on unless configured otherwise.
+ *
+ * `PLT-1001`'s no-hard-coded-localhost ban is exempted HERE and only
+ * here, at the site, for the reason the header above states: this is the
+ * API's own default assembled from the API's own default `PORT`, it is
+ * named and exported rather than buried, and `api-base-url.spec.ts`
+ * asserts the value. A deployment that needs another origin sets
+ * `NEXT_PUBLIC_API_BASE_URL`, which wins. An allowlist FILE would hide
+ * that reasoning; a comment at the line keeps it.
+ */
+// eslint-disable-next-line no-restricted-syntax -- PLT-1001: the documented web-side dev fallback, asserted by api-base-url.spec.ts; see the header.
 export const LOCAL_API_ORIGIN = `http://localhost:${LOCAL_API_PORT}`;
 
 /**
