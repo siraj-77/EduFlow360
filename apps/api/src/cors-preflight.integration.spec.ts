@@ -127,4 +127,40 @@ describe('the CORS preflight', () => {
       await harness.close();
     }
   });
+
+  /**
+   * `PLT-1001` AC-2 — "Changing WEB_ORIGIN changes every derived URL
+   * without code edits."
+   *
+   * Every test above boots with the SAME origin, so all four of them
+   * would still pass if `create-app.ts` hard-coded
+   * `http://localhost:3500` into `enableCors`: a let me permit no
+   * deployment's allow-list lives in the source. This is the test that
+   * distinguishes configuration from code — it boots with a DIFFERENT
+   * origin and requires the header to follow it.
+   *
+   * The second assertion is the one with teeth: after the move, the old
+   * default must no longer be the answer. A derivation that only ever
+   * appends (config wins, default still present) would fail it.
+   */
+  it('moves the allow-list when WEB_ORIGIN moves — the config, not the code, decides', async () => {
+    const configured = 'https://staging.school.example';
+
+    const harness = await startHttpHarness({
+      env: { ...TEST_ENVIRONMENT, WEB_ORIGIN: configured },
+    });
+
+    try {
+      const allowed = await preflight(harness, configured);
+
+      expect(allowed.headers.get('access-control-allow-origin')).toBe(configured);
+
+      const previousDefault = await preflight(harness, WEB_ORIGIN);
+
+      expect(previousDefault.headers.get('access-control-allow-origin')).toBe(configured);
+      expect(previousDefault.headers.get('access-control-allow-origin')).not.toBe(WEB_ORIGIN);
+    } finally {
+      await harness.close();
+    }
+  });
 });

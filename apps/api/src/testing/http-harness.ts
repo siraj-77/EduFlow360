@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { AppModule } from '../app.module.js';
 import { configureApp, createApp, type CreateAppOptions } from '../create-app.js';
 import { loadConfig } from '../config/env.js';
-import { TEST_ENVIRONMENT, TEST_WEB_ORIGIN, testConfig } from './test-environment.js';
+import { TEST_ENVIRONMENT, testConfig } from './test-environment.js';
 
 /**
  * An HTTP harness for `apps/api`: the real application, on a real socket.
@@ -122,7 +122,12 @@ export interface StartHttpHarnessOptions {
    * which keeps a developer's real Google credentials out of a test run.
    */
   readonly env?: NodeJS.ProcessEnv;
-  /** The single allowed browser origin. Defaults to the synthetic one. */
+  /**
+   * The single allowed browser origin. Defaults to `config.WEB_ORIGIN` from the
+   * supplied `env` — the same derivation `main.ts` performs — so a harness that
+   * sets `WEB_ORIGIN` through `env` sees CORS follow it. A harness that bypasses
+   * that derivation cannot test `PLT-1001` AC-2 at all.
+   */
   readonly webOrigin?: string;
   /**
    * Replace the implementation behind ONE port, for the life of this harness.
@@ -218,7 +223,16 @@ export async function startHttpHarness(
   options: StartHttpHarnessOptions = {},
 ): Promise<HttpHarness> {
   const config = loadConfig(options.env ?? TEST_ENVIRONMENT).config;
-  const webOrigin = options.webOrigin ?? TEST_WEB_ORIGIN;
+  // Derived from the loaded config, exactly as `main.ts:57` derives it. This
+  // line used to read `options.webOrigin ?? TEST_WEB_ORIGIN` — a PRIVATE path
+  // for the CORS origin that ignored `env.WEB_ORIGIN` entirely, so every
+  // harness test passed while the harness answered CORS from a constant. The
+  // 2026-10-12 `PLT-1001` AC-2 test (a harness booted with a different
+  // `WEB_ORIGIN`) is what caught it: the four existing CORS tests all used the
+  // default value, so they could not tell a derivation from a constant. The
+  // explicit `webOrigin` option still wins, for a caller that needs to test
+  // the seam itself.
+  const webOrigin = options.webOrigin ?? config.WEB_ORIGIN;
   const createOptions: CreateAppOptions = { config, webOrigin };
 
   const overrides = options.overrides ?? [];
