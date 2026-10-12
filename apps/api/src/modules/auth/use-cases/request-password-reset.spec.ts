@@ -55,7 +55,10 @@ const request = (useCase: RequestPasswordReset, email: string) =>
 describe('RequestPasswordReset — an address with an account', () => {
   it('issues a token and mails exactly one reset link', async () => {
     const { users, tokens, email, clock } = deps();
-    const useCase = new RequestPasswordReset({ users, tokens, email, clock });
+    const useCase = new RequestPasswordReset(
+      { users, tokens, email, clock },
+      { webOrigin: 'http://localhost:3500' },
+    );
 
     await request(useCase, 'principal@school.test');
 
@@ -69,7 +72,10 @@ describe('RequestPasswordReset — an address with an account', () => {
     // the plaintext must be the one the store issued, or the link redeems a
     // credential nobody stored.
     const { users, tokens, email, clock } = deps();
-    const useCase = new RequestPasswordReset({ users, tokens, email, clock });
+    const useCase = new RequestPasswordReset(
+      { users, tokens, email, clock },
+      { webOrigin: 'http://localhost:3500' },
+    );
 
     await request(useCase, 'principal@school.test');
 
@@ -81,7 +87,10 @@ describe('RequestPasswordReset — an address with an account', () => {
     // `AGENTS.md` 2.4: the expiry is computed from the CLOCK, not from
     // `Date.now()`, so a test can see the window it was given.
     const { users, tokens, email, clock } = deps();
-    const useCase = new RequestPasswordReset({ users, tokens, email, clock }, { ttlMs: 3_600_000 });
+    const useCase = new RequestPasswordReset(
+      { users, tokens, email, clock },
+      { ttlMs: 3_600_000, webOrigin: 'http://localhost:3500' },
+    );
 
     await request(useCase, 'principal@school.test');
 
@@ -94,7 +103,10 @@ describe('RequestPasswordReset — an address with no account', () => {
     // The enumeration control. A different answer here is a different status
     // code out there, and that is the oracle this closes.
     const { users, tokens, email, clock } = deps();
-    const useCase = new RequestPasswordReset({ users, tokens, email, clock });
+    const useCase = new RequestPasswordReset(
+      { users, tokens, email, clock },
+      { webOrigin: 'http://localhost:3500' },
+    );
 
     await expect(request(useCase, 'nobody@school.test')).resolves.toBeUndefined();
 
@@ -106,7 +118,10 @@ describe('RequestPasswordReset — an address with no account', () => {
     // A suspended account is a real account with no working credential; a
     // reset link would be a way around the suspension.
     const { users, tokens, email, clock } = deps({ active: false });
-    const useCase = new RequestPasswordReset({ users, tokens, email, clock });
+    const useCase = new RequestPasswordReset(
+      { users, tokens, email, clock },
+      { webOrigin: 'http://localhost:3500' },
+    );
 
     await request(useCase, 'principal@school.test');
 
@@ -127,7 +142,10 @@ describe('RequestPasswordReset — the mail fails', () => {
       },
       sent: [],
     };
-    const useCase = new RequestPasswordReset({ users, tokens, email: failing, clock });
+    const useCase = new RequestPasswordReset(
+      { users, tokens, email: failing, clock },
+      { webOrigin: 'http://localhost:3500' },
+    );
     const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     try {
@@ -152,7 +170,10 @@ describe('RequestPasswordReset — the mail fails', () => {
       },
       sent: [],
     };
-    const useCase = new RequestPasswordReset({ users, tokens, email: failing, clock });
+    const useCase = new RequestPasswordReset(
+      { users, tokens, email: failing, clock },
+      { webOrigin: 'http://localhost:3500' },
+    );
     const logged: string[] = [];
     const errors = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
       logged.push(args.join(' '));

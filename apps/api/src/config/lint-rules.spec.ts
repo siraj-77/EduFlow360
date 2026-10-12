@@ -159,3 +159,77 @@ describe('AGENTS.md 8 — no escape hatches', () => {
     expect(fired(r, NO_EMPTY)).toBe(true);
   });
 });
+
+/**
+ * `PLT-1001` AC-4 — "No hard-coded `localhost` URL exists in application
+ * source (check enforced in CI)".
+ *
+ * Two production violations existed when this was written, both measured
+ * 2026-10-12: `apps/api/src/config/env.ts`'s documented `WEB_ORIGIN`
+ * default and a dead `?? 'http://localhost:3500'` fallback in
+ * `request-password-reset.ts`. The rule turns that class visible instead
+ * of relying on a reviewer noticing.
+ *
+ * Tests and the test harnesses are exempt: a spec MUST name the fixture
+ * origin (`expect(API_BASE_URL).toBe('http://localhost:3001')` is the
+ * assertion that catches a silently moved port), and the HTTP harness
+ * binds loopback by design.
+ */
+describe('PLT-1001 — no hard-coded localhost URL in application source', () => {
+  const PRODUCTION = 'src/modules/auth/use-cases/thing.ts';
+
+  it('rejects a hard-coded localhost URL in production source, and cites the story', () => {
+    const r = lint(`export const WEB_ORIGIN = 'http://localhost:3500';\n`, PRODUCTION);
+
+    expect(fired(r, RESTRICTED_SYNTAX)).toBe(true);
+    expect(textOf(r)).toMatch(/PLT-1001/);
+  });
+
+  it('rejects a 127.0.0.1 URL too — it is the same machine', () => {
+    const r = lint(`export const API = 'http://127.0.0.1:3001';\n`, PRODUCTION);
+
+    expect(fired(r, RESTRICTED_SYNTAX)).toBe(true);
+  });
+
+  it('rejects a template literal that STARTS at a localhost URL', () => {
+    // A builder is the realistic shape: `` `http://localhost:${port}/x` ``
+    // is a hard-coded origin with a variable port, and it must not slip
+    // through because part of it is dynamic.
+    const r = lint('export const u = `http://localhost:${port}/x`;\n', PRODUCTION);
+
+    expect(fired(r, RESTRICTED_SYNTAX)).toBe(true);
+  });
+
+  it('allows a spec file to name the fixture origin, which is its job', () => {
+    const r = lint(
+      `export const WEB_ORIGIN = 'http://localhost:3500';\n`,
+      'src/config/thing.spec.ts',
+    );
+
+    expect(fired(r, RESTRICTED_SYNTAX)).toBe(false);
+  });
+
+  it('allows a spec NESTED IN THE LAYER GLOBS to name its fixture origin', () => {
+    // The case the first version of the rule got wrong: the layer blocks
+    // match `**/use-cases/**/*.ts`, which also matches
+    // `use-cases/thing.spec.ts`, and flat config takes the LAST matching
+    // block's options — so a spec exemption placed only outside the
+    // layer globs let the URL ban fire on every layer-nested fixture.
+    // `request-password-reset.spec.ts` was the file that caught it.
+    const r = lint(
+      `export const WEB_ORIGIN = 'http://localhost:3500';\n`,
+      'src/modules/auth/use-cases/thing.spec.ts',
+    );
+
+    expect(fired(r, RESTRICTED_SYNTAX)).toBe(false);
+  });
+
+  it('allows the test harnesses to bind loopback', () => {
+    const r = lint(
+      `export const TEST_WEB_ORIGIN = 'http://localhost:3500';\n`,
+      'src/testing/test-environment.ts',
+    );
+
+    expect(fired(r, RESTRICTED_SYNTAX)).toBe(false);
+  });
+});

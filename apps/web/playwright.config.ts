@@ -24,6 +24,16 @@ import { WEB_PORT } from './src/lib/web-port';
  * `PORT` is passed through to the web server as well, because Next binds its
  * own default otherwise and the two silently disagree.
  */
+/**
+ * Playwright's baseURL — the ONE place in this app where a localhost URL
+ * is not a smell: it is the dev server under test, and the 2026-09-29
+ * incident in the header above is what happens when it is wrong. It is
+ * derived from `WEB_PORT` rather than written out, which is the property
+ * that matters; the scheme and host are the protocol a browser uses to
+ * reach a port on this machine. Exempt from `PLT-1001`'s ban at the
+ * site, with that reason, rather than exempted by path.
+ */
+// eslint-disable-next-line no-restricted-syntax -- PLT-1001: the Playwright baseURL is derived from WEB_PORT by design; see the incident note above.
 const BASE_URL = `http://localhost:${WEB_PORT}`;
 
 /**

@@ -158,7 +158,18 @@ const schema = z
      * startup naming the variable, and so `main.ts` reads it from validated
      * config instead of an ambient `process.env` read with a `??` fallback
      * (FIX-08 / G1-11: no `??` on an env read remains).
+     *
+     * This default is the ONE hard-coded localhost URL in application
+     * source, and it is exempt from `PLT-1001`'s ban deliberately and
+     * visibly: the alternative is a boot failure for a value the
+     * conservative answer is known for. A real deployment writes
+     * `WEB_ORIGIN` — `.env.example` documents it — and this default is
+     * what the persistence-disabled state boots with. The exemption is
+     * a comment at the site rather than an entry in an allowlist file,
+     * because the justification is local and a global list would hide
+     * it. Do NOT copy this pattern to a read site.
      */
+    // eslint-disable-next-line no-restricted-syntax -- PLT-1001: the one justified WEB_ORIGIN default; see above.
     WEB_ORIGIN: z.string().min(1).default('http://localhost:3500'),
 
     /**

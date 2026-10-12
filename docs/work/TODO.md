@@ -43,7 +43,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-11 (session 2 — PR #5 (sign-out fix) merged, browser E2E + template comparison, handover written; `main` at `89dbff1`, no open PRs)
+**Last updated: 2026-10-12 (`PLT-1001` first slice on branch `fix/template-token-parity`: template-token parity shipped RED `0341e9c`→GREEN `35c6a09`; the no-hard-coded-localhost rule + the dead `webOrigin` fallback removal; `PLT-1001` T2-remainder and T3, then `PLT-1002` next; `main` at `b01ffeb`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ?? FIXED 2026-10-11 � sign-out was a no-op that lied to the user (session-security defect)

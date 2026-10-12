@@ -23,6 +23,31 @@
   --border: #e6e8ee;
   --brand: #4f46e5;
   --brand-2: #7c3aed;
+
+  /*
+   * TEMPLATE SPELLING — added 2026-10-12 for PLT-EPIC-10.
+   *
+   * AGENTS.md 3.2.5 spells this token `--brand-2`; all three approved
+   * templates under docs/template/ spell it `--brand2`. The contract
+   * cannot be edited without per-line owner sign-off, and the templates
+   * are owner-approved "reproduce as-is" sources, so BOTH spellings must
+   * resolve. `--brand2` is therefore an ALIAS THROUGH the canonical
+   * token rather than a second literal: the day one of them moves, a
+   * duplicated `#7c3aed` would drift, and the drift would be invisible —
+   * gradients simply render as transparent. `index.spec.ts` pins the
+   * alias form and the rendered-document e2e asserts the var() chain
+   * resolves. FLAG for the owner: normalize the §3.2.5 block to the
+   * template spelling and delete this alias.
+   */
+  --brand2: var(--brand-2);
+
+  /*
+   * Harvested from EduFlow360_Template_Admin_Dashboard.html, which
+   * defines `--warn: #d97706` in its own :root (AGENTS.md 2.8: harvest
+   * the template token set in full). The kit had no amber, so a warning
+   * badge ported from the dashboard had no token to name.
+   */
+  --warn: #d97706;
   --accent: #06b6d4;
   --danger: #dc2626;
   --ok: #059669;
@@ -60,6 +85,15 @@
    * would be correct in one theme and invisible in the other. (D47)
    */
   --shadow: 0 10px 30px rgba(20, 20, 40, 0.08);
+
+  /*
+   * TEMPLATE SPELLING — the templates' `--radius` is their CARD radius,
+   * so it aliases `--radius-card` for the same reason `--brand2` aliases
+   * `--brand-2`: one value, two spellings, no drift. The kit's own
+   * components keep naming `--radius-card` / `--radius-control`, which
+   * are the generalized pair the template never had.
+   */
+  --radius: var(--radius-card);
   --radius-card: 14px;
   --radius-control: 9px;
 
@@ -90,6 +124,7 @@
   --color-border: var(--border);
   --color-brand: var(--brand);
   --color-brand-2: var(--brand-2);
+  --color-warn: var(--warn);
   --color-accent: var(--accent);
   --color-danger: var(--danger);
   --color-ok: var(--ok);

@@ -57,9 +57,17 @@ export class RequestPasswordReset {
     private readonly options: {
       /** From `PASSWORD_RESET_TTL_MS`; one hour by default. */
       readonly ttlMs?: number;
-      /** Where the reset link points. The web app's own origin. */
-      readonly webOrigin?: string;
-    } = {},
+      /**
+       * Where the reset link points — the web app's own origin, from
+       * `WEB_ORIGIN`. REQUIRED, and deliberately without a fallback: a
+       * use-case must not invent where the web app lives (`AGENTS.md`
+       * 2.14 — the origin is configuration). It used to default to
+       * `http://localhost:3500`, which was dead in production (the
+       * module always passes the configured value) and a mailed
+       * localhost link waiting to happen the day a caller forgot it.
+       */
+      readonly webOrigin: string;
+    },
   ) {}
 
   async request(params: {
@@ -68,7 +76,7 @@ export class RequestPasswordReset {
     readonly device?: RequestDeviceContext | null;
   }): Promise<void> {
     const ttlMs = this.options.ttlMs ?? DEFAULT_RESET_TTL_MS;
-    const webOrigin = this.options.webOrigin ?? 'http://localhost:3500';
+    const webOrigin = this.options.webOrigin;
 
     // ── 1. The account, if there is one ─────────────────────────────────────
     // The credential repository's contract is one indexed read that answers

@@ -115,6 +115,76 @@ describe('brand tokens', () => {
 });
 
 /**
+ * Approved-template parity — PLT-EPIC-10 pre-work, 2026-10-12.
+ *
+ * The three templates under `docs/template/` are owner-approved
+ * "reproduce as-is" sources, and `PLT-EPIC-10` ports the dashboard's
+ * CSS into the app shell. An UNDEFINED custom property is not an error:
+ * `var(--brand2)` resolves to nothing, so a gradient renders as
+ * `transparent` and a radius as `0` — silently, in both themes, with no
+ * console output. That is the failure class `RESUME_2026-10-11-session-2`
+ * recorded: the kit ships `--brand-2` while every template spells the
+ * token `--brand2`.
+ *
+ * The oracle is deliberately GENERAL — it reads each template's own
+ * `:root` and requires the kit to define every token they define. A test
+ * pinning only `--brand2` would pass on the day a template adds
+ * `--warn`, which is exactly how the gap survived the landing port: the
+ * landing page *translated* the name (`landing.css` documents the
+ * rename) instead of the kit being made compatible.
+ */
+describe('approved template parity (PLT-EPIC-10 pre-work)', () => {
+  const TEMPLATES = [
+    'EduFlow — Frontend Template.html',
+    'EduFlow360_Template_Landing_Auth.html',
+    'EduFlow360_Template_Admin_Dashboard.html',
+  ] as const;
+
+  const readTemplate = async (name: string): Promise<string> => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    // packages/ui-kit/src -> repo root, anchored to this file rather than
+    // to the working directory, so the assertion holds from any CWD.
+    const templateDir = fileURLToPath(new URL('../../../docs/template/', import.meta.url));
+    return readFileSync(join(templateDir, name), 'utf8');
+  };
+
+  it('defines every token the approved templates define', async () => {
+    const root = block(await readStyles(), ':root');
+
+    for (const name of TEMPLATES) {
+      const template = block(await readTemplate(name), ':root');
+      const tokens = [...template.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1] ?? '');
+
+      expect(
+        tokens.length,
+        `${name} defines no tokens — is its :root still there?`,
+      ).toBeGreaterThan(0);
+
+      for (const token of tokens) {
+        expect(root, `${name} defines ${token} but the kit does not`).toContain(`${token}:`);
+      }
+    }
+  });
+
+  it('resolves the template spellings THROUGH the kit tokens, not to a second literal', async () => {
+    // `--brand2` and `--radius` exist because the templates spell them
+    // that way while AGENTS.md 3.2.5 spells the brand token `--brand-2`
+    // (a conflict this suite cannot resolve — the contract wins until
+    // the owner normalizes it). The alias form `var(--canonical)` keeps
+    // ONE value: a second `#7c3aed` literal would drift the day one of
+    // them moves. `--warn` has no kit equivalent and carries the
+    // harvested literal itself.
+    const root = block(await readStyles(), ':root');
+
+    expect(root).toContain('--brand2: var(--brand-2)');
+    expect(root).toContain('--radius: var(--radius-card)');
+    expect(root).toMatch(/--warn:\s*#d97706/);
+  });
+});
+
+/**
  * The approved font stack (`DSN-04`, decided by `ADR-022`).
  *
  * `AGENTS.md` 3.2.7: "Fonts must cover Tamil, Sinhala and Arabic, on screen
