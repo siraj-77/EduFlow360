@@ -21,6 +21,7 @@
     "format:check:docs": "prettier --check \"docs/**/*.md\" \"*.md\"",
     "docs:verify": "node scripts/docs-verify.mjs",
     "check:route-guards": "node scripts/check-route-guards.mjs",
+    "check:templates": "node scripts/check-templates.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "prepare": "husky",
     "migration:generate": "pnpm --filter @eduflow/api migration:generate",

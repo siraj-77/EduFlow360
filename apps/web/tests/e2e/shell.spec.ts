@@ -367,6 +367,82 @@ test.describe('sign-in route', () => {
   });
 });
 
+/**
+ * The console guard, `PLT-1002` AC-1.
+ *
+ * ## What this proves, and what it cannot
+ *
+ * The anonymous redirect is the one console path a browser can reach
+ * without a session, so it is the one this suite can drive end to end:
+ * the request for `/en/admin` is answered by the MIDDLEWARE, before
+ * any rendering, with a redirect to sign-in that carries the
+ * destination. That is the whole AC-1 first half.
+ *
+ * The second half — after a successful password check the caller lands
+ * on `/admin` — and AC-2's 403 page are NOT provable here: this
+ * repository has no authenticated e2e fixture (`WEB-105`), and a test
+ * that pretended to have one by setting a cookie would be testing the
+ * fake. Those halves are proved where a real session exists: the
+ * `next` round trip in `sign-in-form.spec.tsx`, the 403 redirect in
+ * `require-permission.spec.tsx`, and `GET /admin`'s 403/401/204 over a
+ * real socket in `permission-engine-over-http.integration.spec.ts`.
+ *
+ * A guard that redirected WITHOUT the destination would strand every
+ * caller on the interim landing after signing in, which is the failure
+ * the `next` parameter exists to prevent — hence the assertion on the
+ * query string rather than on the redirect alone.
+ *
+ * ## Why this block has a second header
+ *
+ * These four cases were written and passed green on `PLT-1002`'s
+ * branch, then lost at commit time: the change was staged with
+ * `git add apps/web/src`, which does not cover `apps/web/tests/`, and
+ * the merge squashed a commit that never contained them. They were
+ * restored on `PLT-1003` T2 after the test COUNT betrayed the loss —
+ * 37 passing where 41 had passed — which is the only reason it was
+ * caught. Recorded here because the incident is the lesson: a green
+ * gate run BEFORE the commit proves nothing about what the commit
+ * contains.
+ */
+test.describe('the console guard, unauthenticated', () => {
+  test('an anonymous visitor is redirected to sign-in carrying the destination', async ({
+    page,
+  }) => {
+    await page.goto('/en/admin');
+
+    const url = new URL(page.url());
+    expect(url.pathname, 'the console did not redirect to sign-in').toBe('/en/sign-in');
+    expect(url.searchParams.get('next'), 'the redirect dropped the destination').toBe('/en/admin');
+  });
+
+  test('a deep console path is carried whole, not truncated to the prefix', async ({ page }) => {
+    await page.goto('/en/admin/users/42');
+
+    const url = new URL(page.url());
+    expect(url.pathname).toBe('/en/sign-in');
+    expect(url.searchParams.get('next')).toBe('/en/admin/users/42');
+  });
+
+  test('the guard runs for every locale, not only English', async ({ page }) => {
+    for (const locale of ['ta', 'si', 'ar']) {
+      await page.goto(`/${locale}/admin`);
+
+      const url = new URL(page.url());
+      expect(url.pathname, `/${locale}/admin was not redirected`).toBe(`/${locale}/sign-in`);
+      expect(url.searchParams.get('next')).toBe(`/${locale}/admin`);
+    }
+  });
+
+  test('a near-miss route is NOT treated as the console', async ({ page }) => {
+    // The middleware must match the admin route exactly. `/en/administration`
+    // starts with the same letters, and a prefix test rather than a segment
+    // test would redirect it too — stranding a public route nobody can reach.
+    await page.goto('/en/administration');
+
+    expect(new URL(page.url()).pathname).not.toBe('/en/sign-in');
+  });
+});
+
 test.describe('responsive layout', () => {
   /**
    * AGENTS.md 3.2.2 requires touch targets >= 44px. On a phone that floor is

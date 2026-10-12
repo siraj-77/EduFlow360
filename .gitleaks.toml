@@ -25,6 +25,15 @@ by every other rule, and any new placeholder must use the
 
 paths = [
   '''^\.env\.example$''',
+  # PLT-1003 T2: the approved-template checksum baseline. Every value in
+  # template-checksums.json is a `sha256` of a PUBLIC, tracked HTML file —
+  # deterministic, reproducible by anyone with the repo, and a published
+  # property of the file rather than a credential. gitleaks' generic
+  # high-entropy rule cannot tell a digest of a public file from an API
+  # key, so it flags the pair as `generic-api`; this path exempts the file
+  # and nothing else. A real credential that happens to be committed
+  # anywhere else is still caught by every rule.
+  '''^template-checksums\.json$''',
 ]
 
 regexes = [
