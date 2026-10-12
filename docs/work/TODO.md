@@ -43,7 +43,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-12 (`PLT-1001` complete — AC-2 derivation proven by two new integration tests, one real harness defect found and fixed, T3 docs done; `PLT-1002` (app shell) next; `main` at `5c93c85`, no open PRs)
+**Last updated: 2026-10-12 (PR #10 merged — `PLT-1001` complete (AC-2 derivation proven, one real harness defect fixed, T3 docs), squash `af3a821`; `PLT-1002` (app shell) next; `main` at `af3a821`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ?? FIXED 2026-10-11 � sign-out was a no-op that lied to the user (session-security defect)
