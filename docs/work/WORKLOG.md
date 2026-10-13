@@ -6,6 +6,21 @@
 ---
 
 
+## 2026-10-13 — `PLT-1003` T4 (in progress): the visual-regression harness — RED committed
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-13 |
+| **Phase** | Milestone 1 · `PLT-EPIC-10` · story `PLT-1003` T4 (Playwright visual-regression harness), on branch `feat/plt-1003-t4-visual-regression`. |
+| **Task** | AC-3: baseline screenshots for every templated screen (landing, login, forgot, reset, dashboard) × light/dark × LTR/RTL, **taken from the template HTML itself**, with a harness that turns "the product looks like the approved design" into a measured diff. |
+| **Agent** | kilo |
+| **Status** | In Progress — RED committed; the pure harness core (`scripts/visual-regression.mjs`) is the next commit. |
+| **Activity** | **The design decision the handover pre-answered, now written as code.** The baseline is a screenshot of the TEMPLATE; the regression run photographs the APP — so Playwright's `toHaveScreenshot` cannot express it (it compares a page against a baseline of the same page), and the harness owns its own diff. **The mapping is explicit and reconciled both ways**, applying `check-route-guards`' rule to views: every view the approved templates declare is either mapped to a screen or excluded with a reason, so a view that appears in a later template revision fails naming itself. **The mapping is also source-accurate, which the measurement changed:** the landing page's baseline comes from `EduFlow — Frontend Template.html` (the donor `landing.css:4` records as the port's source), the auth screens' from `EduFlow360_Template_Landing_Auth.html`, the dashboard's from the standalone `EduFlow360_Template_Admin_Dashboard.html` — three source families, not one. **Freshness is a gate, not a hope:** each baseline records the checksum of the template it was captured from; T2's authorisation makes a template edit legal but does not make the old screenshots true, so a stale baseline fails with the re-capture command. **Capture composes with T2:** it refuses to screenshot a template whose edit is not yet approved, reusing `verifyTemplates` rather than re-deriving the decision. |
+| **Files Changed** | `apps/api/src/config/visual-regression.spec.ts` (new, the RED contract) |
+| **Decisions Made** | **(1) The diff is the harness's own, tolerance-based, and the tolerance is a recorded measurement rather than an invented number.** The ported screens are deliberately not pixel-identical, so a per-screen `maxDiffPixelRatio` with a reason and a measured date is declared in the manifest; a screen that is not yet compared is `deferred` WITH THE STORY THAT WILL ENFORCE IT (`PLT-1004` for the auth screens, `PLT-1005` for the dashboard), which is the `@Public`-allowlist shape: a reviewable exemption, not an invisible one. **(2) Dashboard app-side capture is deferred for a second, structural reason** — `/{locale}/admin` needs an authenticated session the e2e suite does not provision, so the app-side photograph does not exist yet; recorded rather than faked. **(3) The pure core lives in `scripts/` (Plain `.mjs`, testable without a browser, as `check-templates.mjs` established) and the browser half in `apps/web/scripts/`** — the only place `playwright` resolves — so the spec runs under Vitest with no browser. **(4) PNG decoding is hand-rolled over `node:zlib` rather than adding an image dependency**, following this repository's zero-new-dependency rule for gates (`check-route-guards`, `check-templates`, `read-declaration.mjs`). |
+| **Next Steps** | Implement `scripts/visual-regression.mjs` (manifest reconciliation, checksum composition, baseline freshness, PNG diff) to GREEN the spec; then `apps/web/scripts/visual-capture.mjs` and the 20 baselines; then teeth-proofs and gates. |
+| **Quality** | **RED observed for the intended reason:** the spec fails to load — `Failed to load url ../../../../scripts/visual-regression.mjs ... Does the file exist?` — the same valid RED shape `template-checksums.spec.ts` produced at T2. No production code exists yet, so no test can pass. |
+
 ## 2026-10-13 — the handover-accuracy pass: three stale status corrections and one duplicate branch adjudicated
 
 | Field | Entry |
