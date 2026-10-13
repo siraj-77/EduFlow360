@@ -1,10 +1,25 @@
-﻿# WORKLOG
+# WORKLOG
 
 **Purpose:** `AGENTS.md` §9 — _"If work is not in the worklog, it did not happen."_
 **Entry fields (mandatory):** Date · Phase · Task · Agent · Status · Activity · Files Changed · Decisions Made (with rationale) · Next Steps · Quality (tests, lint/build, issues)
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 ---
 
+
+## 2026-10-13 — the handover-accuracy pass: three stale status corrections and one duplicate branch adjudicated
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-13 |
+| **Phase** | Milestone 1 · between `PLT-1003` T3 and T4 · no production code touched. |
+| **Task** | Correct the stale documents the 2026-10-12 handover said to distrust, measured against the live tree; adjudicate a stale local branch. |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. Four stale claims corrected with evidence; one duplicate branch deleted after content verification. |
+| **Activity** | **Measured before editing.** `main` at `8aee552`, clean, no open PRs (the resume's `87bdbb9` had moved one commit). **Corrections, each verified in the tree first:** (1) `EPIC_STATUS.md` claimed forgot-password and reset-password pages "do not exist" — both exist (`app/[locale]/sign-in/{forgot,reset}/page.tsx` + `features/auth/pages/*-screen.tsx`, wired to `PLT-105`'s two endpoints). (2) Its `PLT-EPIC-07` row read "0 notification code in `apps/api` — and `PLT-105` depends on it": the router is still 0%, but the dependency was **closed** by the pulled-forward `IEmailDelivery` port + `SmtpEmailAdapter` (`ADR-014`), so `PLT-105` shipped 2026-10-11. The row now separates the two facts. (3) `PLT-EPIC-10` was **missing from the epic table entirely** — added (29 pts: `PLT-1001` done, `PLT-1002` done, `PLT-1003` T2/T3 done, T4 next, `PLT-1004`/`1005` unbuilt). (4) The file's "single most important line" still said `@RequireEntitlement` and `@Audited` "enforce and write nothing" — contradicted by its own table (`PLT-301/302` shipped `EntitlementGuard`; `PLT-402` shipped the writer, proven against real PostgreSQL). Corrected with the original kept as history. Also re-measured the `apps/web` source count (35 → 75) and marked the obsolete "recommended order" and "why forgot/reset is blocked" sections superseded-with-status rather than deleting them. |
+| **Files Changed** | `docs/work/EPIC_STATUS.md` · `docs/work/TODO.md` (header SHA `87bdbb9` → `8aee552`, PR #15) · `docs/work/WORKLOG.md` |
+| **Decisions Made** | **(1) Corrected, not bumped.** The 2026-10-11 entry's reasoning applies: a status block that overstates completion is the failure mode this repo has recorded six times, so every correction is dated, sourced, and the superseded text kept as history rather than erased. **(2) The stale branch `feat/m1-audit-password-reset` was deleted, and only after content verification.** It carried two commits (licence validation; audit enforcement + password reset) 97+ commits behind `main`, its remote already gone. Its unique work shipped on `main` via squashed PRs and was built on since — `git diff main` shows `main` holds *newer* versions of every file the branch touched, and `EPIC_STATUS` records those stories shipped 2026-10-11. A branch that looks like divergence but is a pre-sprint snapshot is a duplicate-history trap; the deletion rests on that measured equivalence, not on the branch's age. **(3) The "0% notification code" line was true and misleading at once**, which is the subtler defect class here: the row now says the *router* is 0% and the *email adapter* is shipped, so the next session neither over- nor under-states the epic. |
+| **Next Steps** | `PLT-1003` T4 — the Playwright visual-regression harness — on branch `feat/plt-1003-t4-visual-regression`, RED first (an altered baseline must fail the diff), teeth-proven, with the template-view → app-route mapping and the per-screen divergence manifest written down before the first baseline is captured. |
+| **Quality** | Docs-only session. `pnpm docs:verify` re-run before commit (the gate `FIX-25` tracks cannot resolve `path:line` refs, so doc edits are checked against it every time). No Prettier reformat of pre-existing `docs/**/*.md` — `pnpm format:check` globs no docs markdown (2026-10-11 rationale, unchanged); edits made in the files' existing style. One edit was initially mis-typed through the file's pre-existing mixed UTF-8 encoding and was repaired byte-preserving via `[System.IO.File]` + regex — recorded because the naive `Set-Content` would have corrupted the file. |
 
 ## 2026-10-12 — `PLT-1003` T3: the equality oracles for tokens and dictionary, and the vacuous test the teeth-proof caught
 
