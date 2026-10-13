@@ -197,13 +197,17 @@ describe('verifyManifest', () => {
   });
 
   it('fails when a mapped view does not exist in its template', () => {
+    // Two findings, and that is the point: the bad mapping is one, and the
+    // view it vacated (view-landing, now unmapped) is the other. The
+    // reconciliation is two-way, so a mistake surfaces from both sides.
     const broken = manifestFixture();
     (broken.screens[0] as { view: string | null }).view = 'view-does-not-exist';
 
     const findings = verifyManifest({ manifest: broken, views: VIEWS });
 
-    expect(findings).toHaveLength(1);
+    expect(findings).toHaveLength(2);
     expect(findings[0]?.message).toContain('view-does-not-exist');
+    expect(findings[1]?.message).toContain('view-landing');
   });
 
   it('fails naming every view that is neither mapped nor excluded', () => {
@@ -264,6 +268,8 @@ describe('verifyManifest', () => {
 
   it('refuses a screen whose template the checksum baseline does not know', () => {
     // Composition with T2: a manifest may only baseline approved templates.
+    // Two findings again, and again by design: the unknown template is one,
+    // and the legacy view-landing the move vacated is the other.
     const broken = manifestFixture();
     (broken.screens[0] as { template: string }).template = 'EduFlow360_Template_Unknown.html';
     const views = new Map(VIEWS);
@@ -275,8 +281,9 @@ describe('verifyManifest', () => {
       knownTemplates: KNOWN_TEMPLATES,
     });
 
-    expect(findings).toHaveLength(1);
+    expect(findings).toHaveLength(2);
     expect(findings[0]?.message).toContain('EduFlow360_Template_Unknown.html');
+    expect(findings[1]?.message).toContain('view-landing');
   });
 });
 
@@ -361,6 +368,24 @@ describe('verifyBaselines', () => {
     expect(findings).toHaveLength(19);
     expect(findings[0]?.message).toMatch(/missing/i);
     expect(findings.some((f: { file: string }) => f.file === only)).toBe(false);
+  });
+
+  it('names a baseline the index records but the disk does not hold', () => {
+    // The other misshape: the index remembers a file the repository lost.
+    const index = fullIndex(manifest);
+    const only = Object.keys(index)[1] as string;
+
+    const findings = verifyBaselines({
+      manifest,
+      index,
+      files: new Set(Object.keys(index).filter((name) => name !== only)),
+      templateChecksums: checksumsNow(),
+      templateOf: TEMPLATE_OF,
+    });
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.file).toBe(only);
+    expect(findings[0]?.message).toMatch(/missing/i);
   });
 
   it('fails when a baseline records a checksum its template no longer has', () => {
