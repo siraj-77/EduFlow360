@@ -45,7 +45,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-12 (`PLT-1003` T3 merged, PR #14 squash `87bdbb9` — token-value and dictionary equality oracles; `PLT-1003` T4 (visual-regression harness) next, then `PLT-1004`; T1 owner confirmation of `template-checksums.json` still requested; `main` at `87bdbb9`, no open PRs)
+**Last updated: 2026-10-13 (handover PR #15 squash `8aee552` merged — `main` corrected from `87bdbb9`; forgot/reset pages confirmed on `main` and the stale status rows fixed in `EPIC_STATUS.md`; `PLT-1003` T4 (visual-regression harness) next, then `PLT-1004`; T1 owner confirmation of `template-checksums.json` still requested; `main` at `8aee552`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ?? FIXED 2026-10-11 � sign-out was a no-op that lied to the user (session-security defect)

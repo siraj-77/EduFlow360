@@ -1,8 +1,16 @@
-﻿# Epic status — 2026-10-03 (corrected 2026-10-08, re-measured 2026-10-11 session 2)
+# Epic status — 2026-10-03 (corrected 2026-10-08, re-measured 2026-10-11 session 2, corrected again 2026-10-13)
 
 > Measured from the tree, not from a plan file. Every figure below was read off the
 > code. Where a claim is "0%" that means **no production code exists**, not that it is
 > partially built.
+>
+> **2026-10-13 corrections (three stale rows, measured against `main` at `8aee552`):**
+> the forgot-password and reset-password pages **exist** (`PLT-105` shipped — see the
+> table below); `PLT-EPIC-07`'s "`PLT-105` depends on it" blocker is **resolved** at the
+> adapter level (the `IEmailDelivery` port + `SmtpEmailAdapter` were pulled forward,
+> `ADR-014`; the router itself is still 0%); and `PLT-EPIC-10` was missing from this
+> table entirely — added below. The status block was **corrected, not bumped**, per the
+> 2026-10-11 entry's reasoning.
 
 **Legend:** âœ” done í’¦ partial âš  blocked âŒ not started
 
@@ -14,39 +22,47 @@
 | `PLT-EPIC-04` | Immutable Audit Logging             | 21  | ðŸŸ¡ 67%      | `PLT-401` T1/T3 + `PLT-402` T1â€“T3 shipped 2026-10-11 (`@Audited` writes, append-only port, real-Postgres proof incl. ADR-013 rollback); remaining: `PLT-403` viewer (P1, needs shell), `PLT-404` retention (P2) |
 | `PLT-EPIC-05` | Error & Diagnostic Logging Engine   | 18  | âŒ 0%       | no DB error log; file logging not implemented                                                                   |
 | `PLT-EPIC-06` | Dynamic Module Registry & Settings  | 16  | í’¦ partial  | `SchoolSettings` schema + 2 rules; no registry, no module gate                                                  |
-| `PLT-EPIC-07` | Multi-Channel Notification Router   | 13  | âŒ 0%       | **0 notification code in `apps/api`** â€” and `PLT-105` depends on it                                             |
+| `PLT-EPIC-07` | Multi-Channel Notification Router   | 13  | âŒ 0%       | **0 router code in `apps/api`**. Its old "`PLT-105` depends on it" blocker is **closed 2026-10-13**: the `IEmailDelivery` port + `SmtpEmailAdapter` were pulled forward for password reset (`ADR-014`), so `PLT-105` shipped; the router is still 0%                                             |
 | `PLT-EPIC-08` | Storage & File Manager              | 13  | âŒ 0%       | no `IStorageAdapter`                                                                                            |
 | `PLT-EPIC-09` | System Health & Monitoring          | 13  | âŒ 0%       | no probes beyond a boot banner                                                                                  |
+| `PLT-EPIC-10` | Admin Console Shell, Template Port & Dev Environment | 29 | in progress | `PLT-1001` done · `PLT-1002` done · `PLT-1003` T2/T3 done (T1 owner-gated, presented) · **T4 next** · `PLT-1004`/`PLT-1005` unbuilt |
 
-**Total: ~105 of 199 points. `PLT-EPIC-01` ~95%. Epic 02 is still the largest block.** Re-measured 2026-10-11 session 2: the three open PRs (#4/#2/#3) are merged, a session-security sign-out defect was found in a real browser and fixed (PR #5), and `main` is `89dbff1` with no open PRs. All `AGENTS.md` §4 gates green.
+**Total: ~105 of 199 points for EPIC-01..09, plus `PLT-EPIC-10` (29 pts, in progress). `PLT-EPIC-01` ~95%. Epic 02 is still the largest block.** Re-measured 2026-10-13: `main` at `8aee552` (PR #15), no open PRs; forgot/reset pages confirmed to exist; `PLT-EPIC-07`'s `PLT-105` dependency closed at adapter level; `PLT-EPIC-10` row added. All `AGENTS.md` §4 gates green except the documented local-only integration case (D42).
 
 ---
 
 ## The single most important line in this document
 
-> **Partly closed 2026-10-03.** `@RequirePermission` **now enforces.** `@RequireEntitlement`
+> **2026-10-03 it read:** `@RequirePermission` **now enforces.** `@RequireEntitlement`
 > and `@Audited` **still enforce and write nothing.** The controls that stop something today
 > are `CsrfGuard`, `SessionGuard` and `PermissionGuard`.
 
-`check-route-guards` proves a decorator is **present**. Nothing proves it is **obeyed**.
-That is the same shape as the defect where the shipped app could not boot: nine green
-gates, no enforcement. `AGENTS.md` Â§4 asks whether a gate is _sound_, not whether it is green.
+> **Corrected 2026-10-13 (measured):** that gap is largely **closed.** `PLT-301`/`302`
+> shipped the `EntitlementGuard`, so `@RequireEntitlement` enforces the licence;
+> `PLT-402` shipped the audit writer, so `@Audited` writes append-only records
+> (proven against real PostgreSQL, including the `ADR-013` rollback case).
+
+What remains true, and is the sentence worth keeping: `check-route-guards` proves a
+decorator is **present**. Nothing proves it is **obeyed**. Each decorator's enforcement
+therefore lives in its own over-HTTP integration proof
+(`permission-engine-over-http`, `licence-activation-over-http`), never in the static
+check. `AGENTS.md` Â§4 asks whether a gate is _sound_, not whether it is green. The
+2026-09-30 audit found four gates that were green and verified nothing; that failure
+class, not any one guard, is what this paragraph exists to prevent.
 
 ---
 
 ## Frontend: pages that exist, and pages that do not
 
-`apps/web` holds **35 source files**. `features/auth/` exists and is wired to `POST /auth/login`.
+`apps/web` holds **75 source files** (re-measured 2026-10-13). `features/auth/` exists and is wired to `POST /auth/login`.
 
 | Page            | State             | Evidence                                                                             |
 | --------------- | ----------------- | ------------------------------------------------------------------------------------ |
 | Sign in         | âœ” real             | `PLT-101` replaced the stub: the page (45 lines) delegates to `features/auth/pages/sign-in-screen.tsx`; form, state hook, request client and specs all exist |
-| Forgot password | âŒ does not exist | no route, no page                                                                    |
-| Reset password  | âŒ does not exist | no route, no page                                                                    |
+| Forgot password | real (`PLT-105`)  | `app/[locale]/sign-in/forgot/page.tsx` + `features/auth/pages/forgot-password-screen.tsx`, wired to `POST /auth/password-reset/request` (constant 200) |
+| Reset password  | real (`PLT-105`)  | `app/[locale]/sign-in/reset/page.tsx` + `features/auth/pages/reset-password-screen.tsx`, wired to `POST /auth/password-reset/confirm` (invalidates sessions) |
 | Landing + shell | âœ” real            | `features/landing/`, layout, middleware, i18n routing                                |
-The **backend** for sign-in exists and is tested: `POST /auth/login` verifies, issues a
-session and sets a real cookie, exercised over a socket. So the login page is the one
-auth page that is buildable today.
+All four public auth pages now exist and are wired: `POST /auth/login` verifies, issues a session and sets a real cookie; `POST /auth/password-reset/request` and `/confirm` are shipped behind the `IEmailDelivery` port (nodemailer SMTP in production, `RecordingEmailAdapter` when unconfigured). What remains is presentation work (`PLT-1004` re-styles them from the approved template), not plumbing.
 
 ---
 
@@ -71,45 +87,34 @@ which is why the sign-in page is worth doing **first** and doing properly.
 
 ---
 
-## Why forgot/reset password is blocked, and it is not only "not started"
+## Why forgot/reset password was blocked — RESOLVED 2026-10-11 (section kept as history)
 
-`PLT-105` Password Reset Flow â€” **5 pts, P0, `backend` + `frontend`** â€” is a written story with
-no code. Its acceptance criteria:
-
-- `POST /auth/password-reset/request` emails a signed, time-limited link
-- `POST /auth/password-reset/confirm` sets the password and **invalidates all existing sessions**
-- single-use token, configurable expiry (~1 hour)
-- **Frontend:** reset request + reset confirmation pages
-
-**And it has a documented dependency that is easy to walk into:**
-
-> `PLT-105` (password reset) needs to send email before the router (`PLT-701`) exists â€” pull the
-> **email adapter** forward
-
-There is **0 notification code in `apps/api`**. Building the reset _pages_ now means building
-forms against an endpoint that cannot exist yet. Whether to pull the `PLT-701` email adapter
-forward is an **owner call**, not a build order.
+`PLT-105` Password Reset Flow shipped 2026-10-11: `POST /auth/password-reset/request`
+emails a signed, single-use, time-limited link; `/confirm` sets the password and
+invalidates all existing sessions; both pages exist and are wired (see the table above).
+The email dependency was resolved by **pulling the adapter forward**: `IEmailDelivery`
+with `SmtpEmailAdapter` (nodemailer) in production and `RecordingEmailAdapter` when
+unconfigured (`ADR-014`). What remains for this area is `PLT-EPIC-07`'s router — the
+adapter is the email channel it will own.
 
 ---
 
-## Recommended order, and the reasoning
+## Recommended order — 2026-10-03, SUPERSEDED (kept as history)
 
-| #   | Work                                         | Why now                                                                                                                                      |
-| --- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Sign-in page**                             | The only auth page whose backend is proven. It exercises tokens, i18n and RTL **before** three more auth pages are built on an unproven one. |
-| 2   | **Permission engine (`PLT-2xx`)**            | Turns `@RequirePermission` from vocabulary into control. 42 points, the largest single block, and the biggest soundness gap in the repo.     |
-| 3   | `PLT-402` audit writer                       | `@Audited` is on sensitive routes and writes nothing. `AGENTS.md` Â§2.7 requires append-only records with DB-level immutability.              |
-| 4   | `PLT-701` email adapter âš  **owner decision** | Unblocks `PLT-105`, and therefore forgot/reset.                                                                                              |
-| 5   | `PLT-105` reset flow                         | Once 4 exists.                                                                                                                               |
+| # | Work | Status 2026-10-13 |
+| --- | --- | --- |
+| 1 | **Sign-in page** | done (`PLT-101`) |
+| 2 | **Permission engine (`PLT-2xx`)** | done (`PLT-201..205`, `SEC-110`) |
+| 3 | `PLT-402` audit writer | done 2026-10-11 |
+| 4 | `PLT-701` email adapter | adapter pulled forward (`ADR-014`); **router still 0%** |
+| 5 | `PLT-105` reset flow | done 2026-10-11 |
 
-**Two items owed by the owner, recorded not hidden:**
+**Still owed by the owner, recorded not hidden:** the password policy is invented —
+length bounds only, marked `provisional: true` (`SSOT.md` D62). `AGENTS.md` §6 forbids
+inventing a threshold to fill a corpus gap, and `EduFlow_School_Setup_Workflow_v1.md` §4
+defers the policy, but `PLT-107`'s acceptance criteria demand one.
 
-1. **The password policy is invented** â€” length bounds only, marked `provisional: true` (`SSOT.md` D62).
-   `AGENTS.md` Â§6 forbids inventing a threshold to fill a corpus gap, and
-   `EduFlow_School_Setup_Workflow_v1.md` Â§4 defers the policy, but `PLT-107`'s acceptance criteria demand one.
-2. **Pull the `PLT-701` email adapter forward, or not** â€” this is what blocks `PLT-105`.
-
-Also open: no **unlink** route exists, so a user who links the wrong Google account is stuck;
-and `SetupTokenService.consume` may be dead code while `FakeSetupTokenRepository.consume`
+Also open: no **unlink** route exists, so a user who links the wrong Google account is
+stuck; and `SetupTokenService.consume` may be dead code while `FakeSetupTokenRepository.consume`
 invents a state the real adapter cannot produce.
 
