@@ -572,53 +572,73 @@ export function decodePng(png) {
 /**
  * Compare two PNGs pixel-by-pixel with a per-pixel tolerance.
  *
- * A pixel "differs" when ANY channel moves by more than
- * `threshold * 255` — the same family of measure Playwright uses, and
- * deliberately per-pixel rather than per-image: the comparison is
- * "how much of this screen is no longer the approved design", which is the
- * question a ratio answers and a boolean does not.
+ * A pixel "differs" when any channel moves by more than `threshold * 255`
+ * — the same family of measure Playwright uses, and deliberately per-pixel
+ * rather than per-image: the question is "how much of this screen is no
+ * longer the approved design", which a ratio answers and a boolean does not.
+ *
+ * ## Why the comparison runs over the OVERLAP
+ *
+ * The baseline is a full-page photograph of the template and the capture
+ * is a full-page photograph of the app. Two documents with different
+ * content heights are the NORMAL case here — the whole point of the
+ * divergence manifest is that the port is not a copy — so refusing to
+ * compare anything when the heights differ would make the harness useless
+ * on its first real run. The result therefore carries `widthDelta` and
+ * `heightDelta` and compares the common region; the compare mode prints
+ * the deltas so a layout that grew or shrank is visible rather than
+ * silently left uncompared.
  *
  * @param {{ expected: Buffer, actual: Buffer, threshold: number }} pair
- * @returns {{ dimensionsMatch: boolean, total: number | null, differing: number | null, ratio: number | null, firstDiff: { x: number, y: number } | null }}
+ * @returns {{
+ *   dimensionsMatch: boolean,
+ *   expected: { width: number, height: number },
+ *   actual: { width: number, height: number },
+ *   comparedWidth: number,
+ *   comparedHeight: number,
+ *   total: number,
+ *   differing: number,
+ *   ratio: number,
+ *   firstDiff: { x: number, y: number } | null,
+ * }}
  */
 export function diffPixels({ expected, actual, threshold }) {
   const a = decodePng(expected);
   const b = decodePng(actual);
 
-  if (a.width !== b.width || a.height !== b.height) {
-    return {
-      dimensionsMatch: false,
-      total: null,
-      differing: null,
-      ratio: null,
-      firstDiff: null,
-    };
-  }
+  const comparedWidth = Math.min(a.width, b.width);
+  const comparedHeight = Math.min(a.height, b.height);
 
   const limit = threshold * 255;
   let differing = 0;
   /** @type {{ x: number, y: number } | null} */
   let firstDiff = null;
 
-  for (let i = 0; i < a.data.length; i += 4) {
-    const delta = Math.max(
-      Math.abs((a.data[i] ?? 0) - (b.data[i] ?? 0)),
-      Math.abs((a.data[i + 1] ?? 0) - (b.data[i + 1] ?? 0)),
-      Math.abs((a.data[i + 2] ?? 0) - (b.data[i + 2] ?? 0)),
-      Math.abs((a.data[i + 3] ?? 0) - (b.data[i + 3] ?? 0)),
-    );
-    if (delta <= limit) continue;
+  for (let y = 0; y < comparedHeight; y += 1) {
+    for (let x = 0; x < comparedWidth; x += 1) {
+      const i = (y * a.width + x) * 4;
+      const j = (y * b.width + x) * 4;
 
-    differing += 1;
-    if (firstDiff === null) {
-      const pixel = i / 4;
-      firstDiff = { x: pixel % a.width, y: Math.floor(pixel / a.width) };
+      const delta = Math.max(
+        Math.abs((a.data[i] ?? 0) - (b.data[j] ?? 0)),
+        Math.abs((a.data[i + 1] ?? 0) - (b.data[j + 1] ?? 0)),
+        Math.abs((a.data[i + 2] ?? 0) - (b.data[j + 2] ?? 0)),
+        Math.abs((a.data[i + 3] ?? 0) - (b.data[j + 3] ?? 0)),
+      );
+      if (delta <= limit) continue;
+
+      differing += 1;
+      if (firstDiff === null) firstDiff = { x, y };
     }
   }
 
-  const total = a.width * a.height;
+  const total = comparedWidth * comparedHeight;
   return {
-    dimensionsMatch: true,
+    dimensionsMatch: a.width === b.width && a.height === b.height,
+    expected: { width: a.width, height: a.height },
+    actual: { width: b.width, height: b.height },
+    comparedWidth,
+    comparedHeight,
     total,
     differing,
     ratio: total === 0 ? 0 : differing / total,

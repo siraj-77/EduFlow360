@@ -141,12 +141,6 @@ const manifestFixture = () => ({
   ],
 });
 
-/** Every screen × combination filename, as the capture names them. */
-const allBaselineNames = (manifest: ReturnType<typeof manifestFixture>) =>
-  manifest.screens.flatMap((s) =>
-    manifest.combinations.map((c) => `${s.id}-${c.theme}-${c.dir}.png`),
-  );
-
 /** The index the capture writes: filename → what it was taken from. */
 const fullIndex = (manifest: ReturnType<typeof manifestFixture>, checksum = SHA_A) =>
   Object.fromEntries(
@@ -510,7 +504,14 @@ describe('diffPixels', () => {
     expect(result.differing).toBe(0);
   });
 
-  it('reports a dimension mismatch instead of comparing nonsense', () => {
+  it('reports a dimension difference, and still compares the common region honestly', () => {
+    // Full-page photographs of two different documents are the normal case
+    // here, so a height difference must be REPORTED (widthDelta/heightDelta,
+    // dimensionsMatch false) while the overlap is still compared — refusing
+    // to compare anything would make the harness useless on its first real
+    // run. The identical black overlap is what keeps this honest: the
+    // result says the images differ in size AND that nothing in the common
+    // region differs.
     const result = diffPixels({
       expected: encodePng(8, 8, BLACK),
       actual: encodePng(6, 8, BLACK),
@@ -518,5 +519,11 @@ describe('diffPixels', () => {
     });
 
     expect(result.dimensionsMatch).toBe(false);
+    expect(result.expected).toEqual({ width: 8, height: 8 });
+    expect(result.actual).toEqual({ width: 6, height: 8 });
+    expect(result.comparedWidth).toBe(6);
+    expect(result.comparedHeight).toBe(8);
+    expect(result.ratio).toBe(0);
+    expect(result.firstDiff).toBeNull();
   });
 });

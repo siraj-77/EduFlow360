@@ -45,8 +45,38 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-13 (handover PR #15 squash `8aee552` merged — `main` corrected from `87bdbb9`; forgot/reset pages confirmed on `main` and the stale status rows fixed in `EPIC_STATUS.md`; `PLT-1003` T4 (visual-regression harness) next, then `PLT-1004`; T1 owner confirmation of `template-checksums.json` still requested; `main` at `8aee552`, no open PRs)
+**Last updated: 2026-10-13 (`PLT-1003` T4 merged on branch `feat/plt-1003-t4-visual-regression` — 20 baselines, the manifest, `pnpm visual:check` in CI; `PLT-1003` is complete pending its owner gates: T1's `template-checksums.json` confirmation, C-S2 independent review, C-S4 human gate. Then `PLT-1004` — the public pages port — whose T1/T2/T4 consume the new baselines; the auth screens' parity rows flip from deferred to measured there. `main` at `8cffc8c`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
+
+> ## ✅ DONE 2026-10-13 — `PLT-1003` T4: the visual-regression harness (branch `feat/plt-1003-t4-visual-regression`)
+>
+> AC-3 is met: baseline screenshots exist for every templated screen — landing,
+> login, forgot, reset, dashboard — in all four combinations (light/dark ×
+> LTR/RTL), **taken from the template HTML itself**, and the harness turns
+> "the product looks like the approved design" into a measured diff rather
+> than an eyeball judgement.
+>
+> - `scripts/visual-regression.mjs` — the pure decisions (manifest
+>   reconciliation both ways, T2's checksum composition, baseline freshness,
+>   the tolerance-based PNG diff), pinned by a 19-test vitest spec, RED first.
+> - `apps/web/scripts/visual-capture.mjs` — the browser half; lives under
+>   `apps/web` because that is the only place `@playwright/test` resolves.
+> - `visual-regression.json` — the source-accurate mapping (landing from the
+>   legacy donor, auth screens from `Landing_Auth`, dashboard from the
+>   standalone template) plus the recorded parity decision per screen.
+> - `pnpm visual:check` runs in CI beside `check:templates`; app-side
+>   photographs stay a deliberate `pnpm visual:compare` run.
+> - **The landing tolerance is a measurement, not a guess**: 13.13% / 12.86% /
+>   13.11% / 12.05% across the four combinations, recorded as 0.14 with its
+>   divergence sources enumerated. Five teeth-proofs were watched failing
+>   (drift, unapproved template, stale checksum, removed exclusion, deleted
+>   baseline). Full record: **`docs/work/WORKLOG.md`** (2026-10-13).
+>
+> **`PLT-1003` is now complete pending its owner gates.** Still owed: the
+> owner's confirmation of `template-checksums.json` (T1), C-S2's independent
+> review in a fresh session, and C-S4's human gate. **Next story: `PLT-1004`**
+> — the public pages port — whose T1/T2/T4 consume these baselines; the auth
+> screens' parity rows flip from deferred to measured when that lands.
 
 > ## ?? FIXED 2026-10-11 � sign-out was a no-op that lied to the user (session-security defect)
 >

@@ -176,6 +176,16 @@ jobs:
       - name: Approved templates
         run: pnpm check:templates
 
+      # PLT-1003 T4: the visual-regression baselines. Fails when a screen
+      # in visual-regression.json has no baseline, when a baseline was
+      # captured from a template whose checksum has since changed (the
+      # screenshots no longer describe the approved design), or when a
+      # view appears in an approved template that is neither baselined
+      # nor excluded with a reason. Browser-free — the capture itself is
+      # a deliberate, owner-gated run (`pnpm visual:capture`).
+      - name: Visual baselines
+        run: pnpm visual:check
+
   # OPS-105: secret scanning.
   #
   # A secret that was committed and later removed is still in the
