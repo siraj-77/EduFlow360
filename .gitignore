@@ -35,6 +35,11 @@ out/
 coverage/
 .nyc_output/
 test-results/
+
+# ---- Visual-regression working artefacts ----
+# App-side photographs are the working artefact of `pnpm visual:compare`; the
+# BASELINES are the committed ones and live in apps/web/tests/visual/baselines/.
+apps/web/tests/visual/actual/
 playwright-report/
 blob-report/
 playwright/.cache/

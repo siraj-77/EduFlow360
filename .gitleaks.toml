@@ -34,6 +34,14 @@ paths = [
   # and nothing else. A real credential that happens to be committed
   # anywhere else is still caught by every rule.
   '''^template-checksums\.json$''',
+  # PLT-1003 T4: the visual-regression baseline index. Every
+  # `templateChecksum` value is a `sha256` of the same PUBLIC, tracked
+  # HTML files as above — reproducible by anyone with the repo, and
+  # recorded there precisely so a stale baseline (a screenshot taken
+  # before an approved template edit) fails the check. Same shape,
+  # same reason, and still only this file: a real credential anywhere
+  # else is caught by every rule.
+  '''^apps/web/tests/visual/baselines/index\.json$''',
 ]
 
 regexes = [

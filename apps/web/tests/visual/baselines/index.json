@@ -1,0 +1,122 @@
+{
+  "landing-light-ltr.png": {
+    "screen": "landing",
+    "theme": "light",
+    "dir": "ltr",
+    "templateChecksum": "5b46a1acd18d616eb60aeb715e9a32d037b1c545612f422a7db46aef7041f071"
+  },
+  "landing-light-rtl.png": {
+    "screen": "landing",
+    "theme": "light",
+    "dir": "rtl",
+    "templateChecksum": "5b46a1acd18d616eb60aeb715e9a32d037b1c545612f422a7db46aef7041f071"
+  },
+  "landing-dark-ltr.png": {
+    "screen": "landing",
+    "theme": "dark",
+    "dir": "ltr",
+    "templateChecksum": "5b46a1acd18d616eb60aeb715e9a32d037b1c545612f422a7db46aef7041f071"
+  },
+  "landing-dark-rtl.png": {
+    "screen": "landing",
+    "theme": "dark",
+    "dir": "rtl",
+    "templateChecksum": "5b46a1acd18d616eb60aeb715e9a32d037b1c545612f422a7db46aef7041f071"
+  },
+  "login-light-ltr.png": {
+    "screen": "login",
+    "theme": "light",
+    "dir": "ltr",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "login-light-rtl.png": {
+    "screen": "login",
+    "theme": "light",
+    "dir": "rtl",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "login-dark-ltr.png": {
+    "screen": "login",
+    "theme": "dark",
+    "dir": "ltr",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "login-dark-rtl.png": {
+    "screen": "login",
+    "theme": "dark",
+    "dir": "rtl",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "forgot-light-ltr.png": {
+    "screen": "forgot",
+    "theme": "light",
+    "dir": "ltr",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "forgot-light-rtl.png": {
+    "screen": "forgot",
+    "theme": "light",
+    "dir": "rtl",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "forgot-dark-ltr.png": {
+    "screen": "forgot",
+    "theme": "dark",
+    "dir": "ltr",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "forgot-dark-rtl.png": {
+    "screen": "forgot",
+    "theme": "dark",
+    "dir": "rtl",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "reset-light-ltr.png": {
+    "screen": "reset",
+    "theme": "light",
+    "dir": "ltr",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "reset-light-rtl.png": {
+    "screen": "reset",
+    "theme": "light",
+    "dir": "rtl",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "reset-dark-ltr.png": {
+    "screen": "reset",
+    "theme": "dark",
+    "dir": "ltr",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "reset-dark-rtl.png": {
+    "screen": "reset",
+    "theme": "dark",
+    "dir": "rtl",
+    "templateChecksum": "af0615fee7371adaf98b52e399f70320a38387c53db405e27fb2ede8c9d27d9a"
+  },
+  "dashboard-light-ltr.png": {
+    "screen": "dashboard",
+    "theme": "light",
+    "dir": "ltr",
+    "templateChecksum": "198c2d2dca7798f082025d9d71d0c010dc66b9060a52cae2189f924cc55e98c2"
+  },
+  "dashboard-light-rtl.png": {
+    "screen": "dashboard",
+    "theme": "light",
+    "dir": "rtl",
+    "templateChecksum": "198c2d2dca7798f082025d9d71d0c010dc66b9060a52cae2189f924cc55e98c2"
+  },
+  "dashboard-dark-ltr.png": {
+    "screen": "dashboard",
+    "theme": "dark",
+    "dir": "ltr",
+    "templateChecksum": "198c2d2dca7798f082025d9d71d0c010dc66b9060a52cae2189f924cc55e98c2"
+  },
+  "dashboard-dark-rtl.png": {
+    "screen": "dashboard",
+    "theme": "dark",
+    "dir": "rtl",
+    "templateChecksum": "198c2d2dca7798f082025d9d71d0c010dc66b9060a52cae2189f924cc55e98c2"
+  }
+}

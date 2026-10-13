@@ -1,0 +1,99 @@
+{
+  "viewport": { "width": 1280, "height": 720 },
+  "combinations": [
+    { "theme": "light", "dir": "ltr", "locale": "en" },
+    { "theme": "light", "dir": "rtl", "locale": "ar" },
+    { "theme": "dark", "dir": "ltr", "locale": "en" },
+    { "theme": "dark", "dir": "rtl", "locale": "ar" }
+  ],
+  "screens": [
+    {
+      "id": "landing",
+      "template": "EduFlow — Frontend Template.html",
+      "view": "view-landing",
+      "route": "/{locale}",
+      "parity": {
+        "status": "measured",
+        "maxDiffPixelRatio": 0.14,
+        "measuredOn": "2026-10-13",
+        "reason": "MEASURED, not chosen: on 2026-10-13 the four combinations measured 13.13% / 12.86% / 13.11% / 12.05% differing pixels, so the tolerance is 0.14 with headroom. The measurement is dominated by divergence the repository has already RULED ON, and each source is named here so the number is reviewable rather than magic: (1) the copy divergences AGENTS.md 2.8 mandates — the marketing claims ('Trusted by 200+ schools', '1.2M Students Managed'), 'Start Free Trial' and the template's demo CTAs are absent from the port, as they must be; (2) the template's stats row (200+/1.2M/99.9%) is not carried over, which reflows everything below the hero by that row's height; (3) the approved template's landing view carries its own markup defect — an unclosed .features div renders a stray 'Mobile for Everyone' card and a duplicated footer, visible in the baseline — which the port correctly does not reproduce. What the detector is FOR is the unprincipled drift beyond all of this: a broken token, a lost rule, a vanished section. That is a coarse detector by nature and the limitation is recorded rather than hidden; re-measure with `pnpm visual:capture --side app` and `pnpm visual:compare` whenever the port changes materially."
+      }
+    },
+    {
+      "id": "login",
+      "template": "EduFlow360_Template_Landing_Auth.html",
+      "view": "view-login",
+      "route": "/{locale}/sign-in",
+      "parity": {
+        "status": "deferred",
+        "story": "PLT-1004",
+        "reason": "The sign-in screen is functional (PLT-101/PLT-105) but styled as an app screen, not yet restyled from the approved template; PLT-1004 T2 is the story that ports it and flips this to measured."
+      }
+    },
+    {
+      "id": "forgot",
+      "template": "EduFlow360_Template_Landing_Auth.html",
+      "view": "view-forgot",
+      "route": "/{locale}/sign-in/forgot",
+      "parity": {
+        "status": "deferred",
+        "story": "PLT-1004",
+        "reason": "Same as login: shipped and wired to POST /auth/password-reset/request, but the presentation is the app's own until PLT-1004 T2 restyles it from the approved template."
+      }
+    },
+    {
+      "id": "reset",
+      "template": "EduFlow360_Template_Landing_Auth.html",
+      "view": "view-reset",
+      "route": "/{locale}/sign-in/reset",
+      "parity": {
+        "status": "deferred",
+        "story": "PLT-1004",
+        "reason": "Same as login: shipped and wired to POST /auth/password-reset/confirm, but the presentation is the app's own until PLT-1004 T2 restyles it from the approved template."
+      }
+    },
+    {
+      "id": "dashboard",
+      "template": "EduFlow360_Template_Admin_Dashboard.html",
+      "view": null,
+      "route": "/{locale}/admin",
+      "parity": {
+        "status": "deferred",
+        "story": "PLT-1005",
+        "reason": "Two reasons, both structural rather than cosmetic: the admin shell is not ported yet (PLT-1005 T3), and the app route is behind SessionGuard with no authenticated-session fixture in the e2e suite, so the app side of this comparison cannot be photographed until PLT-1005 also provisions one. Recorded rather than faked."
+      }
+    }
+  ],
+  "excludedViews": [
+    {
+      "template": "EduFlow360_Template_Landing_Auth.html",
+      "view": "view-landing",
+      "reason": "The landing baseline is taken from 'EduFlow — Frontend Template.html', the donor apps/web/src/features/landing/landing.css records as the port's source. The same screen must not be baselined from two documents."
+    },
+    {
+      "template": "EduFlow360_Template_Landing_Auth.html",
+      "view": "view-dashboard",
+      "reason": "A superseded second dashboard inside the landing template (recorded 2026-10-11). The live dashboard template is 'EduFlow360_Template_Admin_Dashboard.html', which is the dashboard screen's source."
+    },
+    {
+      "template": "EduFlow — Frontend Template.html",
+      "view": "view-login",
+      "reason": "Superseded: the auth screens were ported from 'EduFlow360_Template_Landing_Auth.html' (see the source comments in apps/web/src/features/auth/), so the login baseline comes from that file."
+    },
+    {
+      "template": "EduFlow — Frontend Template.html",
+      "view": "view-forgot",
+      "reason": "Superseded by 'EduFlow360_Template_Landing_Auth.html', the auth screens' actual port source."
+    },
+    {
+      "template": "EduFlow — Frontend Template.html",
+      "view": "view-reset",
+      "reason": "Superseded by 'EduFlow360_Template_Landing_Auth.html', the auth screens' actual port source."
+    },
+    {
+      "template": "EduFlow — Frontend Template.html",
+      "view": "view-dashboard",
+      "reason": "Superseded by 'EduFlow360_Template_Admin_Dashboard.html', the dashboard screen's source."
+    }
+  ]
+}
