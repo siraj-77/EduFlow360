@@ -6,6 +6,21 @@
 ---
 
 
+## 2026-10-13 — the 2026-10-13 handover written (`RESUME_2026-10-13.md`)
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-13 |
+| **Phase** | Milestone 1 · session close-out · no production code. |
+| **Task** | Replace the standing handover with one that describes the tree after `PLT-1003` T4, and point the next session at `PLT-1004` with the order deviation and both owner rulings it needs. |
+| **Agent** | kilo |
+| **Status** | ✅ Complete — `docs/work/RESUME_2026-10-13.md` committed; `TODO.md` header updated in the same commit. |
+| **Activity** | Written against the tree, not from memory: `main` at `8921f0f` (PR #17), clean, no open PRs; story state (`PLT-1003` complete pending owner gates, `PLT-1004` next); the measured gate counts (unit 1508 api / 254 web / 7 shared-types, e2e 41/41, docs:verify 266 refs, route-guards 122 files); the T4 harness's five pieces and the parity-flip procedure; this session's four status corrections and the branch adjudication; and the nine lessons, three of which are PowerShell/environment traps the next session would otherwise re-learn (`.repeat` absent, `Regex.Replace` with a trailing `1` binding to `RegexOptions` rather than a count, `file://` URLs required for direct ESM imports on Windows). |
+| **Files Changed** | `docs/work/RESUME_2026-10-13.md` (new) · `docs/work/TODO.md` (header) · `docs/work/WORKLOG.md` |
+| **Decisions Made** | **(1) The handover recommends a deliberate order deviation inside `PLT-1004` — start at T2 (login/forgot/reset + the server-side 429 AC) rather than the numbered T1 (landing).** The task numbering is unchanged; only the working order is advised, because T2 carries the story's sole security criterion (delete the template's client lockout and demo credentials, render the API's 429 in the template alert) and converts three harness parity rows from deferred to measured, while T1 is a gap-list on a landing port that already exists and whose measured 13% divergence is principled. **(2) The `PLT-1004` AC-4 conflict is recorded as an owner ruling with a stated default, not resolved silently.** AC-4 asks that the false marketing claims stay unchanged and be listed in `TODO.md` as pending; `AGENTS.md` 2.8 forbids carrying them and wins by its own precedence clause. The handover's default while unruled is "do not carry" (matching the current landing) **and** record the discrepancy in `TODO.md`, so the owner rules knowingly. **(3) The e2e flake is recorded with its shape rather than smoothed over** — one non-reproducing webServer-startup-shaped failure, three clean runs after; the next session gets the evidence and the diagnostic hint (leftover dev server on port 3500). |
+| **Next Steps** | `PLT-1004`, branch `feat/plt-1004-public-pages`, T2 first, RED first. Owner gates for `PLT-1003` remain owed in parallel. |
+| **Quality** | Docs-only. `pnpm docs:verify` re-run after the commit (the new file is inside the 266 references' scope tree; the handover names paths, and `docs:verify` is the gate that cannot resolve `path:line` refs, so it is run on every doc change). No Prettier reformat of pre-existing markdown, per the 2026-10-11 rationale. |
+
 ## 2026-10-13 — `PLT-1003` T4: the visual-regression harness, baselines and the measured tolerance
 
 | Field | Entry |

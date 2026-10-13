@@ -45,7 +45,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-13 (`PLT-1003` T4 merged on branch `feat/plt-1003-t4-visual-regression` — 20 baselines, the manifest, `pnpm visual:check` in CI; `PLT-1003` is complete pending its owner gates: T1's `template-checksums.json` confirmation, C-S2 independent review, C-S4 human gate. Then `PLT-1004` — the public pages port — whose T1/T2/T4 consume the new baselines; the auth screens' parity rows flip from deferred to measured there. `main` at `8cffc8c`, no open PRs)
+**Last updated: 2026-10-13 (PR #17 squash `8921f0f` merged — `PLT-1003` T4 done: 20 baselines, the manifest, `pnpm visual:check` in CI; handover for the next session is **`RESUME_2026-10-13.md`**. `PLT-1003` is complete pending its owner gates (T1's `template-checksums.json` confirmation, C-S2 independent review, C-S4 human gate). **Next story: `PLT-1004`, starting at T2 (login/forgot/reset restyled + server-side 429), then T1/T3/T4** — the order deviation and the AC-4 copy ruling are both explained in the handover. `main` at `8921f0f`, no open PRs)
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ✅ DONE 2026-10-13 — `PLT-1003` T4: the visual-regression harness (branch `feat/plt-1003-t4-visual-regression`)
