@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+
+import { AuthAlert } from './auth-alert';
 import { SocialButtons } from './social-buttons';
 
 /**
@@ -25,12 +27,20 @@ export function SignInSocialGrid() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="status" aria-live="polite" data-testid="social-status">
-        {message === null ? null : (
-          <p className="rounded-control border border-danger bg-danger/5 px-3 py-2.5 text-sm font-medium text-danger">
-            {message}
-          </p>
-        )}
+      {/*
+        The card's alert slot, always present and hidden while empty — the
+        same shape `forgot-password-form.tsx` and `reset-password-form.tsx`
+        use, for the same reason: the template's alert element is in the
+        markup at all times. It carries no role; `AuthAlert` announces, and
+        a wrapper with the same role announced it twice.
+
+        This slot used to hold a hand-written copy of the class list while
+        the other three alert sites moved to `AuthAlert`, which is how a
+        shared component gets bypassed. `sign-in-social-grid.spec.tsx` pins
+        it shut.
+      */}
+      <div data-testid="social-status">
+        {message === null ? null : <AuthAlert tone="error">{message}</AuthAlert>}
       </div>
 
       <SocialButtons

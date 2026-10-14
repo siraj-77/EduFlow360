@@ -5,6 +5,23 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 ---
 
+## 2026-10-14 — `PLT-1004` T3: the social grid's alert slot, and the drift a fourth copy had already caused
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-14 |
+| **Phase** | Milestone 1 · `PLT-EPIC-10` · `PLT-1004` · **T3.** |
+| **Task** | T3 — social-login buttons rendered per template, with the handler showing a "not configured" message. |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. T3 was ~90% built by `PLT-101`/`PLT-105`; the missing part was a real gap and a real drift, both now closed. Web suite **279/279 (27 files)**, auth feature **143/143**, `typecheck` and `lint` clean. |
+| **Activity** | Audited T3 against the tree and found `social-buttons.tsx` (four buttons, Google navigating to the API's redirect route, the other three answering "not configured for this deployment" through a `role="alert"` rather than a `window.alert`) and its spec already complete, and `sign-in-social-grid.tsx` wiring it into the sign-in screen at line 108. Then found two gaps. |
+| **Files Changed** | `apps/web/src/features/auth/components/sign-in-social-grid.spec.tsx` (new) · `sign-in-social-grid.tsx` | `docs/work/WORKLOG.md` |
+| **Decisions Made** | **(1) The real T3 gap was a drift, not a missing feature.** `sign-in-social-grid.tsx` still carried a hand-written copy of the old class list — `rounded-control border border-danger bg-danger/5 px-3 py-2.5 text-sm font-medium text-danger` — while the other three alert sites in this feature had just moved to `AuthAlert`. That is the exact failure `AuthAlert` was introduced to prevent, and it had already happened: three sites migrated, the fourth forked. It is now the fourth consumer, and the spec pins the forbidden spellings by name (`bg-danger/5`, `text-sm`, `font-medium`) so review is not the only thing standing between the slot and a fork. **(2) A test was written for the screen-level behaviour, because there was none.** `social-buttons.spec.tsx` covers the component boundary; nothing covered the grid's message on the actual screen, and the drift above would have been invisible without one. **(3) The slot's wrapper keeps no ARIA role**, matching the two screens fixed earlier in the day: `AuthAlert` announces, and a wrapper with the same role announced the same sentence twice. |
+| **Next Steps** | **T1**, the landing gap-list — the only remaining `PLT-1004` task besides close-out, and the one that needs the AC-4 owner ruling before its copy decisions are made. Then `PLT-1004-C-S1`: the full gate set plus the AC → test table. |
+| **Quality (tests, lint/build, issues)** | **RED observed before GREEN:** the styling assertion failed with `expected 'rounded-control border border-danger …' to contain 'text-[13px]'` while the three behavioural assertions passed — which is the honest shape, because the behaviour was already right and only the styling had drifted. Suite 279/279 after GREEN (275 → 279, four new tests). `typecheck` 0 errors, `lint` 0 errors. The visual baselines are unaffected: the alert is not visible on first paint and the screenshots are taken from the initial state, so no re-capture was needed — and no row in `visual-regression.json` moved. |
+
+---
+
 ## 2026-10-14 — `PLT-1004` AC-3: the sign-in screen's language switch, and the e2e flake it exposed
 
 | Field | Entry |
