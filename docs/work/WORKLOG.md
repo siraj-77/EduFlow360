@@ -5,6 +5,23 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 ---
 
+## 2026-10-14 — `PLT-1004` T2/T4: the three auth screens' parity rows flipped `deferred` → `measured`
+
+| Field | Entry |
+| --- | --- |
+| **Date** | 2026-10-14 |
+| **Phase** | Milestone 1 · `PLT-EPIC-10` · `PLT-1004` · **T2's visual half / T4's procedure, on the three auth screens.** |
+| **Task** | Run the parity-flip procedure on `login`, `forgot` and `reset`: port → capture the app side → read the measured ratios → replace each `deferred` row with `measured`, a tolerance above the worst measurement, and a reason enumerating the divergence sources → compare must pass. |
+| **Agent** | kilo |
+| **Status** | ✅ Complete. `pnpm visual:check` — 5 screens × 4 combinations = 20 baselines present and fresh. `pnpm visual:compare` OK — every measured screen inside its recorded tolerance. `visual-regression.json` is Prettier-clean. |
+| **Activity** | Started the dev server on 3500, captured all 16 app-side photographs, read the 12 ratios, and wrote the three rows. |
+| **Files Changed** | `visual-regression.json` (three parity rows) · `docs/work/WORKLOG.md` |
+| **Decisions Made** | **(1) The tolerances are measurements with ~1pp headroom, in the same proportion `landing` already uses** (its worst was 13.13% and it records 0.14). Measured: `login` 5.03 / 5.00 / 5.94 / 5.90 → **0.07**; `forgot` 4.92 / 4.88 / 5.98 / 5.51 → **0.07**; `reset` 2.46 / 2.29 / 5.45 / 5.35 → **0.07**. Following lesson 1 of the 2026-10-13 handover — a tolerance written before measurement is a fabricated number in a gate — the values were read from `visual:compare` before anything was committed. **(2) A placeholder tolerance of 1 was written to the working tree to make the harness photograph the three screens at all, because `captureApp` filters on `parity.status === 'measured'` and the manifest's own error message says deferred screens are photographed by the story that names them.** The placeholder was replaced by the measured value and its divergence sources in the same session and **was never committed** — it exists only in the uncommitted working tree between the capture and this edit. **(3) Each reason enumerates its divergence sources rather than asserting that the screens match.** The honest list is: the recorded copy divergences (pinned in `template-dictionary.spec.ts`), the height difference (the template's `.auth-wrap` is `min-height:calc(100vh - 70px)` beneath a topnav the app screens do not carry — baseline 1280×928 against app 1280×862 / 1280×720, so the overlap is compared), the absent "Remember me", the social grid rendered as ui-kit buttons with accessible names rather than the template's emoji buttons, and the ADR-022 font stack plus the 9px/8px `--radius-control` pairing. **(4) `reset` is the closest of the three (2.29% at its best), and the reason says so with the explanation — it has the least copy to rewrite.** A record that reports the good number but hides that it is good for a reason is a record nobody can re-derive. |
+| **Next Steps** | T2's remaining acceptance criterion is **AC-3** — the language switch to Arabic flips to RTL and persists — which is exercised by the existing e2e shell and needs an assertion that the choice survives a reload. Then **T3** (social buttons: `social-buttons.tsx` already renders four with a "not configured" handler; `social-buttons.spec.tsx` covers it, so T3 is largely verification). Then **T1**, the landing gap-list, which is where the AC-4 owner ruling is needed. |
+| **Quality (tests, lint/build, issues)** | `visual:check` and `visual:compare` both green, 20/20 combinations, every reading quoted above from the command's own output rather than transcribed from a plan. No source file changed in this stage, so `test`/`typecheck`/`lint` are unchanged from the GREEN commit (275/275, 0 errors, 0 errors). One environment note: the dev server had to be started as a tracked background process and stopped afterwards, since `--side app` refuses to run without a server on port 3500; the capture also needed `--side app` passed through `pnpm` as `-- --side app`. The `tests/visual/actual/` photographs are a local artefact and were left uncommitted — `visual:check` is browser-free and CI runs only that. |
+
+---
+
 ## 2026-10-14 — `PLT-1004` T2 GREEN: `AuthAlert` is the template's `.alert` slot, shared by all three auth screens
 
 | Field | Entry |

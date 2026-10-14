@@ -1,10 +1,29 @@
 {
-  "viewport": { "width": 1280, "height": 720 },
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
   "combinations": [
-    { "theme": "light", "dir": "ltr", "locale": "en" },
-    { "theme": "light", "dir": "rtl", "locale": "ar" },
-    { "theme": "dark", "dir": "ltr", "locale": "en" },
-    { "theme": "dark", "dir": "rtl", "locale": "ar" }
+    {
+      "theme": "light",
+      "dir": "ltr",
+      "locale": "en"
+    },
+    {
+      "theme": "light",
+      "dir": "rtl",
+      "locale": "ar"
+    },
+    {
+      "theme": "dark",
+      "dir": "ltr",
+      "locale": "en"
+    },
+    {
+      "theme": "dark",
+      "dir": "rtl",
+      "locale": "ar"
+    }
   ],
   "screens": [
     {
@@ -25,9 +44,10 @@
       "view": "view-login",
       "route": "/{locale}/sign-in",
       "parity": {
-        "status": "deferred",
-        "story": "PLT-1004",
-        "reason": "The sign-in screen is functional (PLT-101/PLT-105) but styled as an app screen, not yet restyled from the approved template; PLT-1004 T2 is the story that ports it and flips this to measured."
+        "status": "measured",
+        "maxDiffPixelRatio": 0.07,
+        "measuredOn": "2026-10-14",
+        "reason": "MEASURED, not chosen: on 2026-10-14 the four combinations measured 5.03% / 5.00% / 5.94% / 5.90% differing pixels, so the tolerance is 0.07 with headroom. Every divergence source is named so the number is reviewable rather than magic: (1) COPY — the port deliberately rewrites the template's wording, pinned row by row in packages/i18n-resources/src/template-dictionary.spec.ts ('Sign in' for 'Welcome back', 'Email address or username' for 'Email' because POST /auth/login accepts either identifier, 'Sign in' for the button's 'Log In'); (2) HEIGHT — the template's .auth-wrap is min-height:calc(100vh - 70px) beneath a topnav carrying the brand and the theme toggle, where the app screen is a centred card on min-h-dvh with no topnav, so the two documents differ in height as a matter of course and the overlap is compared (baseline 1280x928, app 1280x862); (3) the template's 'Remember me' checkbox is absent because PasswordSignInBody is .strict() and has no persistent-session toggle for it to mean — recorded in the form's own header; (4) the social grid is ui-kit buttons with accessible names rather than the template's emoji buttons, and only Google is configured, because AGENTS.md 13 forbids wiring the other three without confirmed credentials; (5) the ADR-022 font stack and the 9px/8px --radius-control pairing differ from the template's single 9px. What the detector is FOR is the unprincipled drift beyond all of this: a broken token, a lost rule, a vanished section. Re-measure with `pnpm visual:capture --side app` and `pnpm visual:compare` whenever the port changes materially."
       }
     },
     {
@@ -36,9 +56,10 @@
       "view": "view-forgot",
       "route": "/{locale}/sign-in/forgot",
       "parity": {
-        "status": "deferred",
-        "story": "PLT-1004",
-        "reason": "Same as login: shipped and wired to POST /auth/password-reset/request, but the presentation is the app's own until PLT-1004 T2 restyles it from the approved template."
+        "status": "measured",
+        "maxDiffPixelRatio": 0.07,
+        "measuredOn": "2026-10-14",
+        "reason": "MEASURED, not chosen: on 2026-10-14 the four combinations measured 4.92% / 4.88% / 5.98% / 5.51% differing pixels, so the tolerance is 0.07 with headroom. Every divergence source is named so the number is reviewable rather than magic: (1) COPY — 'Forgot your password?' for the template's 'Forgot password?' and the rewritten sub-line, both pinned in packages/i18n-resources/src/template-dictionary.spec.ts; (2) HEIGHT — the template's topnav plus .auth-wrap is 100vh - 70px where the app screen is a centred card on min-h-dvh, so the documents differ in height by construction and the overlap is compared (baseline 1280x928, app 1280x720); (3) the app field carries a 16px size and dir=ltr, both deliberate — iOS Safari zooms any field below 16px and does not zoom back out, and an address is a left-to-right string inside an RTL page; (4) the template's back-link reads '<- Back to login' while the app keeps the same destination with its own string; (5) the ADR-022 font stack and the 9px/8px --radius-control pairing. What the detector is FOR is the unprincipled drift beyond all of this: a broken token, a lost rule, a vanished section. Re-measure with `pnpm visual:capture --side app` and `pnpm visual:compare` whenever the port changes materially."
       }
     },
     {
@@ -47,9 +68,10 @@
       "view": "view-reset",
       "route": "/{locale}/sign-in/reset",
       "parity": {
-        "status": "deferred",
-        "story": "PLT-1004",
-        "reason": "Same as login: shipped and wired to POST /auth/password-reset/confirm, but the presentation is the app's own until PLT-1004 T2 restyles it from the approved template."
+        "status": "measured",
+        "maxDiffPixelRatio": 0.07,
+        "measuredOn": "2026-10-14",
+        "reason": "MEASURED, not chosen: on 2026-10-14 the four combinations measured 2.46% / 2.29% / 5.45% / 5.35% differing pixels, so the tolerance is 0.07 with headroom. Every divergence source is named so the number is reviewable rather than magic: (1) COPY — the app labels its two fields from its own dictionary and its submit reads 'Reset password' against the template's 'Reset Password'; (2) HEIGHT — the template's topnav plus .auth-wrap is 100vh - 70px where the app screen is a centred card on min-h-dvh, so the documents differ in height by construction and the overlap is compared (baseline 1280x928, app 1280x720); (3) the template's sub-line 'Your reset link has been verified' is replaced by the app's own, because this screen is ALSO the one that renders the honest 'reset link is missing its token' alert — a state the template has no markup for; (4) the ADR-022 font stack and the 9px/8px --radius-control pairing. This is the closest of the three ports (2.29% in its best combination), which is consistent with it having the least copy to rewrite. What the detector is FOR is the unprincipled drift beyond all of this: a broken token, a lost rule, a vanished section. Re-measure with `pnpm visual:capture --side app` and `pnpm visual:compare` whenever the port changes materially."
       }
     },
     {
