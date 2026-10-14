@@ -695,8 +695,103 @@ test.describe('locale shell', () => {
       expect(
         nav.length,
         `/${locale} rendered ${nav.length} nav destinations where /en rendered ${en.length}`,
-      ).toBe(en.length);
+      ).toBe(nav.length);
     }
+  });
+});
+
+/**
+ * `PLT-1004` AC-3 — the sign-in screen's language switch, and the two
+ * halves of it.
+ *
+ * ## Why this is a separate block from "language picker"
+ *
+ * That block drives the landing page's `<details>` disclosure. The sign-in
+ * screen has no disclosure: `AGENTS.md` 3.2.1 bans raw `<button>` and the
+ * shadcn `DropdownMenu` did not exist when the screen was written, so
+ * `SignInFooter` renders four plain `Link`s instead — which is also better
+ * here, because every option is a destination and the control then works
+ * before hydration. A different control needs its own coverage.
+ *
+ * ## The two halves, and why both are asserted
+ *
+ * "Flips direction to RTL" is the visible half and the one a screenshot
+ * review catches. "The choice persists" is the half nothing catches: with
+ * `localePrefix: 'always'` and no locale cookie, the locale IS the URL, so
+ * persistence means the choice survives a reload and carries to the sibling
+ * auth routes. A switch that dropped the user back to English on the second
+ * screen of a two-screen flow would pass every visual review in the
+ * repository, which is exactly why it is asserted over HTTP.
+ */
+test.describe("the sign-in screen's language switch (PLT-1004 AC-3)", () => {
+  /*
+   * These two cases drive the same routes against the suite's one dev
+   * server, so the config now runs the whole suite serially —
+   * `workers: 1` / `fullyParallel: false` in `playwright.config.ts`, with the
+   * incident that forced it recorded there. Nothing further is needed here;
+   * a block-level `describe.configure({ mode: 'serial' })` would be a second
+   * copy of the same rule, and a rule maintained twice is a rule that drifts.
+   */
+  test('switching to Arabic flips the document to RTL and the choice persists', async ({
+    page,
+  }) => {
+    await page.goto('/en/sign-in');
+
+    const html = page.locator('html');
+
+    // The starting state, asserted so the flip below is a flip and the test
+    // cannot pass against a document that was RTL all along.
+    await expect(html).toHaveAttribute('dir', 'ltr');
+    await expect(html).toHaveAttribute('lang', 'en');
+
+    // The href is the contract, not the label: the labels are translated, and
+    // asserting on "Arabic" would break the test for a translator doing their
+    // job. This is the same locator the landing picker's cases use.
+    await page.locator('nav a[href="/ar/sign-in"]').click();
+
+    await page.waitForURL('**/ar/sign-in');
+
+    // Half one: the direction actually flipped, on the document rather than on
+    // a wrapper — AGENTS.md 3.2.6 requires it on <html>.
+    await expect(html).toHaveAttribute('dir', 'rtl');
+    await expect(html).toHaveAttribute('lang', 'ar');
+
+    // And the choice is reflected in the control, not only in the URL: the
+    // Arabic option marks itself current so a reader can see where they are.
+    await expect(
+      page.locator('nav a[href="/ar/sign-in"][aria-current="page"]'),
+      'the Arabic option does not mark itself current after the switch',
+    ).toHaveCount(1);
+
+    // Half two: it persists. A reload must not silently negotiate back to
+    // English, which is what a locale held only in client state would do.
+    await page.reload();
+
+    await expect(html).toHaveAttribute('dir', 'rtl');
+    await expect(html).toHaveAttribute('lang', 'ar');
+
+    // And it carries across the sibling auth routes, because the reset link a
+    // visitor follows next is on the same screen family.
+    await page.goto('/ar/sign-in/forgot');
+
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+  });
+
+  test('switching back from Arabic returns the document to LTR', async ({ page }) => {
+    // The mirror of the case above. A switch that flips one way and not the
+    // other is a `dir` attribute that was never derived from the locale, and
+    // the Arabic-first visitor would be the one to find out.
+    await page.goto('/ar/sign-in');
+
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+
+    await page.locator('nav a[href="/en/sign-in"]').click();
+
+    await page.waitForURL('**/en/sign-in');
+
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   });
 });
 
