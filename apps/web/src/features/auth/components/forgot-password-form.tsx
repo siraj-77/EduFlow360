@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, Input, Spinner } from '@eduflow/ui-kit';
 
+import { AuthAlert } from './auth-alert';
+
 /**
  * The forgot-password form (`PLT-105` T3's first screen), on the approved
  * template's card (`docs/template/EduFlow360_Template_Landing_Auth.html`).
@@ -64,17 +66,18 @@ export function ForgotPasswordForm({
       className="flex flex-col gap-4"
     >
       {/*
-        The alert slot the template's card carries. It is here, in the DOM,
-        exactly where the template puts it, so the success sentence appears in
-        the card's own alert position rather than somewhere a reader of the
-        template would not recognise.
+        The alert slot the template's card carries. The template's
+        `#forgotAlert` is in the markup at all times — `display:none` while
+        empty — so this wrapper stays put and only the message inside it is
+        conditional, which is also why the slot keeps the test hook and the
+        message does not need one.
+
+        The wrapper carries NO role: `AuthAlert` announces the message as a
+        `status`, and a `role="status"` div holding a `role="status"`
+        paragraph said the same sentence to a screen reader twice.
       */}
-      <div role="status" aria-live="polite" data-testid="forgot-status">
-        {sentState ? (
-          <p className="rounded-control border border-ok bg-ok/5 px-3 py-2.5 text-sm font-medium text-ok">
-            {t('auth.resetRequestSent')}
-          </p>
-        ) : null}
+      <div data-testid="forgot-status">
+        {sentState ? <AuthAlert tone="ok">{t('auth.resetRequestSent')}</AuthAlert> : null}
       </div>
 
       <div className="flex flex-col gap-1.5">

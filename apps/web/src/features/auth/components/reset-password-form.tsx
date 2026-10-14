@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, Input, Spinner } from '@eduflow/ui-kit';
 
+import { AuthAlert } from './auth-alert';
+
 /**
  * The reset-confirm form (`PLT-105` T3's second screen), on the approved
  * template's card.
@@ -56,13 +58,9 @@ export function ResetPasswordForm({
     // The honest answer for a link that lost its token. A form here would be
     // a form that cannot work, and a stranger would blame the school.
     return (
-      <p
-        role="alert"
-        data-testid="reset-token-missing"
-        className="rounded-control border border-danger bg-danger/5 px-3 py-2.5 text-sm font-medium text-danger"
-      >
+      <AuthAlert tone="error" testId="reset-token-missing">
         {t('auth.resetTokenMissing')}
-      </p>
+      </AuthAlert>
     );
   }
 
@@ -91,10 +89,10 @@ export function ResetPasswordForm({
 
   if (result === 'reset') {
     return (
-      <div role="status" aria-live="polite" className="flex flex-col gap-4">
-        <p className="rounded-control border border-ok bg-ok/5 px-3 py-2.5 text-sm font-medium text-ok">
+      <div className="flex flex-col gap-4">
+        <AuthAlert tone="ok" testId="reset-success">
           {t('auth.resetSuccess')}
-        </p>
+        </AuthAlert>
         <a
           href={`/${locale}/sign-in`}
           className="text-center text-sm font-medium text-brand hover:underline"
@@ -116,12 +114,15 @@ export function ResetPasswordForm({
       }}
       className="flex flex-col gap-4"
     >
-      <div role="status" aria-live="polite" data-testid="reset-status">
-        {result === 'refused' ? (
-          <p className="rounded-control border border-danger bg-danger/5 px-3 py-2.5 text-sm font-medium text-danger">
-            {t('auth.resetRefused')}
-          </p>
-        ) : null}
+      {/*
+        The alert slot in the template's position, above the fields. The
+        template's `#resetAlert` is in the markup at all times and hidden
+        while empty, so the wrapper stays and only the message is
+        conditional. No role on the wrapper — `AuthAlert` announces it, and
+        nesting a `status` inside a `status` said it twice.
+      */}
+      <div data-testid="reset-status">
+        {result === 'refused' ? <AuthAlert tone="error">{t('auth.resetRefused')}</AuthAlert> : null}
       </div>
 
       <div className="flex flex-col gap-1.5">

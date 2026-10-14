@@ -69,17 +69,36 @@ function ruleBody(css: string, selector: string): string {
   return new RegExp(`${escaped}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
 }
 
-/** A custom property's value. `occurrence` picks the light (0) or dark (1) block. */
+/**
+ * A custom property's value. `occurrence` picks the light (0) or dark (1) block.
+ *
+ * The match is kept from the loop's own last `exec`, not taken from a second
+ * call afterwards: advancing a global regex past the match it just found
+ * returns the NEXT occurrence, which silently turns "the light value" into
+ * "the dark value" and makes a correct component look wrong.
+ */
 function tokenValue(css: string, token: string, occurrence = 0): string {
   const pattern = new RegExp(`--${token}\\s*:\\s*([^;}]+)`, 'g');
 
   for (let index = 0; index <= occurrence; index += 1) {
-    const match = pattern.exec(css);
+    const found = pattern.exec(css);
 
-    if (match === null) return '';
+    if (found === null) return '';
+
+    // Returned from INSIDE the loop on the last iteration. Advancing a global
+    // regex past the match it just found is what turns "the light value" into
+    // "the dark value" — the bug this shape exists to prevent.
+    if (index === occurrence) {
+      // The pattern always carries the capture group, so this is unreachable
+      // in practice; TS cannot know that, and an unchecked group access is the
+      // shape that later returns `undefined` into a comparison.
+      const captured = found[1];
+
+      return captured === undefined ? '' : captured.trim();
+    }
   }
 
-  return pattern.exec(css)?.[1]?.trim() ?? '';
+  return '';
 }
 
 /** `#rrggbb` to the `r,g,b` triple the template writes without its hash. */
@@ -150,18 +169,36 @@ const opacityModifier = (alpha: string): string => String(Math.round(Number(alph
 /**
  * The template's padding to the Tailwind spacing utility that renders it.
  *
- * The kit's spacing scale is 4px per unit, so 10px is 2.5 and 12px is 3. If a
- * template value ever lands off-scale this returns the literal `[…]` form
- * rather than a silently wrong neighbour.
+ * The kit's scale is 4px per unit and Tailwind ships a named step at every
+ * HALF unit — `py-2.5` is 10px, not a rounding of it — so a half unit is on
+ * scale and takes the numeric form. Anything finer needs the arbitrary
+ * `[…]` form rather than a silently wrong neighbour.
  */
 const spacingUtility = (axis: 'x' | 'y', pixels: string): string => {
   const units = Number(pixels) / 4;
+  const onScale = Number.isInteger(units * 2);
 
-  return `${axis === 'x' ? 'px' : 'py'}-${Number.isInteger(units) ? units : `[${pixels}px]`}`;
+  return `${axis === 'x' ? 'px' : 'py'}-${onScale ? units : `[${pixels}px]`}`;
 };
 
-const classNamesOf = (testId: string): string =>
-  screen.getByTestId(testId).getAttribute('class') ?? '';
+/**
+ * Render one slot and read its class list.
+ *
+ * The render is inside the helper, not in a shared `beforeEach`, because
+ * each test below asserts about a DIFFERENT element and a shared render
+ * would make every test depend on a fact it does not check. Cleanup is
+ * automatic: `vitest.config.ts` sets `globals: true`, which is what
+ * `@testing-library/react` looks for to register its `afterEach`.
+ */
+const classesOf = (tone: 'error' | 'ok', testId = `auth-alert-${tone}`): string => {
+  render(
+    <AuthAlert tone={tone} testId={testId}>
+      {tone === 'error' ? 'failed' : 'sent'}
+    </AuthAlert>,
+  );
+
+  return screen.getByTestId(testId).getAttribute('class') ?? '';
+};
 
 describe("the template's alert slot (PLT-1004 T2 / AC-2)", () => {
   it('reads the rules it is comparing against', () => {
@@ -202,21 +239,21 @@ describe("the template's alert slot (PLT-1004 T2 / AC-2)", () => {
     // quietly on some other number.
     expect(tokenValue(KIT_STYLES, 'radius-control')).toBe(`${TEMPLATE_VALUES.radius}px`);
 
-    expect(classNamesOf('auth-alert-error')).toContain('rounded-control');
+    expect(classesOf('error')).toContain('rounded-control');
   });
 
   it.each([
     { axis: 'x', template: TEMPLATE_VALUES.paddingX },
     { axis: 'y', template: TEMPLATE_VALUES.paddingY },
   ] as const)("pads the slot by the template's own $axis value", ({ axis, template }) => {
-    expect(classNamesOf('auth-alert-error')).toContain(spacingUtility(axis, template ?? '0'));
+    expect(classesOf('error')).toContain(spacingUtility(axis, template ?? '0'));
   });
 
   it("sets the template's own font size on the slot", () => {
     // 13px is the template's auth-slot size. The kit has no `text-13`
     // utility, so this is the one place an arbitrary value is honest rather
     // than a hard-coded hex equivalent.
-    expect(classNamesOf('auth-alert-error')).toContain(`text-[${TEMPLATE_VALUES.fontSize}px]`);
+    expect(classesOf('error')).toContain(`text-[${TEMPLATE_VALUES.fontSize}px]`);
   });
 
   it("paints the error slot with the template's danger token at its alpha", () => {
@@ -226,7 +263,7 @@ describe("the template's alert slot (PLT-1004 T2 / AC-2)", () => {
     expect(TEMPLATE_VALUES.error.backgroundTriple).toBe(hexToTriple(TEMPLATE_DANGER));
     expect(TEMPLATE_VALUES.error.borderTriple).toBe(hexToTriple(TEMPLATE_DANGER));
 
-    const classes = classNamesOf('auth-alert-error');
+    const classes = classesOf('error');
 
     expect(classes).toContain(
       `bg-danger/${opacityModifier(TEMPLATE_VALUES.error.backgroundAlpha ?? '0')}`,
@@ -243,7 +280,7 @@ describe("the template's alert slot (PLT-1004 T2 / AC-2)", () => {
     expect(TEMPLATE_VALUES.ok.backgroundTriple).toBe(hexToTriple(TEMPLATE_OK));
     expect(TEMPLATE_VALUES.ok.borderTriple).toBe(hexToTriple(TEMPLATE_OK));
 
-    const classes = classNamesOf('auth-alert-ok');
+    const classes = classesOf('ok');
 
     expect(classes).toContain(
       `bg-ok/${opacityModifier(TEMPLATE_VALUES.ok.backgroundAlpha ?? '0')}`,
