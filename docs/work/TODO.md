@@ -45,7 +45,7 @@
 > files sequentially (`fileParallelism: false`) over one bounded pool
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
-**Last updated: 2026-10-13 (PR #17 squash `8921f0f` merged — `PLT-1003` T4 done: 20 baselines, the manifest, `pnpm visual:check` in CI; handover for the next session is **`RESUME_2026-10-13.md`**. `PLT-1003` is complete pending its owner gates (T1's `template-checksums.json` confirmation, C-S2 independent review, C-S4 human gate). **Next story: `PLT-1004`, starting at T2 (login/forgot/reset restyled + server-side 429), then T1/T3/T4** — the order deviation and the AC-4 copy ruling are both explained in the handover. `main` at `8921f0f`, no open PRs)
+**Last updated: 2026-10-14 — `PLT-1004` T2 RED committed on branch `feat/plt-1004-public-pages` (started at T2, the deliberate order deviation `RESUME_2026-10-13.md` records). Two specs written: `auth-alert.spec.tsx` is RED (`Failed to resolve import "./auth-alert"`) and `no-client-lockout.spec.ts` is green with its teeth proven by a temporary probe. Nothing in production changed yet; GREEN is the next step.** `PLT-1003` remains complete pending its owner gates (T1's `template-checksums.json` confirmation, C-S2 independent review, C-S4 human gate). `main` at `efd10c7`, no open PRs
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ✅ DONE 2026-10-13 — `PLT-1003` T4: the visual-regression harness (branch `feat/plt-1003-t4-visual-regression`)
