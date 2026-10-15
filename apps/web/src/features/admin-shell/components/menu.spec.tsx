@@ -30,6 +30,6 @@ describe('filterMenu', () => {
 
     const result = filterMenu(menu, granted);
     expect(result.map((entry) => entry.id)).toEqual(['setup']);
-    expect(result[0].children?.map((entry) => entry.id)).toEqual(['users']);
+    expect(result[0]?.children?.map((entry) => entry.id)).toEqual(['users']);
   });
 });
