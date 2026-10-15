@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button, EyeIcon, EyeOffIcon, Input, Spinner } from '@eduflow/ui-kit';
 
 import { CredentialField } from './credential-field';
+import { AuthAlert } from './auth-alert';
 import { focusTargetFor, useSignIn } from '../hooks/use-sign-in';
 import { safeNextPath } from '@/lib/safe-next-path';
 
@@ -254,25 +255,20 @@ export function SignInForm({ locale }: { readonly locale: string }) {
       </div>
 
       {/*
-        The form-level message. `role="alert"` so it interrupts, and
-        `tabIndex={-1}` so it can receive focus when it is the only thing wrong: a
-        screen-reader user who hears "incorrect" with no focus change has been told
-        nothing about where to look next.
+        The form-level message, in the template's `.alert` slot.
 
-        The border AND the colour AND the text carry it. `border-danger` on a
-        `bg-danger/5` field is a second, non-colour signal for anyone who cannot
-        separate the hues, and the message text states the problem in words.
+        `AuthAlert` owns the styling, the `role="alert"` and the polite/
+        assertive split, because the template carries ONE `.alert` rule shared
+        by all three auth screens and a shared style belongs in one place —
+        see the component's own header. What this screen still owns is the
+        behaviour the slot cannot: `tabIndex={-1}` and the ref, so the
+        focus-after-refusal effect above can move focus here when the message
+        is the only thing wrong.
       */}
       {formMessage === null ? null : (
-        <p
-          ref={messageRef}
-          role="alert"
-          tabIndex={-1}
-          data-testid="sign-in-form-message"
-          className="rounded-control border border-danger bg-danger/5 px-3 py-2.5 text-sm font-medium text-danger"
-        >
+        <AuthAlert ref={messageRef} tone="error" testId="sign-in-form-message" tabIndex={-1}>
           {formMessage}
-        </p>
+        </AuthAlert>
       )}
 
       <Button

@@ -55,7 +55,54 @@ const PROBE_PATH = '/';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  /**
+   * One client against one dev server. Both settings say the same thing and
+   * both exist because of an incident on 2026-10-14.
+   *
+   * ## What happened
+   *
+   * With `fullyParallel: true`, `PLT-1004` AC-3's two cases ran in parallel
+   * workers against the single dev server this config starts. Both drive the
+   * same routes, so one worker's request for `/ar/sign-in` raced the other's
+   * and the dev server truncated an RSC payload:
+   *
+   *     SyntaxError: Unexpected end of JSON input
+   *       page: '/ar/sign-in'
+   *     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+   *
+   * A full reload mid-navigation re-creates `<html>`, and for the window
+   * before the layout renders again the `dir` attribute reads as `null`. The
+   * assertion failed with `unexpected value "null"` on a document whose
+   * server-sent HTML carries `dir="ltr"` — verified by fetching the route
+   * directly, and by re-running the same two tests green three times.
+   *
+   * It was NOT confined to the new tests: the same `Unexpected end of JSON
+   * input` appeared beside the pre-existing "following the sign-in link
+   * resolves rather than 404s", which failed on one run of 43 and passed on
+   * the next. That is the same shape the 2026-10-13 handover records as its
+   * lesson 9 ("the shape of a webServer-startup failure, not the app") and
+   * `SEC-112` fixed for `vitest.integration.config.ts` when spec files raced
+   * on one database — serialise against the shared resource.
+   *
+   * ## Why this is the fix and not a retry
+   *
+   * `retries` is already 2 on CI, and it did not help: a retry re-runs the
+   * test against the same warm server, so the race is gone by then and the
+   * retry passes — which is exactly how a flake becomes invisible rather than
+   * fixed. The dev server is a single shared resource by construction (see
+   * the `webServer` note below), so serial clients is the topology this
+   * suite actually has. `fullyParallel: false` orders the tests inside a
+   * file; `workers: 1` also orders ACROSS files, which matters the moment a
+   * second spec file is added.
+   *
+   * The cost is wall-clock: the suite compiles every route from a wiped
+   * `.next` (see `webServer` below), and serialising means one compilation
+   * at a time. The per-test budgets already assume cold compiles, so this
+   * trades parallelism the suite cannot safely use for a green gate that
+   * means one thing.
+   */
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
