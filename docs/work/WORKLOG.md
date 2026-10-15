@@ -4688,3 +4688,10 @@ port-prose edits, credential rotation, archive redaction).
 | **Decisions** | Owner chose eduflow360db over the clean eduflowdb_new; we do not alter tests to cover it up. |
 | **Next Steps** | Clean the residue in eduflow360db or leave it as documented evidence-only red test. |
 | **Quality** | Tests reported exactly 1 failed (seed password contract); all 323 passed |
+
+
+
+## 2026-10-15 — Recommendation 3 executed: `.env` repointed back to `eduflowdb_new`
+- Command: `pnpm test:integration` with no environment override.
+- Result: 23/23 test files, 324/324 tests, 57.96s.
+- Post-run note: `eduflow360db` retained only as archival reference; no tracked files changed (`.env` stays gitignored).
