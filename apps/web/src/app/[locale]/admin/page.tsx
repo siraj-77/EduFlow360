@@ -4,6 +4,7 @@ import { routing } from '@/i18n/routing';
 import { RequirePermission } from '@/features/rbac/components/require-permission';
 import { PermissionsProvider } from '@/features/rbac/hooks/use-permissions';
 import { AdminShell } from '@/features/admin-shell/components/admin-shell';
+import { AdminTopBar } from '@/features/admin-shell/components/admin-topbar';
 import { Card, CardContent, CardHeader } from '@eduflow/ui-kit';
 
 export function generateStaticParams() {
@@ -25,6 +26,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
       <RequirePermission permission="ADMIN_CONSOLE_ACCESS">
         <AdminShell
           sidebar={<nav aria-label="primary navigation" className="admin-shell-sidebar" data-testid="admin-shell-sidebar" />}
+          topbar={<AdminTopBar searchPlaceholder={t('common.search')} />}
         >
           <main className="admin-main-content">
             <Card>
