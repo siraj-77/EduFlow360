@@ -5,6 +5,23 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 ---
 
+## 2026-10-15 — API-101 partially closed: local integration DB corrected and green
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-10-15 |
+| **Phase** | Milestone 1 — `API-101` corrective action (not a feature story). |
+| **Task** | Apply the pending migration to the identified local database and re-run the integration gate without overriding `DATABASE_URL`. |
+| **Agent** | CatJam (OpenCode) |
+| **Status** | ✅ **Verified locally.** Pending migration applied and `pnpm test:integration` passed 324/324. |
+| **Activity** | `eduflowdb_new` was the only migrated (baseline-applied) database; `eduflowdb` had zero migration history. Applied pending migration `20261011091533_password_reset_token` via `prisma migrate deploy` (no data deletion, only added `password_reset_tokens` table). `.env`'s `DATABASE_URL` was repointed from `eduflow360db` to `eduflowdb_new`; `.env.bak_20261015` retained. Verified `prisma migrate status` shows *“Database schema is up to date!”*, then `pnpm test:integration` with no manual env override **passed 23 files / 324 tests** in 56.4s. `.env.local` intentionally left untouched (it carries a legacy pre-rename artifact). |
+| **Files Changed** | Local only (ignored): `.env` (repaint), `.env.bak_20261015` (backup). Docs: `docs/work/WORKLOG.md` appended. |
+| **Decisions Made** | (1) The `API-101` ticket now has a working local gate: the candidate chosen is `eduflowdb_new`, and the integration default is explicit. (2) No tracked .env changes and no tracked schema/type changes; this is a local-environment repair. (3) Remaining residue in `eduflowdb` is untouched, matching the owner guidance that dropping anything is not a drive-by fix. (4) `.env.local` is left as-is because it holds legacy Google credentials and can be superseded by a later credential-rotation ticket. |
+| **Next Steps** | Mark/classify `API-101` as repaired in the public record if the owner accepts `eduflowdb_new` as the canonical local DB and confirms whether `eduflowdb` should remain as a reference-only legacy DB afterward. |
+| **Quality (tests, lint/build, issues)** | `pnpm test:integration` — 23/23 files, 324/324 tests, 56.4s, against `.env` without manual `DATABASE_URL`. `prisma migrate status` confirms schema up to date. |
+
+---
+
 ## 2026-10-15 — PLT-1004 T1 gap list (omit + record) and API-101 local DB discovery
 
 | Field | Entry |
