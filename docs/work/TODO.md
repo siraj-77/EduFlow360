@@ -46,6 +46,19 @@
 > (`connection_limit=15`), and the suite is green (240/240, 14 files, 36.5s).
 
 **Last updated: 2026-10-14 — `PLT-1004` T2, T3, T4 and AC-2/AC-3 are DONE and **open as PR #19** (`https://github.com/siraj-77/EduFlow360/pull/19`), branch `feat/plt-1004-public-pages`, HEAD `bb270b4`, working tree clean, pushed. The PR deliberately excludes T1/AC-1/AC-4, which are blocked on the ⚑N AC-4 marketing-copy ruling. Handover for the next session is **`RESUME_2026-10-14.md`**. Gates: web 279/279 unit (27 files), 143/143 auth, typecheck 8/8, lint 8/8, e2e 43/43 twice, visual:check 20 baselines, visual:compare 4 screens inside tolerance, route-guards 122 files, check:templates OK, **CI green on run 38591701150 (both jobs, 5m27s)**.** `API-101` was raised and then **corrected** the same day: its root cause is a wrong local `DATABASE_URL`, not a regressed seed — see the WORKLOG correction entry before trusting any earlier wording. `PLT-1003` remains complete pending its own owner gates. `main` at `efd10c7`, one open PR
+
+> ## ⚑N — AC-4 discrepancy (PLT-1004, default applied 2026-10-15)
+>
+> The false marketing claims `Trusted by 200+ schools`, `1.2M Students
+> Managed`, `Start Free Trial` (and the template's `Mobile for Everyone` chip)
+> are **deliberately omitted** from the port, per `AGENTS.md` §2.8 and D2/D4.
+> Their absence is asserted by `apps/web/tests/e2e/shell.spec.ts` and is the
+> dominant part of the documented 13.13/12.86/13.11/12.05% visual tolerance.
+> Full gap list: `docs/modules/landing/PLT-1004-T1-gap-list.md`.
+> If the owner instead approves carrying them unchanged, the strings must be
+> added to both i18n resources and the test, and the landing tolerance
+> re-measured — not silently flipped either way.
+
 **How to use:** the topmost unchecked item is the next task. Log completion in `WORKLOG.md` in the same commit.
 
 > ## ✅ DONE 2026-10-13 — `PLT-1003` T4: the visual-regression harness (branch `feat/plt-1003-t4-visual-regression`)

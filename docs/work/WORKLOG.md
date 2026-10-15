@@ -5,6 +5,23 @@
 **Convention:** Newest first. Log "In Progress" **before** starting; log immediately after completing a task, decision, test/build run or bug fix. Updated **in the same commit** as the change.
 ---
 
+## 2026-10-15 — PLT-1004 T1 gap list (omit + record) and API-101 local DB discovery
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-10-15 |
+| **Phase** | Milestone 1 · PLT-1004 (`PLT-EPIC-10`) — T1 gap list + `API-101` discovery (docs only). |
+| **Task** | (1) Record the landing port's remaining gaps and the AC-4 discrepancy for owner review. (2) Discover which local database actually carries the migrated schema, without mutating anything. |
+| **Agent** | CatJam (OpenCode) |
+| **Status** | Complete — documentation-only. No code, schema, or database changes. |
+| **Activity** | Created `docs/modules/landing/PLT-1004-T1-gap-list.md` describing the principled divergences (omitted copy, no figure invention, no stats-row height, no template markup defect, links rather than shadcn dropdown, reduced-motion and font-stack gaps recorded but not closed). Interrogated the local server with `prisma migrate status` against both plausible databases — baseline is *applied* in `eduflowdb_new` and *absent* in `eduflowdb`, which directly supports `RESUME_2026-10-14.md`'s discovery that the residue with passworded accounts lives in `eduflowdb`. Captures the AC-4 discrepancy text in TODO.md documentation. |
+| **Files Changed** | `docs/modules/landing/PLT-1004-T1-gap-list.md` (new) · `docs/work/TODO.md` (AC-4 discrepancy note) · `docs/work/WORKLOG.md` (this entry). |
+| **Decisions Made** | (1) Default on ⚑N holds: omit, record, do not invent figures. (2) `eduflowdb_new` is the only candidate that is migrated (baseline applied); `eduflowdb` has zero migration history. (3) Still not fixing `API-101` (no `.env` change, no migration apply, no single table drop) — AGENTS §11 wants the missing target named first. |
+| **Next Steps** | Owner (or agent with permission) to confirm the authoritative local DB (most likely `eduflowdb_new`), then apply the missing `password_reset_token` migration before retrying `pnpm test:integration`, plus migrate remaining `FIX-11`/`FIX-12` work that is owner-keyed. |
+| **Quality (tests, lint/build, issues)** | No gates executed for content creation; `pnpm docs:verify` should be run afterward to confirm references still resolve. |
+
+---
+
 ## 2026-10-14 — Correction to API-101 (and to PR #19): the root cause is a wrong local database, not a regressed seed
 
 | Field                                   | Entry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
