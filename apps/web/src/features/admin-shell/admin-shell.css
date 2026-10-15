@@ -1,0 +1,10 @@
+.admin-shell{display:flex;min-height:100%;font-family:var(--font-sans,inherit)}
+.admin-shell-sidebar{width:264px;flex-shrink:0;background:var(--surface);border-inline-end:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:30;transition:width .2s}
+.admin-shell-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.admin-shell-topbar{display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.admin-shell-topbar main,.admin-shell-main main{padding:22px;max-width:1400px;width:100%;margin:0 auto}
+@media(max-width:860px){
+ .admin-shell-sidebar{position:fixed;inset-block:0;inset-inline-start:0;transform:translateX(-105%);width:264px!important;box-shadow:var(--shadow)}
+ [dir="rtl"] .admin-shell-sidebar{transform:translateX(105%)}
+ .admin-shell-sidebar.open{transform:none}
+}
