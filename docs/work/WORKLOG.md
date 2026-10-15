@@ -4674,3 +4674,17 @@ port-prose edits, credential rotation, archive redaction).
 | Activity            | Pushed both branches. Wrote the next-session handover `docs/work/RESUME_2026-10-10-session-2.md` (supersedes `RESUME_2026-10-10.md`). Updated the TODO resume pointer and the roadmap's rows 1.5, 1.6 and E-1: the port decision is recorded as resolved by evidence, and `SEC-115` as criteria-written with execution pending. |
 | Open owner question | `SEC-115` AC-3 deletes `.env.local`, which holds the only working copy of the real Google OIDC credentials in this tree. The owner was asked and deferred ("will stop now"). Confirm before deleting, or execute AC-1/AC-2/AC-4/AC-5 first.                                                                                     |
 | Next                | Execute `SEC-115` against its criteria, then Phase 2 (the Phase C remainder).                                                                                                                                                                                                                                                   |
+
+
+## 2026-10-15 — API-101 final: eduflow360db chosen, 1 failing test documented
+
+| Field | Entry |
+|---|---|
+| **Date** | 2026-10-15 |
+| **Phase** | Milestone 1 - API-101 |
+| **Task** | Switch .env to eduflow360db; run integration; record result |
+| **Status** | Warning - 323 passed / 1 failed as expected (residue row) |
+| **Files Changed** | .env (local only); docs/work/WORKLOG.md (this entry) |
+| **Decisions** | Owner chose eduflow360db over the clean eduflowdb_new; we do not alter tests to cover it up. |
+| **Next Steps** | Clean the residue in eduflow360db or leave it as documented evidence-only red test. |
+| **Quality** | Tests reported exactly 1 failed (seed password contract); all 323 passed |
