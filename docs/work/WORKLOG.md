@@ -4525,3 +4525,7 @@ port-prose edits, credential rotation, archive redaction).
 
 
 ## 2026-10-16 — Mobile drawer scrim (PLT-1005)\n- Commits included drawer open/close behavior + passing tests.\n
+
+## 2026-10-16 — PLT-1005 sidebar + /admin page integration fixed
+- Page now resolves common.search, passes console permission to AdminSidebar, shell and unit tests pass.
+
