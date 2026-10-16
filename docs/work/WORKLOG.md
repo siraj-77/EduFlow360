@@ -4523,3 +4523,5 @@ port-prose edits, credential rotation, archive redaction).
 - Files: admin-menu-nav.spec.tsx, admin-menu-nav.tsx.
 - Notes: pure functional helper; tests assert permission and children; lint/type/tests pass.
 
+
+## 2026-10-16 — Mobile drawer scrim (PLT-1005)\n- Commits included drawer open/close behavior + passing tests.\n
