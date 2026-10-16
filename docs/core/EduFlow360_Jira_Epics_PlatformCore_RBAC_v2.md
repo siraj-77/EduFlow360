@@ -1348,3 +1348,10 @@ PLT-107 Superadmin seed needs PLT-101/105/201 · PLT-1002 needs PLT-101/202/204
 ---
 
 *End of EduFlow360 Jira/Epic plan — Platform Core & RBAC + Admin Console v2.0*
+
+## Implementation status appendix (2026-10-16, reference only)
+
+
+- Docs verified (pnpm docs:verify green).
+- v5.3 default superadmin claim is non-authoritative under AGENTS + ADR-003.
+- See docs/work/EPIC_STATUS.md for the reconciled measured state.
