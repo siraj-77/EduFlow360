@@ -1,5 +1,3 @@
-'use client';
-
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
@@ -13,15 +11,20 @@ export interface AdminShellProps {
   readonly topbar?: ReactNode;
   readonly locale?: string;
   readonly menuLabel?: string;
-  readonly closeLabel?: string;
 }
 
-export function AdminShell({ children, sidebar, topbar, menuLabel = 'Open navigation menu', closeLabel = 'Close navigation menu' }: AdminShellProps) {
+export function AdminShell({ children, sidebar, topbar, menuLabel = 'Open navigation menu' }: AdminShellProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="admin-shell" data-testid="admin-shell">
       <aside className={`admin-shell-sidebar ${open ? 'open' : 'closed'}`}>{sidebar}</aside>
+
+      <div
+        className={`admin-shell-scrim ${open ? 'open' : ''}`}
+        data-testid="admin-shell-scrim"
+        onClick={() => setOpen(false)}
+      />
 
       <div className="admin-main-region">
         <div className="admin-topbar">
@@ -29,7 +32,6 @@ export function AdminShell({ children, sidebar, topbar, menuLabel = 'Open naviga
             ☰
           </Button>
           {topbar}
-          <Button type="button" className={`scrim ${open ? 'show' : ''}`} variant="ghost" aria-label={closeLabel} onClick={() => setOpen(false)} />
         </div>
 
         <main className="admin-main" data-testid="admin-main">

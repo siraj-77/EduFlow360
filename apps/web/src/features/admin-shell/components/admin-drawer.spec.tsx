@@ -12,7 +12,7 @@ describe('AdminShell mobile drawer', () => {
     fireEvent.click(screen.getByRole('button', { name: /Open navigation menu/i }));
     expect(screen.getByTestId('sidebar').closest('.admin-shell-sidebar')).toHaveClass('open');
 
-    fireEvent.click(screen.getByRole('button', { name: /Close navigation menu/i }));
+    fireEvent.click(screen.getByTestId('admin-shell-scrim'));
     expect(screen.getByTestId('sidebar').closest('.admin-shell-sidebar')).not.toHaveClass('open');
   });
 });
