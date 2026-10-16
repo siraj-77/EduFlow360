@@ -23,7 +23,8 @@ test('creates a local visual auth session', async ({ request }) => {
   const apiBaseUrl =
     configuredApiBaseUrl && !configuredApiBaseUrl.startsWith('/')
       ? configuredApiBaseUrl
-      : 'http://localhost:3001';
+      : /* eslint-disable-next-line no-restricted-syntax -- PLT-1001: documented web-side dev fallback origin for this local-only scaffold; see api-base-url.ts. */
+        'http://localhost:3001';
   const loginUrl = `${apiBaseUrl.replace(/\/+$/, '')}/auth/login`;
 
   const response = await request.post(loginUrl, {
