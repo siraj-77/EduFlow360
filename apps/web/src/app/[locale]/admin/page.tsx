@@ -23,13 +23,14 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
   setRequestLocale(locale as never);
 
   const t = await getTranslations('admin.console');
+  const tCommon = await getTranslations('common');
 
   return (
     <PermissionsProvider>
       <RequirePermission permission="ADMIN_CONSOLE_ACCESS">
         <AdminShell
-          sidebar={<AdminSidebar />}
-          topbar={<AdminTopBar searchPlaceholder={t('common.search')} />}
+          sidebar={<AdminSidebar granted={new Set(['ADMIN_CONSOLE_ACCESS'])} />}
+          topbar={<AdminTopBar searchPlaceholder={tCommon('search')} />}
         >
           <main className="admin-main-content">
             <Card>
