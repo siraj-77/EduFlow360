@@ -2,7 +2,7 @@
 
 > **Read this before writing any code.** It is the operating contract for this repository.
 > **Decided:** September 27, 2026 · **Governing ADR:** `docs/adr/ADR-003-new-app-single-tenant-selective-reuse.md`
-> **Revised:** September 28, 2026 — merged with the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.2.
+> **Revised:** September 28, 2026 — merged with the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.3.
 > **Revised:** October 5, 2026 — status corrected after a full-tree audit. See the amendment log below.
 > **Status:** milestone 1 (Platform Core & RBAC) in progress. Application code exists: 16 Prisma models, 5 controllers, 3 enforcing guards, 1,401 unit + 235 integration + 37 e2e tests. **9 of the 12 API module directories are still empty scaffolds.**
 
@@ -12,11 +12,12 @@
 
 | Date | Change | Authority |
 |---|---|---|
-| 2026-09-28 | Initial contract. Merged the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.2. | Master Plan v5.2 |
+| 2026-09-28 | Initial contract. Merged the shared-engine, retail/hall, AI, offline, privacy, UI and process rules from Master Plan v5.3. | Master Plan v5.3 |
 | 2026-10-05 | **Status block corrected.** It read *"pre-scaffold. No application code exists yet."* That was false from 2026-09-29 onward, and it was the first thing every session read. | Owner approval of ⚑'B, 2026-10-05 |
 | 2026-10-05 | **§3.1 and §4 testing row: Jest → Vitest.** `docs/adr/ADR-020-test-runner-is-vitest.md` was Accepted 2026-09-30; only this amendment was outstanding. | Owner approval of ⚑'A, 2026-10-05 |
 | 2026-10-05 | **§7: `PLT-101`'s Definition of Done amended** — mobile parity is milestone 2 per `ADR-005`, so it is no longer part of the web/API DoD. | Owner approval of ⚑N4, 2026-10-05 |
 | 2026-10-05 | **§6, §12 and §13 corpus pointer corrected.** All three named `docs/archive/corpus/`, which does not exist. §6 already named `docs/core/` as the source; the other two contradicted it. | Owner decision on ⚑2, 2026-10-05 |
+| 2026-10-16 | **Master Plan v5.3 reviewed vs contract.** This repository now references `EduFlow_Project_Master_Plan_v5.3.md`, but AGENTS.md + ADR-003 take precedence on contradictions (including the plan's `default superadmin` wording, UI templates `used as-is` and proposed ports). Do not turn plan vocabulary into seeded credentials, hard-coded ports, or forbidden user-facing copy. | Lead review 2026-10-16 |
 
 ---
 
@@ -28,7 +29,7 @@ This repository holds the requirements, the architecture and the delivery plan *
 
 **A separate legacy implementation exists at `H:\AI-Dev\MyProjects\EduFlowV3\EduFlowV3\eduflow\`.** It is a Next.js 16 monolith with a multi-tenant SaaS data model. It is **read-only reference material**. You are not extending it, not deploying it, and not porting it wholesale. See §5 for exactly what may be reused.
 
-**Planning documents (current):** `EduFlow_Project_Master_Plan_v5.2.md` (architecture, module tree, editions, roadmap), `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (FR-xxx requirements, test strategy, MVP, phases), `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (epic/story/AC template), `EduFlow_School_Setup_Workflow_v1.md` (delivery process, gates G0–G9), `EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` (how to drive an agent; **its P0–P14 sequence supersedes any sprint map**), `SSOT.md` (current state of record) and `ARCHITECTURE.md` (the technical form of this contract). Keep them under `docs/core/`.
+**Planning documents (current):** `EduFlow_Project_Master_Plan_v5.3.md` (architecture, module tree, editions, roadmap), `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (FR-xxx requirements, test strategy, MVP, phases), `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (epic/story/AC template), `EduFlow_School_Setup_Workflow_v1.md` (delivery process, gates G0–G9), `EduFlow_Agentic_Prompt_Pack_PlatformCore_v1.md` (how to drive an agent; **its P0–P14 sequence supersedes any sprint map**), `SSOT.md` (current state of record) and `ARCHITECTURE.md` (the technical form of this contract). Keep them under `docs/core/`.
 
 ---
 
@@ -353,7 +354,7 @@ Inventory and per-file judgements: `docs/analysis/LEGACY_REUSE_INVENTORY.md`.
 | `edge-cases-and-risks.md` | 🔴 **Empty stub.** Will carry risks, boundary tests, failure modes and test standards |
 | `fr-index.md` | 🔴 **Empty stub.** Will carry FR/NMR traceability from `SRS` to epic → story → test |
 
-**Where the requirements actually are today:** the archived corpus in `docs/core/` — `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (the FR and NFR source of record, **87 FRs + 9 NFRs**), `EduFlow_Project_Master_Plan_v5.2.md` (the module tree, §5) and `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (9 epics · 33 stories · 199 points). There is no `docs/archive/corpus/`; ⚑2 is answered — **`docs/core/` is the corpus.**
+**Where the requirements actually are today:** the archived corpus in `docs/core/` — `EduFlow_SRS_TestPlan_MVP_Roadmap_v1.2.md` (the FR and NFR source of record, **87 FRs + 9 NFRs**), `EduFlow_Project_Master_Plan_v5.3.md` (the module tree, §5) and `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` (9 epics · 33 stories · 199 points). There is no `docs/archive/corpus/`; ⚑2 is answered — **`docs/core/` is the corpus.**
 
 **Read the relevant `docs/core/` section before implementing any module.** **Before creating any entity, enum, interface or engine, check `docs/core/SSOT.md`, `docs/core/ARCHITECTURE.md` and §2.9 for an existing equivalent** — creating a parallel concept under a new name is the most common way this codebase drifts.
 
@@ -370,7 +371,7 @@ These are **blocking**. The corpus does not contain the design.
 | **Grading & Moderation** — P0, zero rules | Exams, report cards, promotion, analytics | `PC-002` |
 | **Tax & currency** — never mentioned, despite invoicing | Fees, payroll, procurement | `PC-003` |
 | **Admission** — in MVP list, no FR behind it | MVP scope | `PC-004` |
-| **BookShop, Canteen, School Hall rental** — specified in Master Plan v5.2 §17.6–17.9 (newer than the idea-bank extraction); needs FR/rule/entity extraction and settlement design | Retail outlets, hall rental | `PC-005` *(proposed — not yet ticketed)* |
+| **BookShop, Canteen, School Hall rental** — specified in Master Plan v5.3 §17.6–17.9 (newer than the idea-bank extraction); needs FR/rule/entity extraction and settlement design | Retail outlets, hall rental | `PC-005` *(proposed — not yet ticketed)* |
 | **Student Wallet** — stored-value legal review and GL design | Wallet | `PC-006` *(proposed — not yet ticketed)* |
 
 ---
@@ -499,11 +500,11 @@ STORAGE_ENDPOINT="<s3-compatible endpoint>"
 |---|---|
 | What are we building, and why this way? | `docs/adr/ADR-003-*` |
 | What is the current state of the project? | `docs/core/SSOT.md` |
-| How is it architected? | `docs/core/ARCHITECTURE.md`, Master Plan v5.2 §5 |
-| What are the exact business rules? | 🔴 **`docs/idea-bank/business-rules.md` is an empty stub — see §6.** Until `REQ-03` runs: SRS v1.2, then Master Plan v5.2 |
+| How is it architected? | `docs/core/ARCHITECTURE.md`, Master Plan v5.3 §5 |
+| What are the exact business rules? | 🔴 **`docs/idea-bank/business-rules.md` is an empty stub — see §6.** Until `REQ-03` runs: SRS v1.2, then Master Plan v5.3 |
 | What entities and fields exist? | 🔴 **`docs/idea-bank/domain-entities.md` is an empty stub.** Until `REQ-02` runs: `SSOT.md` §4 decisions, `ADR-002`, and the ERD once it exists |
 | What is in the MVP? | **`docs/core/EduFlow360_SRS_TestPlan_MVP_Roadmap_v1.3.md` Part D §19** — not the idea-bank, which is a stub |
-| BookShop / Canteen / Hall / newer requirements? | Master Plan v5.2 §17; SRS v1.2 FR-RET / FR-CAN / FR-BKS / FR-FAC / FR-WAL |
+| BookShop / Canteen / Hall / newer requirements? | Master Plan v5.3 §17; SRS v1.2 FR-RET / FR-CAN / FR-BKS / FR-FAC / FR-WAL |
 | What are we building first? | `docs/work/PLATFORM_CORE_PLAN.md` |
 | How do I write epics/stories? | `EduFlow_Jira_Epics_PlatformCore_RBAC_v1.md` |
 | What is the next task? | `docs/work/TODO.md` |
