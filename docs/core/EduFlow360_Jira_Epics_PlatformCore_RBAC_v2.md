@@ -1355,3 +1355,12 @@ PLT-107 Superadmin seed needs PLT-101/105/201 · PLT-1002 needs PLT-101/202/204
 - Docs verified (pnpm docs:verify green).
 - v5.3 default superadmin claim is non-authoritative under AGENTS + ADR-003.
 - See docs/work/EPIC_STATUS.md for the reconciled measured state.
+
+
+## PLT-EPIC-01 update (2026-10-15)
+- Web/API scope measured at roughly 95 percent complete.
+- Password sign-in, OIDC plus Google on jose, setup token, reset, sign-out, and password policy are largely done and tested over HTTP.
+- Mobile-only PLT-104/PLT-106 and password-policy resolution remain, as do no-unlink-route cleanup and minor ADR refinements.
+- No .env or tracked credential change required for this epic; first-admin still uses the PLT-107 setup-token path.
+
+
