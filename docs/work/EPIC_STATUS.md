@@ -31,6 +31,16 @@
 
 ---
 
+## Reconciled status against Jira Epics v2 (2026-10-16)
+
+- Jira is referenced via `docs/core/EduFlow360_Jira_Epics_PlatformCore_RBAC_v2.md`, which in turn cites the (non-authoritative) Master Plan v5.3 blurb “default superadmin, ports, used-as-is.”
+- AGENTS.md and ADR-003 are the contract: a **default SUPER_ADMIN seed with a password** is **NOT** implemented by code, no `superadmin` is seeded, and the seed sets only the core roles + permissions. The only singleton first-admin path is `PLT-107` (setup-token) or, for local dev, a temporary, never-committed script.
+- **SRS/requirements drift:** `PLT-EPIC-05`, `07`, `08`, `09` remain largely absent from implementation; see the table above for the measured percentages.
+- **Epic 10** (`29` pts) is split across branches now: `PLT-1001`, `1002`, `1003` (T2/T3/T4 measured), `PLT-1004` (T2–T4 + AC in PR #19), and `PLT-1005` admin shell has actual code in `feat/plt-1005-admin-shell`, but is **not** marked complete until the auth-dependent gates run (and the visual manifest still marks `dashboard` as deferred).
+- Companion updates this session include `AGENTS.md` now references `EduFlow_Project_Master_Plan_v5.3.md` while retaining precedence (commit `887600d`), so the plan-vs-code delta is explicit.
+
+---
+
 ## The single most important line in this document
 
 > **2026-10-03 it read:** `@RequirePermission` **now enforces.** `@RequireEntitlement`
