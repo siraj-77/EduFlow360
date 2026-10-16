@@ -4517,3 +4517,9 @@ port-prose edits, credential rotation, archive redaction).
 | Activity | Pushed both branches. Wrote the next-session handover `docs/work/RESUME_2026-10-10-session-2.md` (supersedes `RESUME_2026-10-10.md`). Updated the TODO resume pointer and the roadmap's rows 1.5, 1.6 and E-1: the port decision is recorded as resolved by evidence, and `SEC-115` as criteria-written with execution pending. |
 | Open owner question | `SEC-115` AC-3 deletes `.env.local`, which holds the only working copy of the real Google OIDC credentials in this tree. The owner was asked and deferred ("will stop now"). Confirm before deleting, or execute AC-1/AC-2/AC-4/AC-5 first. |
 | Next | Execute `SEC-115` against its criteria, then Phase 2 (the Phase C remainder). |
+
+## 2026-10-16 — PLT-1005 AdminMenuNav render helper + permission filtering
+- Commits: 7f807dd test RED, d045c87 feat GREEN.
+- Files: admin-menu-nav.spec.tsx, admin-menu-nav.tsx.
+- Notes: pure functional helper; tests assert permission and children; lint/type/tests pass.
+
